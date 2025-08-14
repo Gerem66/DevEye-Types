@@ -1,0 +1,16 @@
+{
+  "name": "deveye-types",
+  "version": "1.0.0",
+  "description": "TypeScript types for DevEye project",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/react": "^18.0.0"
+  },
+  "type": "module"
+}

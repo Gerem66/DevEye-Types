@@ -1,0 +1,30 @@
+{
+  "exclude": ["node_modules", "dist"],
+  "compilerOptions": {
+    "composite": true,
+    "target": "es2024",
+    "module": "ESNext",
+    "lib": ["dom", "es2024", "esnext.asynciterable"],
+    "sourceMap": false,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "strict": true,
+    "esModuleInterop": true,
+    "moduleResolution": "Node",
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "allowSyntheticDefaultImports": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "removeComments": true,
+    "pretty": true
+  },
+  "tsc-alias": {
+    "resolveFullPaths": true
+  }
+}

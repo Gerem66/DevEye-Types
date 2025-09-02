@@ -8,6 +8,5 @@ export type { DBUserType, UserType, TCPUserType } from './User';
 export { DefaultUser } from './User';
 
 // TCP types exports
-export type { RequestClientToServer } from './TCP/ClientToServer';
-export type { RequestServerToClient } from './TCP/ServerToClient';
-export type { ConnectionState, TCPRequestSendHeader, TCPRequestReceiveHeader } from './TCP';
+export type { RequestCommands } from './TCP/Requests';
+export type { ConnectionState, TCPRequestSendHeader, TCPRequestReceiveHeader } from './TCP/index';

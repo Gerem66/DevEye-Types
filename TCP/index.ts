@@ -1,16 +1,15 @@
-import type { RequestClientToServer } from './ClientToServer';
-import type { RequestServerToClient } from './ServerToClient';
+import { RequestCommands } from './Requests';
 
 export type ConnectionState = 'idle' | 'connected' | 'disconnected' | 'error';
 
-export interface TCPRequestSendHeader<T extends keyof RequestClientToServer> {
+export interface TCPRequestSendHeader<T extends keyof RequestCommands> {
     action: T;
-    content: RequestClientToServer[T];
+    content: RequestCommands[T]['input'];
     callbackID?: string;
 }
 
-export interface TCPRequestReceiveHeader<T extends keyof RequestServerToClient> {
+export interface TCPRequestReceiveHeader<T extends keyof RequestCommands> {
     action: T;
-    content: RequestServerToClient[T];
+    content: RequestCommands[T]['output'];
     callbackID?: string;
 }

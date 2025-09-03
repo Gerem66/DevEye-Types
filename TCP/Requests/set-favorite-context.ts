@@ -1,6 +1,6 @@
 import type { FeaturesID } from '../../Feature';
 
-export interface RequestChangeFavoriteContext {
+export interface RequestSetFavoriteContext {
     input: {
         contextID: number;
         featureID: FeaturesID;

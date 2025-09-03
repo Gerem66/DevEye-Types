@@ -7,9 +7,9 @@ import type { RequestEditPassword } from './edit-password';
 import type { RequestDeletePassword } from './delete-password';
 import type { RequestAddContext } from './add-context';
 import type { RequestDeleteContext } from './delete-context';
-import type { RequestChangeFavoriteContext } from './change-favorite-context';
+import type { RequestSetFavoriteContext } from './set-favorite-context';
 import type { RequestGamelifeSetLoop } from './gamelife-set-loop';
-import type { RequestGamelifeData } from './gamelife-data';
+// import type { RequestGamelifeData } from './gamelife-data';
 
 export interface RequestCommands {
     login: RequestLogin;
@@ -21,7 +21,7 @@ export interface RequestCommands {
     'delete-password': RequestDeletePassword;
     'add-context': RequestAddContext;
     'delete-context': RequestDeleteContext;
-    'change-favorite-context': RequestChangeFavoriteContext;
+    'set-favorite-context': RequestSetFavoriteContext;
     'gamelife-set-loop': RequestGamelifeSetLoop;
-    'gamelife-data': RequestGamelifeData;
+    // 'gamelife-data': RequestGamelifeData;
 }

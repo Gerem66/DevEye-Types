@@ -1,4 +1,4 @@
-import { RequestCommands } from './Requests';
+import { RequestCommands } from './commands';
 
 export type ConnectionState = 'idle' | 'connected' | 'disconnected' | 'error';
 

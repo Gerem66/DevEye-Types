@@ -5,8 +5,12 @@ export interface RequestLogin {
         token: string;
         password: string | null;
     };
-    output: {
-        status: number;
-        user: UserType | null;
-    };
+    output:
+        | {
+              status: 'error';
+          }
+        | {
+              status: 'success';
+              user: UserType;
+          };
 }

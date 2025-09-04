@@ -5,8 +5,12 @@ export interface RequestAddPassword {
         contextID: number;
         password: PasswordType;
     };
-    output: {
-        status: number;
-        password: PasswordType | null;
-    };
+    output:
+        | {
+              status: 'error';
+          }
+        | {
+              status: 'success';
+              password: PasswordType;
+          };
 }

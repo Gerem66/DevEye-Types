@@ -3,8 +3,12 @@ export interface RequestCheckPassword {
         contextID: number;
         password: string;
     };
-    output: {
-        status: number;
-        message: string | null;
-    };
+    output:
+        | {
+              status: 'unlocked';
+          }
+        | {
+              status: 'wrong-user-or-password' | 'error';
+              message: string;
+          };
 }

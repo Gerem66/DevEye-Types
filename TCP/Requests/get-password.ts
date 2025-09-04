@@ -5,8 +5,12 @@ export interface RequestGetPassword {
         contextID: number;
         passwordID: number;
     };
-    output: {
-        status: number;
-        password: PasswordType | null;
-    };
+    output:
+        | {
+              status: 'unlock-failed' | 'error';
+          }
+        | {
+              status: 'success';
+              password: PasswordType;
+          };
 }

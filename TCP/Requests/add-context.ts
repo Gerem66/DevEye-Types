@@ -4,8 +4,12 @@ export interface RequestAddContext {
     input: {
         contextName: string;
     };
-    output: {
-        status: number;
-        context: ContextType | null;
-    };
+    output:
+        | {
+              status: 'error';
+          }
+        | {
+              status: 'success';
+              context: ContextType;
+          };
 }

@@ -4,8 +4,12 @@ export interface RequestGamelifeSetLoop {
         type: 'open' | 'close';
         intervalID?: string;
     };
-    output: {
-        status: number;
-        intervalID: string;
-    };
+    output:
+        | {
+              status: 'error';
+          }
+        | {
+              status: 'success';
+              intervalID: string;
+          };
 }

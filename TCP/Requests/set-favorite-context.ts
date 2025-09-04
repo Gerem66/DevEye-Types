@@ -6,6 +6,6 @@ export interface RequestSetFavoriteContext {
         featureID: FeaturesID;
     };
     output: {
-        status: number;
+        status: 'success' | 'error';
     };
 }

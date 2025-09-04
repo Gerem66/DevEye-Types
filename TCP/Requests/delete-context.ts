@@ -4,6 +4,6 @@ export interface RequestDeleteContext {
         // passwordID: number; ?
     };
     output: {
-        status: number;
+        status: 'error' | 'success';
     };
 }

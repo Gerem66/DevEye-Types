@@ -4,6 +4,6 @@ export interface RequestDeletePassword {
         passwordID: number;
     };
     output: {
-        status: number;
+        status: 'error' | 'success';
     };
 }

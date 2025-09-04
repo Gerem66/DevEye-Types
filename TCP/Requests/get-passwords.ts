@@ -4,8 +4,12 @@ export interface RequestGetPasswords {
     input: {
         contextID: number;
     };
-    output: {
-        status: number;
-        passwords: Array<PasswordType> | null;
-    };
+    output:
+        | {
+              status: 'error';
+          }
+        | {
+              status: 'success';
+              passwords: PasswordType[];
+          };
 }

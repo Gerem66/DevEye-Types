@@ -1,7 +1,7 @@
-import type { FeaturesID } from './Feature';
-import type { ContextType } from './Context';
+import type { FeaturesID } from '../Feature';
+import type { DBType_Workspace } from './Workspaces';
 
-export interface DBUserType {
+export interface DBType_User_Raw {
     ID: number;
     Email: string;
     Username: string;
@@ -9,7 +9,7 @@ export interface DBUserType {
     ReAuthInterval: number | null; // Interval in seconds for re-authentication (null = never, 0 = always)
     Avatar: string;
     Features: string; // JSON string
-    DefaultContext: number;
+    DefaultWorkspace: number;
     DefaultFeature: FeaturesID;
     Settings: string; // JSON string
     Token: string;
@@ -17,13 +17,13 @@ export interface DBUserType {
     Created: number;
 }
 
-export interface UserType {
+export interface DBType_User {
     ID: number;
     Email: string;
     Username: string;
     Avatar: string;
-    Contexts: ContextType[];
-    DefaultContext: number; // ID of the default context (0 = self)
+    Workspaces: DBType_Workspace[];
+    DefaultWorkspace: number; // ID of the default workspace (0 = self)
     DefaultFeature: FeaturesID;
     Settings: string[];
     Token: string;
@@ -31,7 +31,7 @@ export interface UserType {
     Created: number;
 }
 
-export interface TCPUserType {
+export interface MinimalUserType {
     ID: number;
     Email: string;
     Username: string;
@@ -39,7 +39,7 @@ export interface TCPUserType {
     Created: number;
 }
 
-export const DefaultUser: UserType = {
+export const DefaultUser: DBType_User = {
     ID: 0,
     Email: '',
     Username: '',
@@ -47,8 +47,8 @@ export const DefaultUser: UserType = {
     Settings: [],
     Created: 0,
     LastLogin: 0,
-    Contexts: [],
-    Token: '',
-    DefaultContext: 0,
-    DefaultFeature: 'dashboard'
+    Workspaces: [],
+    DefaultWorkspace: 0,
+    DefaultFeature: 'dashboard',
+    Token: ''
 };

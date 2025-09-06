@@ -1,8 +1,8 @@
 import type { FeaturesID } from '../../Feature';
 
-export interface RequestSetFavoriteContext {
+export interface RequestSetFavoriteWorkspace {
     input: {
-        contextID: number;
+        workspaceID: number;
         featureID: FeaturesID;
     };
     output: {

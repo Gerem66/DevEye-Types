@@ -1,6 +1,6 @@
 export interface RequestDeletePassword {
     input: {
-        contextID: number;
+        workspaceID: number;
         passwordID: number;
     };
     output: {

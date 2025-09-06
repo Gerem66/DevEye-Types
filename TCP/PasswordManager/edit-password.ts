@@ -2,7 +2,7 @@ import type { PasswordType } from '../../Password';
 
 export interface RequestEditPassword {
     input: {
-        contextID: number;
+        workspaceID: number;
         password: PasswordType;
     };
     output:

@@ -3,7 +3,7 @@ export type PasswordStatus = 'active' | 'inactive' | 'none';
 export interface PasswordDatabaseType {
     ID: number;
     UserID: number;
-    ContextID: number | null;
+    WorkspaceID: number | null;
     Content: string;
     Date: number;
 }

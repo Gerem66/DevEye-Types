@@ -2,7 +2,7 @@ import type { PasswordType } from '../../Password';
 
 export interface RequestGetPasswords {
     input: {
-        contextID: number;
+        workspaceID: number;
     };
     output:
         | {

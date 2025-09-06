@@ -1,4 +1,4 @@
-import type { UserType } from '../../User';
+import type { DBType_User } from '../../DB/User';
 
 export interface RequestLogin {
     input: {
@@ -11,6 +11,6 @@ export interface RequestLogin {
           }
         | {
               status: 'success';
-              user: UserType;
+              user: DBType_User;
           };
 }

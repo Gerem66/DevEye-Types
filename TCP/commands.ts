@@ -1,10 +1,10 @@
 // Authentification
 import type { RequestLogin } from './Auth/login';
 
-// Contexts
-import type { RequestAddContext } from './Contexts/add-context';
-import type { RequestDeleteContext } from './Contexts/delete-context';
-import type { RequestSetFavoriteContext } from './Contexts/set-favorite-context';
+// Workspaces
+import type { RequestAddWorkspace } from './Workspaces/add-workspace';
+import type { RequestDeleteWorkspace } from './Workspaces/delete-workspace';
+import type { RequestSetFavoriteWorkspace } from './Workspaces/set-favorite-workspace';
 
 // Passwords
 import type { RequestAddPassword } from './PasswordManager/add-password';
@@ -22,10 +22,10 @@ export interface RequestCommands {
     // Authentification
     login: RequestLogin;
 
-    // Contexts
-    'add-context': RequestAddContext;
-    'delete-context': RequestDeleteContext;
-    'set-favorite-context': RequestSetFavoriteContext;
+    // Workspaces
+    'add-workspace': RequestAddWorkspace;
+    'delete-workspace': RequestDeleteWorkspace;
+    'set-favorite-workspace': RequestSetFavoriteWorkspace;
 
     // Passwords
     'add-password': RequestAddPassword;

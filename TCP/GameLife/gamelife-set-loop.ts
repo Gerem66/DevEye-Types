@@ -1,6 +1,6 @@
 export interface RequestGamelifeSetLoop {
     input: {
-        contextID: number;
+        workspaceID: number;
         type: 'open' | 'close';
         intervalID?: string;
     };

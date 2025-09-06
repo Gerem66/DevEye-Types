@@ -1,6 +1,6 @@
-export interface RequestDeleteContext {
+export interface RequestDeleteWorkspace {
     input: {
-        contextID: number;
+        workspaceID: number;
         // passwordID: number; ?
     };
     output: {

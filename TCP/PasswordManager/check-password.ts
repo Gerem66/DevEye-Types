@@ -1,6 +1,6 @@
 export interface RequestCheckPassword {
     input: {
-        contextID: number;
+        workspaceID: number;
         password: string;
     };
     output:

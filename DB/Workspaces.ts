@@ -1,7 +1,7 @@
-import type { TCPUserType } from './User';
-import type { FeaturesID } from './Feature';
+import type { MinimalUserType } from './User';
+import type { FeaturesID } from '../Feature';
 
-export interface DBContextType {
+export interface DBType_Workspace_Raw {
     ID: number;
     Name: string;
     Logo: string;
@@ -11,11 +11,11 @@ export interface DBContextType {
     Created: number;
 }
 
-export interface ContextType {
-    id: number; // Context ID (0 = self)
+export interface DBType_Workspace {
+    id: number; // Workspace ID (0 = self)
     name: string;
     logo: string;
-    users: TCPUserType[];
+    users: MinimalUserType[];
     features: FeaturesID[];
     reAuthInterval: number | null; // Interval in seconds for re-authentication (null = never, 0 = always)
     created: number;

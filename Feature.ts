@@ -17,5 +17,5 @@ export interface FeatureType {
     id: FeaturesID;
     name: string;
     icon: string; // Icon type
-    component: React.ComponentType<FeatureProps>;
+    component: React.ComponentType<FeatureProps> | (new (props: FeatureProps) => unknown);
 }

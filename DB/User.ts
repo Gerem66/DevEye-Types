@@ -49,6 +49,6 @@ export const DefaultUser: DBType_User = {
     LastLogin: 0,
     Workspaces: [],
     DefaultWorkspace: 0,
-    DefaultFeature: 'dashboard',
+    DefaultFeature: 'profile',
     Token: ''
 };

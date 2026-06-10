@@ -1,6 +1,6 @@
 {
-  "name": "deveye-types",
-  "version": "0.2.0",
+  "name": "@gerem66/deveye-types",
+  "version": "0.1.0",
   "description": "Shared contracts (types + zod schemas) for DevEye apps",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -14,6 +14,9 @@
     "src",
     "dist"
   ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -26,6 +29,10 @@
   },
   "dependencies": {
     "zod": "^4.4.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gerem66/DevEye-Types.git"
   },
   "devDependencies": {
     "@eslint/js": "^8.0.0",

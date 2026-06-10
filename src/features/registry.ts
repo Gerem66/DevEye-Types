@@ -8,10 +8,7 @@ export interface FeatureCommandDescriptor<C extends string = string> {
     output: z.ZodTypeAny;
 }
 
-export const featureCommands = [
-    ...workspaceCommands,
-    ...passwordCommands
-] as const;
+export const featureCommands = [...workspaceCommands, ...passwordCommands] as const;
 
 export const featureCommandRegistry: Record<string, FeatureCommandDescriptor> = Object.fromEntries(
     featureCommands.map((c) => [c.command, c])

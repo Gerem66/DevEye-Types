@@ -25,4 +25,8 @@ export const workspaceSetFavoriteFeature = {
     })
 };
 
-export const workspaceCommands = [workspaceAdd, workspaceDelete, workspaceSetFavoriteFeature] as const;
+export const workspaceCommands = [
+    workspaceAdd,
+    workspaceDelete,
+    workspaceSetFavoriteFeature
+] as const;

@@ -1,7 +1,7 @@
-import globals from 'globals';
 import pluginJs from '@eslint/js';
-import tseslint from 'typescript-eslint';
 import prettier from 'eslint-plugin-prettier';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 export default [
     { files: ['**/*.{js,mjs,cjs,ts,jsx,tsx}'] },
@@ -39,7 +39,7 @@ export default [
             'max-len': [
                 'error',
                 {
-                    code: 120,
+                    code: 100,
                     ignoreUrls: true,
                     ignoreComments: true,
                     ignoreStrings: true,
@@ -55,7 +55,7 @@ export default [
                     jsxSingleQuote: true,
                     avoidEscape: true,
                     trailingComma: 'none',
-                    printWidth: 120
+                    printWidth: 100
                 }
             ]
         }

@@ -1,5 +1,9 @@
 import { z } from 'zod';
+import { deviceCommands } from './device';
+import { metricsCommands } from './metrics';
 import { passwordCommands } from './password';
+import { twoFactorCommands } from './twoFactor';
+import { weatherCommands } from './weather';
 import { workspaceCommands } from './workspace';
 
 export interface FeatureCommandDescriptor<C extends string = string> {
@@ -8,7 +12,14 @@ export interface FeatureCommandDescriptor<C extends string = string> {
     output: z.ZodTypeAny;
 }
 
-export const featureCommands = [...workspaceCommands, ...passwordCommands] as const;
+export const featureCommands = [
+    ...workspaceCommands,
+    ...passwordCommands,
+    ...deviceCommands,
+    ...metricsCommands,
+    ...weatherCommands,
+    ...twoFactorCommands
+] as const;
 
 export const featureCommandRegistry: Record<string, FeatureCommandDescriptor> = Object.fromEntries(
     featureCommands.map((c) => [c.command, c])

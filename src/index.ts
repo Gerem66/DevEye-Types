@@ -104,12 +104,7 @@ export type {
     FeatureCommandDescriptor,
     FeatureCommandName
 } from './features/registry';
-export {
-    workspaceAdd,
-    workspaceCommands,
-    workspaceDelete,
-    workspaceSetFavoriteFeature
-} from './features/workspace';
+export { workspaceAdd, workspaceCommands, workspaceDelete } from './features/workspace';
 export {
     deviceCommands,
     deviceConfirm,
@@ -130,7 +125,9 @@ export {
     weatherGet,
     weatherList,
     weatherRemove,
+    weatherReorder,
     weatherSetKey,
+    weatherSetPrimary,
     weatherUpdate
 } from './features/weather';
 export {

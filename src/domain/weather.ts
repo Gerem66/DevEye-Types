@@ -21,7 +21,9 @@ export const weatherLocationSchema = z.object({
     /** Number of forecast days for the `daily` format (1..16). */
     days: z.number().int().min(1).max(16),
     provider: weatherProviderSchema,
-    position: z.number().int().nonnegative()
+    position: z.number().int().nonnegative(),
+    /** The primary city: shown in the topbar and the home widget. */
+    isPrimary: z.boolean()
 });
 
 export type WeatherLocation = z.infer<typeof weatherLocationSchema>;
@@ -53,6 +55,8 @@ export const weatherReportSchema = z.object({
     locationId: z.string().uuid(),
     label: z.string(),
     fetchedAt: z.number().int().nonnegative(),
+    /** IANA timezone of the location (e.g. "Europe/Paris"), for local-date display. */
+    timezone: z.string(),
     current: weatherConditionSchema.nullable(),
     daily: z.array(weatherDaySchema)
 });
@@ -69,6 +73,7 @@ export interface WeatherLocationRow {
     days: number;
     provider: WeatherProvider;
     position: number;
+    is_primary: number;
     created: number;
 }
 

@@ -19,7 +19,6 @@ export const userSchema = z.object({
     role: userRoleSchema,
     settings: z.array(z.string()),
     defaultWorkspace: z.number().int().nonnegative(),
-    defaultFeature: z.string().min(1),
     lastLogin: z.number().int().nonnegative(),
     created: z.number().int().nonnegative()
 });
@@ -40,7 +39,6 @@ export interface UserRow {
     /** Features of the user's private/personal workspace (workspace id 0). */
     features: string;
     default_workspace: number;
-    default_feature: string;
     re_auth_interval: number | null;
     last_login: number;
     created: number;
@@ -54,7 +52,6 @@ export const defaultUser: User = {
     role: 'user',
     settings: [],
     defaultWorkspace: 0,
-    defaultFeature: 'profile',
     lastLogin: 0,
     created: 0
 };

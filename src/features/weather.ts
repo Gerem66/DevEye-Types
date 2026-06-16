@@ -43,6 +43,20 @@ export const weatherRemove = {
     output: z.object({ id: locationId })
 };
 
+/** Reorder all of the user's locations; `ids` is the new full order. */
+export const weatherReorder = {
+    command: 'weather.reorder' as const,
+    input: z.object({ ids: z.array(locationId).min(1) }),
+    output: z.object({ locations: z.array(weatherLocationSchema) })
+};
+
+/** Mark one location as primary (topbar + widget); clears it on the others. */
+export const weatherSetPrimary = {
+    command: 'weather.setPrimary' as const,
+    input: z.object({ id: locationId }),
+    output: z.object({ locations: z.array(weatherLocationSchema) })
+};
+
 /** Fetch a live report for a configured location. */
 export const weatherGet = {
     command: 'weather.get' as const,
@@ -65,6 +79,8 @@ export const weatherCommands = [
     weatherAdd,
     weatherUpdate,
     weatherRemove,
+    weatherReorder,
+    weatherSetPrimary,
     weatherGet,
     weatherSetKey
 ] as const;

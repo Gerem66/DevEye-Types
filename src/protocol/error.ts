@@ -10,7 +10,10 @@ export const ErrorCodeSchema = z.enum([
     'validation',
     'rate_limited',
     'internal',
-    'unsupported_version'
+    'unsupported_version',
+    // Password-based encryption is enabled but the session has not yet been
+    // unlocked with the user's password. The client should prompt for it.
+    'locked'
 ]);
 
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;

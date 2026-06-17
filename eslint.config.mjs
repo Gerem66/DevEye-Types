@@ -35,6 +35,18 @@ export default [
             'eol-last': ['warn', 'always'],
             'dot-notation': 'off',
             'no-bitwise': 'off',
+            '@typescript-eslint/no-unused-vars': [
+                'warn',
+                {
+                    args: 'all',
+                    argsIgnorePattern: '^_',
+                    caughtErrors: 'all',
+                    caughtErrorsIgnorePattern: '^_',
+                    destructuredArrayIgnorePattern: '^_',
+                    varsIgnorePattern: '^_',
+                    ignoreRestSiblings: true
+                }
+            ],
             curly: ['warn', 'multi-line'],
             'max-len': [
                 'error',
@@ -46,18 +58,8 @@ export default [
                     ignoreTemplateLiterals: true
                 }
             ],
-            'prettier/prettier': [
-                'warn',
-                {
-                    singleQuote: true,
-                    parser: 'typescript',
-                    tabWidth: 4,
-                    jsxSingleQuote: true,
-                    avoidEscape: true,
-                    trailingComma: 'none',
-                    printWidth: 100
-                }
-            ]
+            // Options lues depuis prettier.config.js (source unique de vérité)
+            'prettier/prettier': 'warn'
         }
     }
 ];

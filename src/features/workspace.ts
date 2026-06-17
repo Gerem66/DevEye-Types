@@ -13,20 +13,4 @@ export const workspaceDelete = {
     output: z.object({ workspaceId: z.number().int().positive() })
 };
 
-export const workspaceSetFavoriteFeature = {
-    command: 'workspace.setFavoriteFeature' as const,
-    input: z.object({
-        workspaceId: z.number().int().nonnegative(),
-        featureId: z.string().min(1)
-    }),
-    output: z.object({
-        workspaceId: z.number().int().nonnegative(),
-        featureId: z.string().min(1)
-    })
-};
-
-export const workspaceCommands = [
-    workspaceAdd,
-    workspaceDelete,
-    workspaceSetFavoriteFeature
-] as const;
+export const workspaceCommands = [workspaceAdd, workspaceDelete] as const;

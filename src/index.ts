@@ -74,6 +74,7 @@ export {
     weatherConditionSchema,
     weatherDaySchema,
     weatherFormatSchema,
+    weatherHourSchema,
     weatherLocationSchema,
     weatherProviderSchema,
     weatherReportSchema
@@ -82,6 +83,7 @@ export type {
     WeatherCondition,
     WeatherDay,
     WeatherFormat,
+    WeatherHour,
     WeatherLocation,
     WeatherLocationRow,
     WeatherProvider,

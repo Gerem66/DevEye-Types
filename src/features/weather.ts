@@ -21,7 +21,9 @@ export const weatherAdd = {
         query: z.string().min(1).max(120),
         format: weatherFormatSchema.default('current'),
         days: z.number().int().min(1).max(16).default(7),
-        provider: weatherProviderSchema.default('open-meteo')
+        provider: weatherProviderSchema.default('open-meteo'),
+        /** Optional per-city API key for the chosen provider. */
+        apiKey: z.string().max(256).optional()
     }),
     output: z.object({ location: weatherLocationSchema })
 };
@@ -32,7 +34,10 @@ export const weatherUpdate = {
         id: locationId,
         format: weatherFormatSchema.optional(),
         days: z.number().int().min(1).max(16).optional(),
-        position: z.number().int().nonnegative().optional()
+        position: z.number().int().nonnegative().optional(),
+        provider: weatherProviderSchema.optional(),
+        /** Per-city API key: a non-empty string sets it, "" clears it, undefined leaves it. */
+        apiKey: z.string().max(256).optional()
     }),
     output: z.object({ location: weatherLocationSchema })
 };

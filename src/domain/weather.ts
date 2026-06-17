@@ -23,7 +23,9 @@ export const weatherLocationSchema = z.object({
     provider: weatherProviderSchema,
     position: z.number().int().nonnegative(),
     /** The primary city: shown in the topbar and the home widget. */
-    isPrimary: z.boolean()
+    isPrimary: z.boolean(),
+    /** Whether a per-city API key is configured. The key itself is never sent. */
+    hasApiKey: z.boolean()
 });
 
 export type WeatherLocation = z.infer<typeof weatherLocationSchema>;
@@ -50,6 +52,16 @@ export const weatherDaySchema = z.object({
 
 export type WeatherDay = z.infer<typeof weatherDaySchema>;
 
+export const weatherHourSchema = z.object({
+    /** ISO local time of the hour (e.g. "2026-06-17T14:00"). */
+    time: z.string(),
+    code: z.number().int(),
+    temperature: z.number(),
+    precipitationProbability: z.number().nullable()
+});
+
+export type WeatherHour = z.infer<typeof weatherHourSchema>;
+
 /** Live report fetched on demand for a given location. */
 export const weatherReportSchema = z.object({
     locationId: z.string().uuid(),
@@ -57,7 +69,11 @@ export const weatherReportSchema = z.object({
     fetchedAt: z.number().int().nonnegative(),
     /** IANA timezone of the location (e.g. "Europe/Paris"), for local-date display. */
     timezone: z.string(),
+    /** The provider that produced this report (shown discreetly client-side). */
+    provider: weatherProviderSchema,
     current: weatherConditionSchema.nullable(),
+    /** Hour-by-hour forecast for roughly the next 24 hours. */
+    hourly: z.array(weatherHourSchema),
     daily: z.array(weatherDaySchema)
 });
 
@@ -74,6 +90,8 @@ export interface WeatherLocationRow {
     provider: WeatherProvider;
     position: number;
     is_primary: number;
+    /** Encrypted per-city API key (zero-knowledge at rest); null when unset. */
+    api_key_enc: string | null;
     created: number;
 }
 

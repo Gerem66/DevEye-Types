@@ -28,10 +28,13 @@ export const twoFactorDisable = {
     output: z.object({ status: twoFactorStatusSchema })
 };
 
-/** Regenerate recovery codes (invalidates previous ones). */
+/**
+ * Regenerate recovery codes (invalidates previous ones). Authenticated by the
+ * live session — no fresh TOTP code is required, only that 2FA be enabled.
+ */
 export const twoFactorRegenBackup = {
     command: 'twofa.regenBackup' as const,
-    input: z.object({ code: z.string().min(6).max(16) }),
+    input: z.object({}),
     output: z.object({ backupCodes: z.array(z.string().min(1)) })
 };
 

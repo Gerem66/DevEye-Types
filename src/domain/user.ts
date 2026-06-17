@@ -11,6 +11,19 @@ export const minimalUserSchema = z.object({
 
 export type MinimalUser = z.infer<typeof minimalUserSchema>;
 
+/**
+ * Account security posture, surfaced in the profile as "Sécurité → x / 2".
+ * Each flag is one of the two main protections.
+ */
+export const userSecuritySchema = z.object({
+    /** TOTP two-factor authentication is enabled. */
+    twoFactor: z.boolean(),
+    /** Password-based encryption (DEK wrapped by the user's password) is on. */
+    passwordEncryption: z.boolean()
+});
+
+export type UserSecurity = z.infer<typeof userSecuritySchema>;
+
 export const userSchema = z.object({
     id: z.number().int().nonnegative(),
     email: z.string().email(),
@@ -18,6 +31,7 @@ export const userSchema = z.object({
     avatar: z.string(),
     role: userRoleSchema,
     settings: z.array(z.string()),
+    security: userSecuritySchema,
     defaultWorkspace: z.number().int().nonnegative(),
     lastLogin: z.number().int().nonnegative(),
     created: z.number().int().nonnegative()
@@ -51,6 +65,7 @@ export const defaultUser: User = {
     avatar: '',
     role: 'user',
     settings: [],
+    security: { twoFactor: false, passwordEncryption: false },
     defaultWorkspace: 0,
     lastLogin: 0,
     created: 0

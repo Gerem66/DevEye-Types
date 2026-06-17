@@ -21,6 +21,17 @@ export const registerRequestSchema = z.object({
 
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;
 
+export const changePasswordRequestSchema = z.object({
+    currentPassword: z.string().min(1).max(512),
+    newPassword: z.string().min(8).max(512)
+});
+
+export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;
+
+export const changePasswordResponseSchema = z.object({ changed: z.literal(true) });
+
+export type ChangePasswordResponse = z.infer<typeof changePasswordResponseSchema>;
+
 /**
  * The auth flow returns the authenticated user and its workspaces in one shot.
  * Tokens are delivered as HttpOnly cookies, never in the JSON body.

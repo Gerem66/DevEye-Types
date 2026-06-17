@@ -42,8 +42,10 @@ export type {
 } from './domain/password';
 export { userRoleSchema } from './domain/role';
 export type { UserRole } from './domain/role';
-export { defaultUser, minimalUserSchema, userSchema } from './domain/user';
-export type { MinimalUser, User, UserRow } from './domain/user';
+export { defaultUser, minimalUserSchema, userSchema, userSecuritySchema } from './domain/user';
+export type { MinimalUser, User, UserRow, UserSecurity } from './domain/user';
+export { secrecyStatusSchema, secrecyWrapModeSchema } from './domain/secrecy';
+export type { SecrecyStatus, SecrecyWrapMode, UserSecretKeyRow } from './domain/secrecy';
 export { workspaceSchema } from './domain/workspace';
 export type { Workspace, WorkspaceMemberRow, WorkspaceRow } from './domain/workspace';
 export { devicePlatformSchema, deviceSchema, deviceStatusSchema } from './domain/device';
@@ -105,6 +107,7 @@ export type {
     FeatureCommandName
 } from './features/registry';
 export { workspaceAdd, workspaceCommands, workspaceDelete } from './features/workspace';
+export { AVATAR_MAX_LENGTH, userCommands, userSetAvatar } from './features/user';
 export {
     deviceCommands,
     deviceConfirm,
@@ -138,9 +141,19 @@ export {
     twoFactorRegenBackup,
     twoFactorSetup
 } from './features/twoFactor';
+export {
+    secrecyCommands,
+    secrecyDisable,
+    secrecyEnable,
+    secrecyRecover,
+    secrecyStatus,
+    secrecyUnlock
+} from './features/secrecy';
 
 // HTTP
 export {
+    changePasswordRequestSchema,
+    changePasswordResponseSchema,
     loginRequestSchema,
     loginResponseSchema,
     meResponseSchema,
@@ -149,6 +162,8 @@ export {
     twoFactorChallengeRequestSchema
 } from './http/auth';
 export type {
+    ChangePasswordRequest,
+    ChangePasswordResponse,
     LoginRequest,
     LoginResponse,
     MeResponse,

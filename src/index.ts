@@ -109,7 +109,15 @@ export type {
     FeatureCommandName
 } from './features/registry';
 export { workspaceAdd, workspaceCommands, workspaceDelete } from './features/workspace';
-export { AVATAR_MAX_LENGTH, userCommands, userSetAvatar } from './features/user';
+export {
+    AVATAR_MAX_LENGTH,
+    THEME_IMAGE_MAX_LENGTH,
+    themeStateSchema,
+    userCommands,
+    userSetAvatar,
+    userSetTheme
+} from './features/user';
+export type { ThemeStateDTO } from './features/user';
 export {
     deviceCommands,
     deviceConfirm,

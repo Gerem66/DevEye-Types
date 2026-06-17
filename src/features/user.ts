@@ -23,4 +23,23 @@ export const userSetAvatar = {
     output: z.object({ avatar: z.string() })
 };
 
-export const userCommands = [userSetAvatar] as const;
+/** Max length of a wallpaper data URL stored in the theme (~4 MB in base64). */
+export const THEME_IMAGE_MAX_LENGTH = 4_200_000;
+
+export const themeStateSchema = z.object({
+    accent: z.string().nullable(),
+    bgPreset: z.string().nullable(),
+    bgImage: z.string().max(THEME_IMAGE_MAX_LENGTH).nullable(),
+    bgDim: z.number().int().min(0).max(100),
+    bgBlur: z.boolean()
+});
+
+export type ThemeStateDTO = z.infer<typeof themeStateSchema>;
+
+export const userSetTheme = {
+    command: 'user.setTheme' as const,
+    input: themeStateSchema,
+    output: z.object({ ok: z.literal(true) })
+};
+
+export const userCommands = [userSetAvatar, userSetTheme] as const;

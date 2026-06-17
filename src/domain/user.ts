@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { userRoleSchema } from './role';
+import { themeStateSchema } from '../features/user';
 
 export const minimalUserSchema = z.object({
     id: z.number().int().nonnegative(),
@@ -34,7 +35,8 @@ export const userSchema = z.object({
     security: userSecuritySchema,
     defaultWorkspace: z.number().int().nonnegative(),
     lastLogin: z.number().int().nonnegative(),
-    created: z.number().int().nonnegative()
+    created: z.number().int().nonnegative(),
+    theme: themeStateSchema.nullable()
 });
 
 export type User = z.infer<typeof userSchema>;
@@ -56,6 +58,8 @@ export interface UserRow {
     re_auth_interval: number | null;
     last_login: number;
     created: number;
+    /** JSON-serialised ThemeStateDTO, or null if the user has never saved a theme. */
+    theme: string | null;
 }
 
 export const defaultUser: User = {
@@ -68,5 +72,6 @@ export const defaultUser: User = {
     security: { twoFactor: false, passwordEncryption: false },
     defaultWorkspace: 0,
     lastLogin: 0,
-    created: 0
+    created: 0,
+    theme: null
 };

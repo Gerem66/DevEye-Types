@@ -16,9 +16,13 @@ export type PasswordEntry = z.infer<typeof passwordEntrySchema>;
 
 /**
  * Variant without the secret payload, used when listing entries before unlock.
+ * `hasPassword` tells the UI whether a (still hidden) secret actually exists, so
+ * a genuinely empty password renders as a blank cell instead of fake dots with
+ * reveal/copy controls that would yield nothing.
  */
 export const passwordEntryMaskedSchema = passwordEntrySchema.extend({
-    password: z.literal('')
+    password: z.literal(''),
+    hasPassword: z.boolean()
 });
 
 export type PasswordEntryMasked = z.infer<typeof passwordEntryMaskedSchema>;

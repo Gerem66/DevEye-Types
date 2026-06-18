@@ -62,7 +62,9 @@ export const noteSchema = z.object({
     pinned: z.boolean(),
     hidden: z.boolean(),
     /** Epoch seconds; set by the server, surfaced for sorting/display. */
-    updated: z.number().int().nonnegative()
+    updated: z.number().int().nonnegative(),
+    /** Epoch seconds the note was first created. */
+    created: z.number().int().nonnegative()
 });
 
 export type Note = z.infer<typeof noteSchema>;
@@ -85,7 +87,9 @@ export const noteSummarySchema = z.object({
     checkDone: z.number().int().nonnegative(),
     /** True when this is a hidden note the session may not read yet. */
     locked: z.boolean(),
-    updated: z.number().int().nonnegative()
+    updated: z.number().int().nonnegative(),
+    /** Epoch seconds the note was first created. */
+    created: z.number().int().nonnegative()
 });
 
 export type NoteSummary = z.infer<typeof noteSummarySchema>;

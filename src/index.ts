@@ -128,6 +128,7 @@ export {
     folderDelete,
     folderList,
     folderRename,
+    folderReorder,
     noteAdd,
     noteCommands,
     noteDelete,

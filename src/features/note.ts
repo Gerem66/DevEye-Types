@@ -106,6 +106,16 @@ export const folderRename = {
     output: z.object({ folder: noteFolderSchema })
 };
 
+/**
+ * Reorder all of the caller's folders for a workspace; `folderIds` is the new
+ * full order (lower index = listed first). Used by the move up/down controls.
+ */
+export const folderReorder = {
+    command: 'folder.reorder' as const,
+    input: z.object({ workspaceId, folderIds: z.array(folderId).min(1) }),
+    output: z.object({ folders: z.array(noteFolderSchema) })
+};
+
 /** Delete a folder; its notes are un-filed (folderId → null), not destroyed. */
 export const folderDelete = {
     command: 'folder.delete' as const,
@@ -124,5 +134,6 @@ export const noteCommands = [
     folderList,
     folderAdd,
     folderRename,
+    folderReorder,
     folderDelete
 ] as const;

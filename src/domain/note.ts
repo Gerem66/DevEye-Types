@@ -43,7 +43,9 @@ export const NOTE_MAX_BLOCKS = 500;
  */
 export const noteFolderSchema = z.object({
     id: z.number().int().positive(),
-    name: z.string().max(NOTE_FOLDER_MAX_LENGTH)
+    name: z.string().max(NOTE_FOLDER_MAX_LENGTH),
+    /** Rank within the user's folders; lower comes first. Manually reorderable. */
+    sortOrder: z.number().int().nonnegative()
 });
 
 export type NoteFolder = z.infer<typeof noteFolderSchema>;
@@ -113,5 +115,7 @@ export interface NoteFolderRow {
     workspace_id: number | null;
     /** Encrypted JSON payload (`{ name }`). */
     content: string;
+    /** Manual rank within the user's folders; lower comes first. */
+    sort_order: number;
     created: number;
 }

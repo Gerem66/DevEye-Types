@@ -40,6 +40,28 @@ export type {
     PasswordRow,
     PasswordStatus
 } from './domain/password';
+export {
+    NOTE_BLOCK_TEXT_MAX_LENGTH,
+    NOTE_FOLDER_MAX_LENGTH,
+    NOTE_MAX_BLOCKS,
+    NOTE_TITLE_MAX_LENGTH,
+    noteBlockSchema,
+    noteCheckBlockSchema,
+    noteFolderSchema,
+    noteSchema,
+    noteSummarySchema,
+    noteTextBlockSchema
+} from './domain/note';
+export type {
+    Note,
+    NoteBlock,
+    NoteCheckBlock,
+    NoteFolder,
+    NoteFolderRow,
+    NoteRow,
+    NoteSummary,
+    NoteTextBlock
+} from './domain/note';
 export { userRoleSchema } from './domain/role';
 export type { UserRole } from './domain/role';
 export { defaultUser, minimalUserSchema, userSchema, userSecuritySchema } from './domain/user';
@@ -101,6 +123,20 @@ export {
     passwordList,
     passwordUnlock
 } from './features/password';
+export {
+    folderAdd,
+    folderDelete,
+    folderList,
+    folderRename,
+    noteAdd,
+    noteCommands,
+    noteDelete,
+    noteEdit,
+    noteGet,
+    noteList,
+    noteMove,
+    noteReveal
+} from './features/note';
 export { featureCommandRegistry, featureCommands } from './features/registry';
 export type {
     CommandInput,

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { deviceCommands } from './device';
 import { metricsCommands } from './metrics';
+import { noteCommands } from './note';
 import { passwordCommands } from './password';
 import { secrecyCommands } from './secrecy';
 import { twoFactorCommands } from './twoFactor';
@@ -18,6 +19,7 @@ export const featureCommands = [
     ...workspaceCommands,
     ...userCommands,
     ...passwordCommands,
+    ...noteCommands,
     ...deviceCommands,
     ...metricsCommands,
     ...weatherCommands,

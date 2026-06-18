@@ -1,6 +1,6 @@
 {
   "name": "@gerem66/deveye-types",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Shared contracts (types + zod schemas) for DevEye apps",
   "main": "src/index.ts",
   "types": "src/index.ts",

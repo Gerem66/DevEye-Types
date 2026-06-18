@@ -13,14 +13,20 @@ export const minimalUserSchema = z.object({
 export type MinimalUser = z.infer<typeof minimalUserSchema>;
 
 /**
- * Account security posture, surfaced in the profile as "Sécurité → x / 2".
- * Each flag is one of the two main protections.
+ * Account security posture, surfaced in the profile as "Sécurité → x / 3".
+ * Each flag is one of the three main protections.
  */
 export const userSecuritySchema = z.object({
     /** TOTP two-factor authentication is enabled. */
     twoFactor: z.boolean(),
     /** Password-based encryption (DEK wrapped by the user's password) is on. */
-    passwordEncryption: z.boolean()
+    passwordEncryption: z.boolean(),
+    /**
+     * Password re-validation window is configured to a strict value: enabled and
+     * short enough (≤ 5 min) to count as a protection. Disabled (0) or a long
+     * window does not count.
+     */
+    reAuthValidation: z.boolean()
 });
 
 export type UserSecurity = z.infer<typeof userSecuritySchema>;
@@ -69,7 +75,7 @@ export const defaultUser: User = {
     avatar: '',
     role: 'user',
     settings: [],
-    security: { twoFactor: false, passwordEncryption: false },
+    security: { twoFactor: false, passwordEncryption: false, reAuthValidation: false },
     defaultWorkspace: 0,
     lastLogin: 0,
     created: 0,

@@ -44,6 +44,17 @@ export const secrecyDisable = {
 };
 
 /**
+ * Set how long the password stays validated after entry (the "sudo-like" grace
+ * window), in seconds. `0` disables it: the password is then required for every
+ * encrypted action. Bounded to a day to keep the window meaningful.
+ */
+export const secrecySetReauth = {
+    command: 'secrecy.setReauth' as const,
+    input: z.object({ seconds: z.number().int().min(0).max(86400) }),
+    output: z.object({ status: secrecyStatusSchema })
+};
+
+/**
  * Recover access after a forgotten password using the recovery code, choosing
  * a new password to re-wrap the DEK with.
  */
@@ -61,5 +72,6 @@ export const secrecyCommands = [
     secrecyUnlock,
     secrecyEnable,
     secrecyDisable,
+    secrecySetReauth,
     secrecyRecover
 ] as const;

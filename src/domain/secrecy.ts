@@ -18,7 +18,13 @@ export const secrecyStatusSchema = z.object({
     /** True when the current session has unlocked the DEK in memory. */
     unlocked: z.boolean(),
     /** True when a recovery code can also unwrap the DEK (safety net). */
-    recoveryEnabled: z.boolean()
+    recoveryEnabled: z.boolean(),
+    /**
+     * How long (in seconds) the password stays validated after being entered:
+     * within this sliding window encrypted actions don't re-prompt. `0` means the
+     * password is required for every action. `null` means the server default.
+     */
+    reAuthInterval: z.number().int().min(0).nullable()
 });
 
 export type SecrecyStatus = z.infer<typeof secrecyStatusSchema>;

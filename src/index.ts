@@ -156,6 +156,7 @@ export {
     secrecyDisable,
     secrecyEnable,
     secrecyRecover,
+    secrecySetReauth,
     secrecyStatus,
     secrecyUnlock
 } from './features/secrecy';

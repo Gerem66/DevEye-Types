@@ -31,7 +31,7 @@ export const themeStateSchema = z.object({
     bgPreset: z.string().nullable(),
     bgImage: z.string().max(THEME_IMAGE_MAX_LENGTH).nullable(),
     bgDim: z.number().int().min(0).max(100),
-    bgBlur: z.boolean()
+    bgBlur: z.number().int().min(0).max(100)
 });
 
 export type ThemeStateDTO = z.infer<typeof themeStateSchema>;

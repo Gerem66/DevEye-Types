@@ -52,9 +52,10 @@ export type NoteFolder = z.infer<typeof noteFolderSchema>;
 
 /**
  * A full note as exchanged with the client. `folderId` references a
- * {@link noteFolderSchema}; `null` means "no folder" (Sans dossier). `hidden`
- * notes require the session to be unlocked (master password / cached DEK)
- * before the server returns their content — see the note feature handlers.
+ * {@link noteFolderSchema}; `null` means "no folder" (Sans dossier). `locked`
+ * notes carry their own dedicated password: reading (and deleting) one requires
+ * that password, checked per open — see the note feature handlers. The lock is
+ * an access gate only; the body stays encrypted by the SecureStore regardless.
  */
 export const noteSchema = z.object({
     id: z.number().int().nonnegative(),
@@ -62,7 +63,8 @@ export const noteSchema = z.object({
     folderId: z.number().int().positive().nullable(),
     blocks: z.array(noteBlockSchema).max(NOTE_MAX_BLOCKS),
     pinned: z.boolean(),
-    hidden: z.boolean(),
+    /** True when the note is protected by its own dedicated password. */
+    locked: z.boolean(),
     /** Epoch seconds; set by the server, surfaced for sorting/display. */
     updated: z.number().int().nonnegative(),
     /** Epoch seconds the note was first created. */
@@ -72,22 +74,22 @@ export const noteSchema = z.object({
 export type Note = z.infer<typeof noteSchema>;
 
 /**
- * Lightweight list variant. Hidden notes that the session cannot read are
- * returned in this masked form: metadata only, no `blocks`, so the UI can show
- * a locked placeholder without ever decrypting the body.
+ * Lightweight list variant. A `locked` note is always returned masked here —
+ * metadata only, no `title`/`blocks` — so the UI shows a padlock placeholder
+ * without ever decrypting the body or revealing the title before the per-note
+ * password is entered.
  */
 export const noteSummarySchema = z.object({
     id: z.number().int().nonnegative(),
     title: z.string(),
     folderId: z.number().int().positive().nullable(),
     pinned: z.boolean(),
-    hidden: z.boolean(),
-    /** Present only when the body is readable; absent for locked hidden notes. */
+    /** Present only when the body is readable; absent for locked notes. */
     preview: z.string().optional(),
     /** Total checklist items / how many are done — for an at-a-glance summary. */
     checkTotal: z.number().int().nonnegative(),
     checkDone: z.number().int().nonnegative(),
-    /** True when this is a hidden note the session may not read yet. */
+    /** True when this is a locked note (its dedicated password is required). */
     locked: z.boolean(),
     updated: z.number().int().nonnegative(),
     /** Epoch seconds the note was first created. */
@@ -104,7 +106,8 @@ export interface NoteRow {
     /** Encrypted JSON payload (title + blocks). */
     content: string;
     pinned: number;
-    hidden: number;
+    /** argon2 hash of the note's dedicated password; NULL when not locked. */
+    lock_hash: string | null;
     updated: number;
     created: number;
 }

@@ -12,19 +12,31 @@ import {
 const workspaceId = z.number().int().nonnegative();
 const folderId = z.number().int().positive();
 
+/**
+ * How a save should affect the note's lock:
+ *  - omitted        → leave the lock as-is (content-only edit).
+ *  - `{ set: pwd }`  → (re)lock the note with this dedicated password.
+ *  - `{ remove: true }` → remove the lock (note becomes open).
+ */
+const lockChangeSchema = z.union([
+    z.object({ set: z.string().min(1) }),
+    z.object({ remove: z.literal(true) })
+]);
+
 /** The editable shape of a note — everything the client may set. */
 const noteDraftSchema = z.object({
     title: z.string().max(NOTE_TITLE_MAX_LENGTH),
     folderId: folderId.nullable(),
     blocks: z.array(noteBlockSchema).max(NOTE_MAX_BLOCKS),
     pinned: z.boolean(),
-    hidden: z.boolean()
+    /** Optional change to the note's lock; omit to leave it unchanged. */
+    lock: lockChangeSchema.optional()
 });
 
 /**
- * List notes for a workspace. Returns summaries; hidden notes the session can't
- * read come back `locked` (metadata only). Never throws `locked` itself — the
- * caller decides whether to unlock and refetch the full note.
+ * List notes for a workspace. Returns summaries; locked notes come back masked
+ * (metadata only, `locked: true`) — the caller prompts for the note's dedicated
+ * password and refetches the full note via `note.get` when the user opens it.
  */
 export const noteList = {
     command: 'note.list' as const,
@@ -33,12 +45,17 @@ export const noteList = {
 };
 
 /**
- * Fetch one note in full. For a hidden note this requires the session to be
- * unlocked; otherwise the server replies `locked` and the client prompts.
+ * Fetch one note in full. For a locked note the caller must supply the note's
+ * dedicated `password`; otherwise the server replies `auth_required` and the
+ * client prompts. The password is verified on every open (no session reveal).
  */
 export const noteGet = {
     command: 'note.get' as const,
-    input: z.object({ workspaceId, noteId: z.number().int().positive() }),
+    input: z.object({
+        workspaceId,
+        noteId: z.number().int().positive(),
+        password: z.string().optional()
+    }),
     output: z.object({ note: noteSchema })
 };
 
@@ -48,15 +65,34 @@ export const noteAdd = {
     output: z.object({ note: noteSchema })
 };
 
+/**
+ * Edit a note. For a currently-locked note the caller must supply its existing
+ * `password` (proof it was legitimately opened); `note.lock` may then change or
+ * remove the lock. Open notes need no password.
+ */
 export const noteEdit = {
     command: 'note.edit' as const,
-    input: z.object({ workspaceId, noteId: z.number().int().positive(), note: noteDraftSchema }),
+    input: z.object({
+        workspaceId,
+        noteId: z.number().int().positive(),
+        note: noteDraftSchema,
+        password: z.string().optional()
+    }),
     output: z.object({ note: noteSchema })
 };
 
+/**
+ * Delete a note. A locked note is destructive to remove, so its dedicated
+ * `password` is required; moving it (benign) is not gated. Open notes need no
+ * password.
+ */
 export const noteDelete = {
     command: 'note.delete' as const,
-    input: z.object({ workspaceId, noteId: z.number().int().positive() }),
+    input: z.object({
+        workspaceId,
+        noteId: z.number().int().positive(),
+        password: z.string().optional()
+    }),
     output: z.object({ noteId: z.number().int().positive() })
 };
 
@@ -73,18 +109,6 @@ export const noteMove = {
         folderId: folderId.nullable()
     }),
     output: z.object({ noteId: z.number().int().positive(), folderId: folderId.nullable() })
-};
-
-/**
- * Authorize this session to read hidden notes ("root auth"). Accepts the
- * account/master password. When password-based encryption is enabled and the
- * session is already unlocked (cached DEK), `password` may be empty: being
- * unlocked is itself proof. Returns whether hidden notes are now revealed.
- */
-export const noteReveal = {
-    command: 'note.reveal' as const,
-    input: z.object({ password: z.string() }),
-    output: z.object({ revealed: z.literal(true) })
 };
 
 /** List the caller's folders for a workspace (names decrypted server-side). */
@@ -130,7 +154,6 @@ export const noteCommands = [
     noteEdit,
     noteDelete,
     noteMove,
-    noteReveal,
     folderList,
     folderAdd,
     folderRename,

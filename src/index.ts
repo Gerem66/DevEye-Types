@@ -135,8 +135,7 @@ export {
     noteEdit,
     noteGet,
     noteList,
-    noteMove,
-    noteReveal
+    noteMove
 } from './features/note';
 export { featureCommandRegistry, featureCommands } from './features/registry';
 export type {

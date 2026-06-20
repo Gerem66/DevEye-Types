@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { deviceReportSchema } from './report';
 
 /**
  * Lifecycle of a monitored machine (the Rust agent):
@@ -9,7 +10,7 @@ import { z } from 'zod';
 export const deviceStatusSchema = z.enum(['pending', 'active', 'revoked']);
 export type DeviceStatus = z.infer<typeof deviceStatusSchema>;
 
-export const devicePlatformSchema = z.enum(['linux']);
+export const devicePlatformSchema = z.enum(['linux', 'macos']);
 export type DevicePlatform = z.infer<typeof devicePlatformSchema>;
 
 /**
@@ -25,7 +26,9 @@ export const deviceSchema = z.object({
     status: deviceStatusSchema,
     online: z.boolean(),
     lastSeen: z.number().int().nonnegative().nullable(),
-    created: z.number().int().nonnegative()
+    created: z.number().int().nonnegative(),
+    /** Latest known health/security report; null until the agent sends one. */
+    report: deviceReportSchema.nullable().default(null)
 });
 
 export type Device = z.infer<typeof deviceSchema>;
@@ -46,4 +49,6 @@ export interface DeviceRow {
     token_hash: string;
     last_seen: number | null;
     created: number;
+    /** JSON-encoded latest `DeviceReport`, or null if none received yet. */
+    report_json: string | null;
 }

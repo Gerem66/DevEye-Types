@@ -31,4 +31,17 @@ export const metricsUnsubscribe = {
     output: z.object({ deviceIds: z.array(deviceId) })
 };
 
-export const metricsCommands = [metricsQuery, metricsSubscribe, metricsUnsubscribe] as const;
+/** Ask an online device to push a fresh sample + report right now. */
+export const metricsRefresh = {
+    command: 'metrics.refresh' as const,
+    input: z.object({ deviceId }),
+    /** `requested` is false when the device isn't currently connected. */
+    output: z.object({ deviceId, requested: z.boolean() })
+};
+
+export const metricsCommands = [
+    metricsQuery,
+    metricsSubscribe,
+    metricsUnsubscribe,
+    metricsRefresh
+] as const;

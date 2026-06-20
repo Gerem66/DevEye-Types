@@ -9,13 +9,18 @@ export { PROTOCOL_VERSION } from './protocol/version';
 export type { ProtocolVersion } from './protocol/version';
 export {
     AGENT_ACK,
+    AGENT_COLLECT,
     AGENT_ERROR,
     AGENT_HELLO,
     AGENT_METRICS_BATCH,
+    AGENT_REPORT,
     agentClientMessageSchema,
+    agentReportMessagePayloadSchema,
     agentServerMessageSchema,
     DEVICE_PRESENCE_EVENT,
+    DEVICE_REPORT_EVENT,
     devicePresenceSchema,
+    deviceReportPushSchema,
     METRICS_PUSH_EVENT,
     metricsPushSchema
 } from './protocol/agent';
@@ -23,6 +28,7 @@ export type {
     AgentClientMessage,
     AgentServerMessage,
     DevicePresence,
+    DeviceReportPush,
     MetricsPush
 } from './protocol/agent';
 
@@ -81,6 +87,8 @@ export { workspaceSchema } from './domain/workspace';
 export type { Workspace, WorkspaceMemberRow, WorkspaceRow } from './domain/workspace';
 export { devicePlatformSchema, deviceSchema, deviceStatusSchema } from './domain/device';
 export type { Device, DevicePlatform, DeviceRow, DeviceStatus } from './domain/device';
+export { deviceReportSchema, deviceSecuritySchema, reportProcessSchema } from './domain/report';
+export type { DeviceReport, DeviceSecurity, ReportProcess } from './domain/report';
 export {
     metricSeriesPointSchema,
     metricSnapshotSchema,
@@ -174,6 +182,7 @@ export {
 export {
     metricsCommands,
     metricsQuery,
+    metricsRefresh,
     metricsSubscribe,
     metricsUnsubscribe
 } from './features/metrics';
@@ -241,6 +250,15 @@ export type {
 export {
     enrollDeviceRequestSchema,
     enrollDeviceResponseSchema,
-    linkCodeResponseSchema
+    LINK_CODE_TTL_MAX_SECONDS,
+    linkCodeRequestSchema,
+    linkCodeResponseSchema,
+    linkCodesListResponseSchema
 } from './http/device';
-export type { EnrollDeviceRequest, EnrollDeviceResponse, LinkCodeResponse } from './http/device';
+export type {
+    EnrollDeviceRequest,
+    EnrollDeviceResponse,
+    LinkCodeRequest,
+    LinkCodeResponse,
+    LinkCodesListResponse
+} from './http/device';

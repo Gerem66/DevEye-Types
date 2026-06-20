@@ -11,13 +11,36 @@ import { devicePlatformSchema, deviceSchema } from '../domain/device';
  *  4. The user confirms the device in the Clients page to activate it.
  */
 
+/** Hard cap on a custom code lifetime (30 days), to bound never-pruned rows. */
+export const LINK_CODE_TTL_MAX_SECONDS = 30 * 24 * 60 * 60;
+
+/**
+ * Request a new link code. `ttlSeconds`:
+ *  - omitted   → server default lifetime,
+ *  - `null`    → no expiry (valid until used or deleted),
+ *  - a number  → custom lifetime in seconds.
+ */
+export const linkCodeRequestSchema = z.object({
+    ttlSeconds: z.number().int().positive().max(LINK_CODE_TTL_MAX_SECONDS).nullable().optional()
+});
+
+export type LinkCodeRequest = z.infer<typeof linkCodeRequestSchema>;
+
 export const linkCodeResponseSchema = z.object({
     /** Short human-typable code (e.g. shown in the UI, entered on the agent). */
     code: z.string().min(6).max(32),
-    expiresAt: z.number().int().positive()
+    /** Unix seconds when the code expires; `null` means it never expires. */
+    expiresAt: z.number().int().positive().nullable()
 });
 
 export type LinkCodeResponse = z.infer<typeof linkCodeResponseSchema>;
+
+/** Currently-active (unconsumed, unexpired) link codes for the caller. */
+export const linkCodesListResponseSchema = z.object({
+    codes: z.array(linkCodeResponseSchema)
+});
+
+export type LinkCodesListResponse = z.infer<typeof linkCodesListResponseSchema>;
 
 export const enrollDeviceRequestSchema = z.object({
     code: z.string().min(6).max(32),

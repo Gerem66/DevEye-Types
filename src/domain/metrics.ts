@@ -14,7 +14,17 @@ export const metricSnapshotSchema = z.object({
     netRxBytes: z.number().int().nonnegative(),
     netTxBytes: z.number().int().nonnegative(),
     /** Number of logged-in OS users at sample time. */
-    usersCount: z.number().int().nonnegative()
+    usersCount: z.number().int().nonnegative(),
+    /** 1-minute load average; null when unavailable on the platform. */
+    loadAvg1: z.number().min(0).nullable().default(null),
+    /** CPU package temperature in °C; null when no sensor is readable. */
+    cpuTempC: z.number().nullable().default(null),
+    /** System uptime in seconds; null when unavailable. */
+    uptimeSeconds: z.number().int().nonnegative().nullable().default(null),
+    /** Total running processes at sample time; null when unavailable. */
+    processCount: z.number().int().nonnegative().nullable().default(null),
+    /** Active (established) network connections; null when unavailable. */
+    activeConnections: z.number().int().nonnegative().nullable().default(null)
 });
 
 export type MetricSnapshot = z.infer<typeof metricSnapshotSchema>;
@@ -49,4 +59,9 @@ export interface MetricRow {
     net_rx_bytes: number;
     net_tx_bytes: number;
     users_count: number;
+    load_avg_1: number | null;
+    cpu_temp_c: number | null;
+    uptime_seconds: number | null;
+    process_count: number | null;
+    active_connections: number | null;
 }

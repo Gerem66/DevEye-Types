@@ -27,8 +27,17 @@ export type {
 } from './protocol/agent';
 
 // Domain
-export { logEntrySchema } from './domain/logs';
-export type { LogEntry, LogRow } from './domain/logs';
+export {
+    LOG_CATEGORIES,
+    LOG_LEVEL_NAMES,
+    LOG_LEVELS,
+    logEntrySchema,
+    logLevelName,
+    logLevelNameSchema,
+    logLevelValue,
+    logSourceSchema
+} from './domain/logs';
+export type { LogCategory, LogEntry, LogLevelName, LogRow, LogSource } from './domain/logs';
 export {
     passwordEntryMaskedSchema,
     passwordEntrySchema,
@@ -196,6 +205,17 @@ export {
     secrecyStatus,
     secrecyUnlock
 } from './features/secrecy';
+export {
+    LOGS_PAGE_DEFAULT,
+    LOGS_PAGE_MAX,
+    logFilterSchema,
+    logsCommands,
+    logsFacetSchema,
+    logsFacetUserSchema,
+    logsFacets,
+    logsList
+} from './features/logs';
+export type { LogFilter } from './features/logs';
 
 // HTTP
 export {

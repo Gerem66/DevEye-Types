@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { deviceCommands } from './device';
+import { logsCommands } from './logs';
 import { metricsCommands } from './metrics';
 import { noteCommands } from './note';
 import { passwordCommands } from './password';
@@ -24,7 +25,8 @@ export const featureCommands = [
     ...metricsCommands,
     ...weatherCommands,
     ...twoFactorCommands,
-    ...secrecyCommands
+    ...secrecyCommands,
+    ...logsCommands
 ] as const;
 
 export const featureCommandRegistry: Record<string, FeatureCommandDescriptor> = Object.fromEntries(

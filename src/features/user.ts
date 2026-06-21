@@ -26,10 +26,30 @@ export const userSetAvatar = {
 /** Max length of a wallpaper data URL stored in the theme (~4 MB in base64). */
 export const THEME_IMAGE_MAX_LENGTH = 4_200_000;
 
+/** Number of saved background slots kept in the appearance gallery. */
+export const THEME_SLOT_COUNT = 5;
+
+/**
+ * Upper bound on one saved slot value. Slots hold *compressed* data URLs (the
+ * client downscales before saving) or a short raw URL, so this is a safety cap,
+ * not the typical size — it keeps the whole theme JSON (5 slots + active image)
+ * within the browser's localStorage budget and the `users.theme` column.
+ */
+export const THEME_SLOT_IMAGE_MAX_LENGTH = 1_500_000;
+
 export const themeStateSchema = z.object({
     accent: z.string().nullable(),
     bgPreset: z.string().nullable(),
     bgImage: z.string().max(THEME_IMAGE_MAX_LENGTH).nullable(),
+    /**
+     * Saved background gallery: up to THEME_SLOT_COUNT slots, each a compressed
+     * data URL / raw URL, or null for an empty slot. Defaults to empty so themes
+     * saved before this field parse cleanly.
+     */
+    bgImages: z
+        .array(z.string().max(THEME_SLOT_IMAGE_MAX_LENGTH).nullable())
+        .max(THEME_SLOT_COUNT)
+        .default([]),
     bgDim: z.number().int().min(0).max(100),
     bgBlur: z.number().int().min(0).max(100)
 });

@@ -206,6 +206,8 @@ export { workspaceAdd, workspaceCommands, workspaceDelete } from './features/wor
 export {
     AVATAR_MAX_LENGTH,
     THEME_IMAGE_MAX_LENGTH,
+    THEME_SLOT_COUNT,
+    THEME_SLOT_IMAGE_MAX_LENGTH,
     themeStateSchema,
     userCommands,
     userSetAvatar,

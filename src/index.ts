@@ -10,11 +10,15 @@ export type { ProtocolVersion } from './protocol/version';
 export {
     AGENT_ACK,
     AGENT_COLLECT,
+    AGENT_CONFIG,
     AGENT_ERROR,
     AGENT_HELLO,
     AGENT_METRICS_BATCH,
+    AGENT_PROCESSES,
     AGENT_REPORT,
     agentClientMessageSchema,
+    agentConfigPayloadSchema,
+    agentProcessesMessagePayloadSchema,
     agentReportMessagePayloadSchema,
     agentServerMessageSchema,
     DEVICE_PRESENCE_EVENT,
@@ -26,6 +30,7 @@ export {
 } from './protocol/agent';
 export type {
     AgentClientMessage,
+    AgentConfigPayload,
     AgentServerMessage,
     DevicePresence,
     DeviceReportPush,
@@ -87,8 +92,27 @@ export { workspaceSchema } from './domain/workspace';
 export type { Workspace, WorkspaceMemberRow, WorkspaceRow } from './domain/workspace';
 export { devicePlatformSchema, deviceSchema, deviceStatusSchema } from './domain/device';
 export type { Device, DevicePlatform, DeviceRow, DeviceStatus } from './domain/device';
-export { deviceReportSchema, deviceSecuritySchema, reportProcessSchema } from './domain/report';
-export type { DeviceReport, DeviceSecurity, ReportProcess } from './domain/report';
+export {
+    deviceReportSchema,
+    deviceSecuritySchema,
+    processCaptureSchema,
+    processKindSchema,
+    processSampleSchema,
+    reportDiskSchema,
+    reportProcessSchema
+} from './domain/report';
+export type {
+    DeviceReport,
+    DeviceSecurity,
+    ProcessCapture,
+    ProcessKind,
+    ProcessSample,
+    ProcessSampleRow,
+    ReportDisk,
+    ReportProcess
+} from './domain/report';
+export { presenceEventSchema } from './domain/presence';
+export type { PresenceEvent, PresenceRow } from './domain/presence';
 export {
     metricSeriesPointSchema,
     metricSnapshotSchema,
@@ -177,12 +201,17 @@ export {
     deviceDelete,
     deviceList,
     deviceRename,
-    deviceRevoke
+    deviceRevoke,
+    deviceSetConfig
 } from './features/device';
 export {
+    metricsAvailability,
     metricsCommands,
+    metricsPresence,
+    metricsProcessesAt,
     metricsQuery,
     metricsRefresh,
+    metricsSnapshots,
     metricsSubscribe,
     metricsUnsubscribe
 } from './features/metrics';

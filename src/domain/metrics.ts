@@ -24,7 +24,21 @@ export const metricSnapshotSchema = z.object({
     /** Total running processes at sample time; null when unavailable. */
     processCount: z.number().int().nonnegative().nullable().default(null),
     /** Active (established) network connections; null when unavailable. */
-    activeConnections: z.number().int().nonnegative().nullable().default(null)
+    activeConnections: z.number().int().nonnegative().nullable().default(null),
+    /** GPU utilization (%); null when no readable GPU sensor is available. */
+    gpuPercent: z.number().min(0).max(100).nullable().default(null),
+    /**
+     * Cumulative disk bytes read since boot/process start. Only the heavier
+     * "snapshot" cycle fills this (it needs the full process scan); the light
+     * ~10s metric cycle leaves it null. Treated as a counter (rate derived).
+     */
+    diskReadBytes: z.number().int().nonnegative().nullable().default(null),
+    /** Cumulative disk bytes written; null on the light metric cycle. */
+    diskWriteBytes: z.number().int().nonnegative().nullable().default(null),
+    /** Battery charge (%); null when the machine has no battery. */
+    batteryPercent: z.number().min(0).max(100).nullable().default(null),
+    /** Whether the battery is charging / on AC; null when unknown or no battery. */
+    batteryCharging: z.boolean().nullable().default(null)
 });
 
 export type MetricSnapshot = z.infer<typeof metricSnapshotSchema>;
@@ -64,4 +78,9 @@ export interface MetricRow {
     uptime_seconds: number | null;
     process_count: number | null;
     active_connections: number | null;
+    gpu_percent: number | null;
+    disk_read_bytes: number | null;
+    disk_write_bytes: number | null;
+    battery_percent: number | null;
+    battery_charging: number | null;
 }

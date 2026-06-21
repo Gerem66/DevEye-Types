@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { metricsBatchSchema, metricSnapshotSchema } from '../domain/metrics';
-import { deviceReportSchema } from '../domain/report';
+import { deviceReportSchema, processCaptureSchema, processSampleSchema } from '../domain/report';
 import { ProtocolErrorSchema } from './error';
 
 /**
@@ -14,10 +14,16 @@ import { ProtocolErrorSchema } from './error';
 export const AGENT_METRICS_BATCH = 'metrics.batch' as const;
 export const AGENT_HELLO = 'agent.hello' as const;
 export const AGENT_REPORT = 'agent.report' as const;
+export const AGENT_PROCESSES = 'agent.processes' as const;
 
 export const agentReportMessagePayloadSchema = z.object({
     deviceId: z.string().uuid(),
     report: deviceReportSchema
+});
+
+export const agentProcessesMessagePayloadSchema = z.object({
+    deviceId: z.string().uuid(),
+    sample: processSampleSchema
 });
 
 export const agentClientMessageSchema = z.discriminatedUnion('command', [
@@ -32,6 +38,10 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_REPORT),
         payload: agentReportMessagePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_PROCESSES),
+        payload: agentProcessesMessagePayloadSchema
     })
 ]);
 
@@ -42,6 +52,19 @@ export const AGENT_ACK = 'agent.ack' as const;
 export const AGENT_ERROR = 'agent.error' as const;
 /** Ask the agent to collect and push a fresh sample + report immediately. */
 export const AGENT_COLLECT = 'agent.collect' as const;
+/** Push the per-device collection config (cadences + capture mode) to the agent. */
+export const AGENT_CONFIG = 'agent.config' as const;
+
+/** Collection config the server pushes to an agent (on connect + on change). */
+export const agentConfigPayloadSchema = z.object({
+    /** Light metric (graph) sampling interval in ms. */
+    metricIntervalMs: z.number().int().positive(),
+    /** Heavy snapshot (process capture) interval in ms. */
+    snapshotIntervalMs: z.number().int().positive(),
+    processCapture: processCaptureSchema
+});
+
+export type AgentConfigPayload = z.infer<typeof agentConfigPayloadSchema>;
 
 export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
@@ -55,6 +78,10 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_COLLECT),
         payload: z.object({})
+    }),
+    z.object({
+        command: z.literal(AGENT_CONFIG),
+        payload: agentConfigPayloadSchema
     })
 ]);
 

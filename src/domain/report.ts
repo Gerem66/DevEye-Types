@@ -2,18 +2,20 @@ import { z } from 'zod';
 
 /**
  * "Latest known state" report for a device — distinct from the time-series
- * metric snapshots. It carries slow-moving / heavier signals (OS info, security
- * posture, top processes) that don't belong in the per-cycle metric stream.
+ * metric snapshots. It carries slow-moving signals (OS info, security posture)
+ * that don't belong in the per-cycle metric stream.
  *
- * The agent emits one on connect and then periodically (every couple of
- * minutes). The server persists only the most recent report per device
- * (`devices.report_json`) and fans it out live to subscribers.
+ * The agent emits one on connect and then periodically. The server persists only
+ * the most recent report per device (`devices.report_json`) and fans it out live.
  *
  * Every security field is nullable: collectors are best-effort and shell out to
  * OS tools that may be absent or require privileges. `null` means "unknown".
+ *
+ * Processes are historised separately (see `processSampleSchema`) so the UI can
+ * show what was running at any past moment, not just the latest.
  */
 
-/** One of the heaviest processes at report time. */
+/** One process at sample time (CPU%, resident memory in bytes). */
 export const reportProcessSchema = z.object({
     name: z.string().min(1).max(128),
     cpuPercent: z.number().min(0),
@@ -21,6 +23,41 @@ export const reportProcessSchema = z.object({
 });
 
 export type ReportProcess = z.infer<typeof reportProcessSchema>;
+
+/**
+ * Per-device process capture mode (set from the UI, pushed to the agent):
+ * - `off`: don't collect processes at all (saves the most space);
+ * - `top`: only the ~20 heaviest (scored on CPU% + memory%);
+ * - `all`: every process.
+ */
+export const processCaptureSchema = z.enum(['off', 'top', 'all']);
+export type ProcessCapture = z.infer<typeof processCaptureSchema>;
+
+/**
+ * Kind of a stored process sample = the capture mode in effect when it was
+ * taken (`top` or `all`; `off` produces no sample). Recorded per-sample so the
+ * UI can label history correctly even after the mode later changes.
+ */
+export const processKindSchema = z.enum(['top', 'all']);
+export type ProcessKind = z.infer<typeof processKindSchema>;
+
+export const processSampleSchema = z.object({
+    ts: z.number().int().positive(),
+    kind: processKindSchema,
+    processes: z.array(reportProcessSchema).max(2000)
+});
+
+export type ProcessSample = z.infer<typeof processSampleSchema>;
+
+export interface ProcessSampleRow {
+    id: number;
+    device_id: string;
+    ts: number;
+    kind: ProcessKind;
+    name: string;
+    cpu_percent: number;
+    mem_bytes: number;
+}
 
 /** Security posture of the monitored machine. `null` = could not be determined. */
 export const deviceSecuritySchema = z.object({
@@ -36,16 +73,29 @@ export const deviceSecuritySchema = z.object({
 
 export type DeviceSecurity = z.infer<typeof deviceSecuritySchema>;
 
+/** One mounted disk/volume, for the per-disk breakdown (multi-disk machines). */
+export const reportDiskSchema = z.object({
+    /** Representative mount point (e.g. `/` or `/Volumes/Data`). */
+    mount: z.string().min(1).max(256),
+    usedBytes: z.number().int().nonnegative(),
+    totalBytes: z.number().int().nonnegative()
+});
+
+export type ReportDisk = z.infer<typeof reportDiskSchema>;
+
 export const deviceReportSchema = z.object({
     /** Unix ms when this report was collected on the agent. */
     collectedAt: z.number().int().positive(),
     os: z.object({
         name: z.string().min(1).max(64),
         version: z.string().max(64),
-        arch: z.string().max(32)
+        arch: z.string().max(32),
+        /** Logical CPU cores, for interpreting the load average (0 = unknown). */
+        cores: z.number().int().nonnegative().default(0)
     }),
     security: deviceSecuritySchema,
-    topProcesses: z.array(reportProcessSchema).max(5)
+    /** Per-disk usage (deduped across shared APFS volumes). Empty if unknown. */
+    disks: z.array(reportDiskSchema).default([])
 });
 
 export type DeviceReport = z.infer<typeof deviceReportSchema>;

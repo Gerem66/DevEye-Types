@@ -11,6 +11,8 @@ export {
     AGENT_ACK,
     AGENT_COLLECT,
     AGENT_CONFIG,
+    AGENT_DESTROY,
+    AGENT_DESTROYED,
     AGENT_ERROR,
     AGENT_HELLO,
     AGENT_METRICS_BATCH,
@@ -18,6 +20,7 @@ export {
     AGENT_REPORT,
     agentClientMessageSchema,
     agentConfigPayloadSchema,
+    agentDestroyedMessagePayloadSchema,
     agentProcessesMessagePayloadSchema,
     agentReportMessagePayloadSchema,
     agentServerMessageSchema,
@@ -196,11 +199,15 @@ export {
 } from './features/user';
 export type { ThemeStateDTO } from './features/user';
 export {
+    deviceCancelDelete,
     deviceCommands,
     deviceConfirm,
     deviceDelete,
+    deviceForceDelete,
     deviceList,
+    deviceReactivate,
     deviceRename,
+    deviceRequestDelete,
     deviceRevoke,
     deviceSetConfig
 } from './features/device';
@@ -282,12 +289,14 @@ export {
     LINK_CODE_TTL_MAX_SECONDS,
     linkCodeRequestSchema,
     linkCodeResponseSchema,
-    linkCodesListResponseSchema
+    linkCodesListResponseSchema,
+    linkCodeUpdateSchema
 } from './http/device';
 export type {
     EnrollDeviceRequest,
     EnrollDeviceResponse,
     LinkCodeRequest,
     LinkCodeResponse,
-    LinkCodesListResponse
+    LinkCodesListResponse,
+    LinkCodeUpdate
 } from './http/device';

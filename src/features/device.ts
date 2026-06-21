@@ -61,7 +61,50 @@ export const deviceSetConfig = {
     output: z.object({ device: deviceSchema })
 };
 
-/** Permanently delete a device and its stored metrics. */
+/** Reactivate a revoked device, moving it back to `active`. */
+export const deviceReactivate = {
+    command: 'device.reactivate' as const,
+    input: z.object({ deviceId }),
+    output: z.object({ device: deviceSchema })
+};
+
+/**
+ * Request a managed deletion (from the Appareils page). The device moves to
+ * `pending_deletion`: on its next connection the agent is told to self-destruct
+ * (wipe its local config + binary), after which the device is archived — its
+ * monitoring history is kept and stays browsable, but it's gone from management.
+ * If the agent is online the destroy signal is sent immediately.
+ */
+export const deviceRequestDelete = {
+    command: 'device.requestDelete' as const,
+    input: z.object({ deviceId }),
+    output: z.object({ device: deviceSchema })
+};
+
+/** Cancel a `pending_deletion` (only effective while the agent hasn't reconnected). */
+export const deviceCancelDelete = {
+    command: 'device.cancelDelete' as const,
+    input: z.object({ deviceId }),
+    output: z.object({ device: deviceSchema })
+};
+
+/**
+ * Finalise a deletion immediately: archive the device now without waiting for the
+ * agent to self-destruct (use when the agent is gone, or you don't care if it
+ * cleans itself up). A still-connected agent is told to self-destruct best-effort,
+ * but the device is archived regardless; if it ever reconnects it's refused.
+ */
+export const deviceForceDelete = {
+    command: 'device.forceDelete' as const,
+    input: z.object({ deviceId }),
+    output: z.object({ device: deviceSchema })
+};
+
+/**
+ * Hard-purge a device and ALL its monitoring history (used by the Monitoring
+ * page to remove an archived — or any — device and reset its data). Works
+ * whether the agent is online or not; it does not self-destruct the agent.
+ */
 export const deviceDelete = {
     command: 'device.delete' as const,
     input: z.object({ deviceId }),
@@ -72,7 +115,11 @@ export const deviceCommands = [
     deviceList,
     deviceConfirm,
     deviceRevoke,
+    deviceReactivate,
     deviceRename,
     deviceSetConfig,
+    deviceRequestDelete,
+    deviceCancelDelete,
+    deviceForceDelete,
     deviceDelete
 ] as const;

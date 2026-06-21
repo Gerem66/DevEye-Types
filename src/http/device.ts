@@ -21,7 +21,13 @@ export const LINK_CODE_TTL_MAX_SECONDS = 30 * 24 * 60 * 60;
  *  - a number  → custom lifetime in seconds.
  */
 export const linkCodeRequestSchema = z.object({
-    ttlSeconds: z.number().int().positive().max(LINK_CODE_TTL_MAX_SECONDS).nullable().optional()
+    ttlSeconds: z.number().int().positive().max(LINK_CODE_TTL_MAX_SECONDS).nullable().optional(),
+    /**
+     * Approve the device automatically the moment it enrols with this code,
+     * instead of leaving it `pending` for manual approval. Defaults to `false`
+     * (manual approval stays the safe default).
+     */
+    autoApprove: z.boolean().default(false)
 });
 
 export type LinkCodeRequest = z.infer<typeof linkCodeRequestSchema>;
@@ -30,10 +36,19 @@ export const linkCodeResponseSchema = z.object({
     /** Short human-typable code (e.g. shown in the UI, entered on the agent). */
     code: z.string().min(6).max(32),
     /** Unix seconds when the code expires; `null` means it never expires. */
-    expiresAt: z.number().int().positive().nullable()
+    expiresAt: z.number().int().positive().nullable(),
+    /** Whether a device enrolling with this code is approved automatically. */
+    autoApprove: z.boolean()
 });
 
 export type LinkCodeResponse = z.infer<typeof linkCodeResponseSchema>;
+
+/** Toggle the auto-approval of an existing (still-active) link code. */
+export const linkCodeUpdateSchema = z.object({
+    autoApprove: z.boolean()
+});
+
+export type LinkCodeUpdate = z.infer<typeof linkCodeUpdateSchema>;
 
 /** Currently-active (unconsumed, unexpired) link codes for the caller. */
 export const linkCodesListResponseSchema = z.object({

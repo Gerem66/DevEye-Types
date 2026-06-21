@@ -3,11 +3,23 @@ import { deviceReportSchema, processCaptureSchema } from './report';
 
 /**
  * Lifecycle of a monitored machine (the Rust agent):
- * - `pending`: enrolled via a link code but not yet confirmed in the UI.
- * - `active`:  confirmed; allowed to push metrics.
- * - `revoked`: access withdrawn; its device token is rejected.
+ * - `pending`:          enrolled via a link code but not yet confirmed in the UI.
+ * - `active`:           confirmed; allowed to push metrics.
+ * - `revoked`:          access withdrawn; the agent is rejected (can be reactivated).
+ * - `pending_deletion`: deletion requested; on its next connection the agent is
+ *                       told to self-destruct, then the device is archived. Can
+ *                       be cancelled until the agent reconnects.
+ * - `archived`:         agent destroyed/removed; the device no longer exists for
+ *                       management, but its monitoring history is kept frozen and
+ *                       remains browsable (read-only) until explicitly purged.
  */
-export const deviceStatusSchema = z.enum(['pending', 'active', 'revoked']);
+export const deviceStatusSchema = z.enum([
+    'pending',
+    'active',
+    'revoked',
+    'pending_deletion',
+    'archived'
+]);
 export type DeviceStatus = z.infer<typeof deviceStatusSchema>;
 
 export const devicePlatformSchema = z.enum(['linux', 'macos']);
@@ -38,7 +50,13 @@ export const deviceSchema = z.object({
     /** Metric/presence history retention in days; null → server default. */
     retentionDays: z.number().int().positive().nullable().default(null),
     /** Process-history retention in days; null → server default (1). */
-    processRetentionDays: z.number().int().positive().nullable().default(null)
+    processRetentionDays: z.number().int().positive().nullable().default(null),
+    /**
+     * Last self-destruct failure message: set when an agent failed to wipe itself
+     * during deletion, so the UI can surface it and the deletion is aborted.
+     * Null when there's no pending error.
+     */
+    deleteError: z.string().nullable().default(null)
 });
 
 export type Device = z.infer<typeof deviceSchema>;
@@ -71,4 +89,8 @@ export interface DeviceRow {
     retention_days: number | null;
     /** Process-history retention in days; null → server default. */
     process_retention_days: number | null;
+    /** Status to restore if a pending deletion is cancelled; null otherwise. */
+    status_before_delete: string | null;
+    /** Last self-destruct failure message (deletion aborted); null otherwise. */
+    delete_error: string | null;
 }

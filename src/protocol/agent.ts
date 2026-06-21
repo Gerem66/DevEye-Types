@@ -15,6 +15,8 @@ export const AGENT_METRICS_BATCH = 'metrics.batch' as const;
 export const AGENT_HELLO = 'agent.hello' as const;
 export const AGENT_REPORT = 'agent.report' as const;
 export const AGENT_PROCESSES = 'agent.processes' as const;
+/** Agent's reply to `agent.destroy`: whether it managed to wipe itself. */
+export const AGENT_DESTROYED = 'agent.destroyed' as const;
 
 export const agentReportMessagePayloadSchema = z.object({
     deviceId: z.string().uuid(),
@@ -24,6 +26,14 @@ export const agentReportMessagePayloadSchema = z.object({
 export const agentProcessesMessagePayloadSchema = z.object({
     deviceId: z.string().uuid(),
     sample: processSampleSchema
+});
+
+export const agentDestroyedMessagePayloadSchema = z.object({
+    deviceId: z.string().uuid(),
+    /** True when the agent successfully wiped its local config (and binary). */
+    ok: z.boolean(),
+    /** Failure reason when `ok` is false (deletion is then aborted server-side). */
+    error: z.string().max(255).optional()
 });
 
 export const agentClientMessageSchema = z.discriminatedUnion('command', [
@@ -42,6 +52,10 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_PROCESSES),
         payload: agentProcessesMessagePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_DESTROYED),
+        payload: agentDestroyedMessagePayloadSchema
     })
 ]);
 
@@ -54,6 +68,8 @@ export const AGENT_ERROR = 'agent.error' as const;
 export const AGENT_COLLECT = 'agent.collect' as const;
 /** Push the per-device collection config (cadences + capture mode) to the agent. */
 export const AGENT_CONFIG = 'agent.config' as const;
+/** Tell the agent to self-destruct (wipe its local config + binary) and exit. */
+export const AGENT_DESTROY = 'agent.destroy' as const;
 
 /** Collection config the server pushes to an agent (on connect + on change). */
 export const agentConfigPayloadSchema = z.object({
@@ -82,6 +98,10 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_CONFIG),
         payload: agentConfigPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_DESTROY),
+        payload: z.object({})
     })
 ]);
 

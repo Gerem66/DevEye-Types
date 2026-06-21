@@ -22,7 +22,7 @@ export const deviceStatusSchema = z.enum([
 ]);
 export type DeviceStatus = z.infer<typeof deviceStatusSchema>;
 
-export const devicePlatformSchema = z.enum(['linux', 'macos']);
+export const devicePlatformSchema = z.enum(['linux', 'macos', 'windows']);
 export type DevicePlatform = z.infer<typeof devicePlatformSchema>;
 
 /**

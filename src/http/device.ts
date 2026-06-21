@@ -76,3 +76,105 @@ export const enrollDeviceResponseSchema = z.object({
 });
 
 export type EnrollDeviceResponse = z.infer<typeof enrollDeviceResponseSchema>;
+
+/**
+ * Agent download matrix — the **single source of truth** for the set of
+ * platform binaries shipped with a release. Consumed by:
+ *  - the web UI (the "Télécharger l'agent" two-step picker), and
+ *  - the server (validates the `:target` param and resolves the file on disk).
+ *
+ * The CI release workflow and `agent/build-all.sh` mirror the same labels (they
+ * can't import TS) — keep all three in sync when adding/removing a target.
+ */
+export const agentTargetSchema = z.enum([
+    'linux-x86_64',
+    'linux-aarch64',
+    'linux-armv7',
+    'macos-x86_64',
+    'macos-arm64',
+    'windows-x86_64',
+    'windows-x86',
+    'windows-arm64'
+]);
+
+export type AgentTarget = z.infer<typeof agentTargetSchema>;
+
+/** Coarse OS family, used to group targets in the picker (Apple / Linux / Windows). */
+export type AgentOs = 'linux' | 'macos' | 'windows';
+
+export interface AgentTargetMeta {
+    /** Stable id used in the URL and as the download key. */
+    id: AgentTarget;
+    /** OS family the target belongs to (drives the first picker step). */
+    os: AgentOs;
+    /** Human-readable architecture label (shown in the second picker step). */
+    label: string;
+    /** Asset/file name served from `AGENT_DIST_DIR` (Windows carries `.exe`). */
+    filename: string;
+}
+
+/** Ordered metadata for every shippable target (drives the picker + file lookup). */
+export const AGENT_TARGETS: readonly AgentTargetMeta[] = [
+    {
+        id: 'macos-arm64',
+        os: 'macos',
+        label: 'Apple Silicon',
+        filename: 'deveye-agent-macos-arm64'
+    },
+    {
+        id: 'macos-x86_64',
+        os: 'macos',
+        label: 'Apple Intel',
+        filename: 'deveye-agent-macos-x86_64'
+    },
+    { id: 'linux-x86_64', os: 'linux', label: 'Linux x64', filename: 'deveye-agent-linux-x86_64' },
+    {
+        id: 'linux-aarch64',
+        os: 'linux',
+        label: 'Linux ARM64',
+        filename: 'deveye-agent-linux-aarch64'
+    },
+    {
+        id: 'linux-armv7',
+        os: 'linux',
+        label: 'Linux ARM 32-bit (Raspberry Pi)',
+        filename: 'deveye-agent-linux-armv7'
+    },
+    {
+        id: 'windows-x86_64',
+        os: 'windows',
+        label: 'Windows x64',
+        filename: 'deveye-agent-windows-x86_64.exe'
+    },
+    {
+        id: 'windows-x86',
+        os: 'windows',
+        label: 'Windows x86 (32-bit)',
+        filename: 'deveye-agent-windows-x86.exe'
+    },
+    {
+        id: 'windows-arm64',
+        os: 'windows',
+        label: 'Windows ARM64',
+        filename: 'deveye-agent-windows-arm64.exe'
+    }
+];
+
+/** One target's availability, as reported by `GET /api/agent/targets`. */
+export const agentTargetStatusSchema = z.object({
+    id: agentTargetSchema,
+    os: z.enum(['linux', 'macos', 'windows']),
+    label: z.string(),
+    /** Whether the binary is present on the server (greys it out in the UI). */
+    available: z.boolean(),
+    /** Size in bytes when available, else `null`. */
+    sizeBytes: z.number().int().nonnegative().nullable()
+});
+
+export type AgentTargetStatus = z.infer<typeof agentTargetStatusSchema>;
+
+export const agentTargetsResponseSchema = z.object({
+    targets: z.array(agentTargetStatusSchema)
+});
+
+export type AgentTargetsResponse = z.infer<typeof agentTargetsResponseSchema>;

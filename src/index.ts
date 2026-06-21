@@ -300,6 +300,10 @@ export type {
     TwoFactorChallengeRequest
 } from './http/auth';
 export {
+    AGENT_TARGETS,
+    agentTargetSchema,
+    agentTargetsResponseSchema,
+    agentTargetStatusSchema,
     enrollDeviceRequestSchema,
     enrollDeviceResponseSchema,
     LINK_CODE_TTL_MAX_SECONDS,
@@ -309,6 +313,11 @@ export {
     linkCodeUpdateSchema
 } from './http/device';
 export type {
+    AgentOs,
+    AgentTarget,
+    AgentTargetMeta,
+    AgentTargetsResponse,
+    AgentTargetStatus,
     EnrollDeviceRequest,
     EnrollDeviceResponse,
     LinkCodeRequest,

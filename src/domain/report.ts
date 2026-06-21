@@ -97,6 +97,20 @@ export const openPortSchema = z.object({
 export type OpenPort = z.infer<typeof openPortSchema>;
 
 /**
+ * One established TCP connection at collection time — the detail behind the
+ * `activeConnections` metric (which only carries the count). Addresses are kept
+ * as strings so both IPv4 and IPv6 peers display as-is.
+ */
+export const tcpConnectionSchema = z.object({
+    localAddress: z.string().max(64),
+    localPort: z.number().int().min(0).max(65535),
+    remoteAddress: z.string().max(64),
+    remotePort: z.number().int().min(0).max(65535)
+});
+
+export type TcpConnection = z.infer<typeof tcpConnectionSchema>;
+
+/**
  * The agent's own runtime identity. Lets the UI explain *why* some best-effort
  * probes are limited — chiefly whether it runs with privileges (root/elevated).
  */
@@ -199,7 +213,13 @@ export const deviceReportSchema = z.object({
      * Listening sockets. `null` = not collected (legacy report); `[]` = collected
      * and none found. Sorted by port, capped at 500 by the agent.
      */
-    openPorts: z.array(openPortSchema).max(500).nullable().default(null)
+    openPorts: z.array(openPortSchema).max(500).nullable().default(null),
+    /**
+     * Established TCP connections (the detail behind the `activeConnections`
+     * metric). `null` = not collected (legacy report); `[]` = collected and none.
+     * Sorted, capped at 500 by the agent.
+     */
+    connections: z.array(tcpConnectionSchema).max(500).nullable().default(null)
 });
 
 export type DeviceReport = z.infer<typeof deviceReportSchema>;

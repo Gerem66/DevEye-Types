@@ -108,7 +108,8 @@ export {
     processKindSchema,
     processSampleSchema,
     reportDiskSchema,
-    reportProcessSchema
+    reportProcessSchema,
+    tcpConnectionSchema
 } from './domain/report';
 export type {
     AgentInfo,
@@ -124,7 +125,8 @@ export type {
     ProcessSample,
     ProcessSampleRow,
     ReportDisk,
-    ReportProcess
+    ReportProcess,
+    TcpConnection
 } from './domain/report';
 export { presenceEventSchema } from './domain/presence';
 export type { PresenceEvent, PresenceRow } from './domain/presence';

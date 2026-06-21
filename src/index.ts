@@ -96,8 +96,10 @@ export type { Workspace, WorkspaceMemberRow, WorkspaceRow } from './domain/works
 export { devicePlatformSchema, deviceSchema, deviceStatusSchema } from './domain/device';
 export type { Device, DevicePlatform, DeviceRow, DeviceStatus } from './domain/device';
 export {
+    agentInfoSchema,
     deviceReportSchema,
     deviceSecuritySchema,
+    openPortSchema,
     processCaptureSchema,
     processKindSchema,
     processSampleSchema,
@@ -105,8 +107,10 @@ export {
     reportProcessSchema
 } from './domain/report';
 export type {
+    AgentInfo,
     DeviceReport,
     DeviceSecurity,
+    OpenPort,
     ProcessCapture,
     ProcessKind,
     ProcessSample,

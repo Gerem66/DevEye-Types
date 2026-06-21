@@ -83,6 +83,32 @@ export const reportDiskSchema = z.object({
 
 export type ReportDisk = z.infer<typeof reportDiskSchema>;
 
+/**
+ * One listening socket on the monitored machine. `address` is the bind address
+ * (`0.0.0.0`/`::` = all interfaces, `127.0.0.1`/`::1` = loopback only) so the UI
+ * can distinguish world-exposed ports from local ones.
+ */
+export const openPortSchema = z.object({
+    proto: z.enum(['tcp', 'udp']),
+    port: z.number().int().min(0).max(65535),
+    address: z.string().max(64)
+});
+
+export type OpenPort = z.infer<typeof openPortSchema>;
+
+/**
+ * The agent's own runtime identity. Lets the UI explain *why* some best-effort
+ * probes are limited — chiefly whether it runs with privileges (root/elevated).
+ */
+export const agentInfoSchema = z.object({
+    /** Running as root (Unix euid 0) / elevated (Windows). */
+    privileged: z.boolean(),
+    /** OS account the agent runs as (e.g. `root`, `deploy`). */
+    user: z.string().max(128)
+});
+
+export type AgentInfo = z.infer<typeof agentInfoSchema>;
+
 export const deviceReportSchema = z.object({
     /** Unix ms when this report was collected on the agent. */
     collectedAt: z.number().int().positive(),
@@ -95,7 +121,17 @@ export const deviceReportSchema = z.object({
     }),
     security: deviceSecuritySchema,
     /** Per-disk usage (deduped across shared APFS volumes). Empty if unknown. */
-    disks: z.array(reportDiskSchema).default([])
+    disks: z.array(reportDiskSchema).default([]),
+    /**
+     * The agent's runtime identity (privilege level + account). `null` on legacy
+     * reports stored before this field existed; the agent always sends it now.
+     */
+    agent: agentInfoSchema.nullable().default(null),
+    /**
+     * Listening sockets. `null` = not collected (legacy report); `[]` = collected
+     * and none found. Sorted by port, capped at 500 by the agent.
+     */
+    openPorts: z.array(openPortSchema).max(500).nullable().default(null)
 });
 
 export type DeviceReport = z.infer<typeof deviceReportSchema>;

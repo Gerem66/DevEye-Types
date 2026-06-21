@@ -109,6 +109,69 @@ export const agentInfoSchema = z.object({
 
 export type AgentInfo = z.infer<typeof agentInfoSchema>;
 
+/**
+ * Processor identity (best-effort, read from `sysinfo`). `frequencyMhz` is the
+ * nominal/base frequency the OS reports — `null` when it couldn't be read.
+ */
+export const cpuInfoSchema = z.object({
+    /** Brand string, e.g. "Apple M1 Pro" or "Intel(R) Core(TM) i7-1185G7". */
+    model: z.string().max(256),
+    /** Vendor id (e.g. `GenuineIntel`, `AuthenticAMD`); null when unknown. */
+    vendor: z.string().max(128).nullable().default(null),
+    /** Physical cores; null when the OS can't report them. */
+    physicalCores: z.number().int().nonnegative().nullable().default(null),
+    /** Logical cores (threads). */
+    logicalCores: z.number().int().nonnegative(),
+    /** Nominal/base frequency in MHz; null when unknown. */
+    frequencyMhz: z.number().int().nonnegative().nullable().default(null)
+});
+
+export type CpuInfo = z.infer<typeof cpuInfoSchema>;
+
+/**
+ * A network interface's inferred class. Best-effort: derived from the OS hardware
+ * port (macOS) or the interface name, so `other`/`virtual` cover anything we
+ * can't confidently bucket.
+ */
+export const netInterfaceKindSchema = z.enum([
+    'wifi',
+    'ethernet',
+    'bluetooth',
+    'loopback',
+    'virtual',
+    'other'
+]);
+export type NetInterfaceKind = z.infer<typeof netInterfaceKindSchema>;
+
+/** One network interface on the host (name + hardware address + inferred kind). */
+export const netInterfaceSchema = z.object({
+    name: z.string().min(1).max(128),
+    kind: netInterfaceKindSchema,
+    /** MAC address, `null` when unavailable or all-zero (e.g. loopback). */
+    mac: z.string().max(64).nullable().default(null)
+});
+
+export type NetInterface = z.infer<typeof netInterfaceSchema>;
+
+/**
+ * Static hardware inventory of the monitored machine — slow-moving facts (CPU,
+ * RAM, GPU, connectivity) carried alongside the report. Every list is best-effort
+ * and may be empty; `bluetooth` is `null` when no adapter was detected.
+ */
+export const deviceHardwareSchema = z.object({
+    cpu: cpuInfoSchema,
+    /** Total physical RAM, in bytes. */
+    memoryTotalBytes: z.number().int().nonnegative(),
+    /** GPU model names (best-effort; may be empty). */
+    gpus: z.array(z.string().max(256)).max(16).default([]),
+    /** Network interfaces (best-effort; may be empty). */
+    network: z.array(netInterfaceSchema).max(64).default([]),
+    /** Bluetooth adapter descriptor; `null` when none detected. */
+    bluetooth: z.string().max(256).nullable().default(null)
+});
+
+export type DeviceHardware = z.infer<typeof deviceHardwareSchema>;
+
 export const deviceReportSchema = z.object({
     /** Unix ms when this report was collected on the agent. */
     collectedAt: z.number().int().positive(),
@@ -127,6 +190,11 @@ export const deviceReportSchema = z.object({
      * reports stored before this field existed; the agent always sends it now.
      */
     agent: agentInfoSchema.nullable().default(null),
+    /**
+     * Static hardware inventory (CPU, RAM, GPU, network, bluetooth). `null` on
+     * legacy reports stored before this field existed; the agent always sends it.
+     */
+    hardware: deviceHardwareSchema.nullable().default(null),
     /**
      * Listening sockets. `null` = not collected (legacy report); `[]` = collected
      * and none found. Sorted by port, capped at 500 by the agent.

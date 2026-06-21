@@ -97,8 +97,12 @@ export { devicePlatformSchema, deviceSchema, deviceStatusSchema } from './domain
 export type { Device, DevicePlatform, DeviceRow, DeviceStatus } from './domain/device';
 export {
     agentInfoSchema,
+    cpuInfoSchema,
+    deviceHardwareSchema,
     deviceReportSchema,
     deviceSecuritySchema,
+    netInterfaceKindSchema,
+    netInterfaceSchema,
     openPortSchema,
     processCaptureSchema,
     processKindSchema,
@@ -108,8 +112,12 @@ export {
 } from './domain/report';
 export type {
     AgentInfo,
+    CpuInfo,
+    DeviceHardware,
     DeviceReport,
     DeviceSecurity,
+    NetInterface,
+    NetInterfaceKind,
     OpenPort,
     ProcessCapture,
     ProcessKind,

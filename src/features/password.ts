@@ -9,6 +9,18 @@ export const passwordList = {
     output: z.object({ entries: z.array(passwordEntryMaskedSchema) })
 };
 
+/**
+ * Count the caller's password entries in a workspace. Clear metadata only (row
+ * count, no decryption), so — unlike `password.list` — it never requires the
+ * password encryption layer to be unlocked and the dashboard widget always
+ * renders a number, even when the session is locked.
+ */
+export const passwordCount = {
+    command: 'password.count' as const,
+    input: z.object({ workspaceId }),
+    output: z.object({ count: z.number().int().nonnegative() })
+};
+
 export const passwordGet = {
     command: 'password.get' as const,
     input: z.object({ workspaceId, passwordId: z.number().int().positive() }),
@@ -44,6 +56,7 @@ export const passwordUnlock = {
 
 export const passwordCommands = [
     passwordList,
+    passwordCount,
     passwordGet,
     passwordAdd,
     passwordEdit,

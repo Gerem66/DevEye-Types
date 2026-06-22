@@ -175,6 +175,7 @@ export type {
 export {
     passwordAdd,
     passwordCommands,
+    passwordCount,
     passwordDelete,
     passwordEdit,
     passwordGet,
@@ -189,6 +190,7 @@ export {
     folderReorder,
     noteAdd,
     noteCommands,
+    noteCount,
     noteDelete,
     noteEdit,
     noteGet,

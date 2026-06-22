@@ -45,6 +45,19 @@ export const noteList = {
 };
 
 /**
+ * Count the caller's notes in a workspace. Pure clear metadata: every row is
+ * counted the same way — locked notes included, no special case — without
+ * decrypting anything. Unlike `note.list` this never requires the password
+ * encryption layer to be unlocked, so the dashboard widget always shows a
+ * number, even when the session is locked.
+ */
+export const noteCount = {
+    command: 'note.count' as const,
+    input: z.object({ workspaceId }),
+    output: z.object({ count: z.number().int().nonnegative() })
+};
+
+/**
  * Fetch one note in full. For a locked note the caller must supply the note's
  * dedicated `password`; otherwise the server replies `auth_required` and the
  * client prompts. The password is verified on every open (no session reveal).
@@ -149,6 +162,7 @@ export const folderDelete = {
 
 export const noteCommands = [
     noteList,
+    noteCount,
     noteGet,
     noteAdd,
     noteEdit,

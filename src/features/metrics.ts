@@ -86,6 +86,43 @@ export const metricsSnapshots = {
     output: z.object({ deviceId, timestamps: z.array(z.number().int().positive()) })
 };
 
+/** Storage footprint of a device's stored process snapshots (count + bytes). */
+export const metricsStorage = {
+    command: 'metrics.storage' as const,
+    input: z.object({ deviceId }),
+    output: z.object({
+        deviceId,
+        /** Distinct snapshot instants kept for the device. */
+        snapshots: z.number().int().nonnegative(),
+        /** Total process rows across those snapshots. */
+        rows: z.number().int().nonnegative(),
+        /** Estimated bytes those rows occupy in the database (data + index). */
+        bytes: z.number().int().nonnegative()
+    })
+};
+
+/**
+ * Delete the process snapshots within `[from, to]` (inclusive). A single snapshot
+ * is removed by passing `from === to === ts`; a dragged zone passes its bounds.
+ */
+export const metricsDeleteSnapshots = {
+    command: 'metrics.deleteSnapshots' as const,
+    input: z
+        .object({
+            deviceId,
+            from: z.number().int().nonnegative(),
+            to: z.number().int().positive()
+        })
+        .refine((v) => v.to >= v.from, { message: 'to must be >= from' }),
+    output: z.object({
+        deviceId,
+        /** Distinct snapshot instants removed. */
+        deletedSnapshots: z.number().int().nonnegative(),
+        /** Process rows removed. */
+        deletedRows: z.number().int().nonnegative()
+    })
+};
+
 export const metricsCommands = [
     metricsQuery,
     metricsSubscribe,
@@ -94,5 +131,7 @@ export const metricsCommands = [
     metricsPresence,
     metricsProcessesAt,
     metricsAvailability,
-    metricsSnapshots
+    metricsSnapshots,
+    metricsStorage,
+    metricsDeleteSnapshots
 ] as const;

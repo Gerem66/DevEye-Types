@@ -232,11 +232,13 @@ export {
 export {
     metricsAvailability,
     metricsCommands,
+    metricsDeleteSnapshots,
     metricsPresence,
     metricsProcessesAt,
     metricsQuery,
     metricsRefresh,
     metricsSnapshots,
+    metricsStorage,
     metricsSubscribe,
     metricsUnsubscribe
 } from './features/metrics';

@@ -301,6 +301,8 @@ export type {
 } from './http/auth';
 export {
     AGENT_TARGETS,
+    agentManifestSchema,
+    agentManifestTargetSchema,
     agentTargetSchema,
     agentTargetsResponseSchema,
     agentTargetStatusSchema,
@@ -313,6 +315,8 @@ export {
     linkCodeUpdateSchema
 } from './http/device';
 export type {
+    AgentManifest,
+    AgentManifestTarget,
     AgentOs,
     AgentTarget,
     AgentTargetMeta,
@@ -325,3 +329,5 @@ export type {
     LinkCodesListResponse,
     LinkCodeUpdate
 } from './http/device';
+export { bootTaskSchema, bootTaskStateSchema, serverStatusSchema } from './http/status';
+export type { BootTask, BootTaskState, ServerStatus } from './http/status';

@@ -174,7 +174,35 @@ export const agentTargetStatusSchema = z.object({
 export type AgentTargetStatus = z.infer<typeof agentTargetStatusSchema>;
 
 export const agentTargetsResponseSchema = z.object({
+    /**
+     * DevEye version the served binaries were built from (from the synced
+     * manifest), or `null` if nothing has been synced yet. The UI warns when it
+     * differs from its own build version (`__APP_VERSION__`).
+     */
+    agentVersion: z.string().nullable(),
     targets: z.array(agentTargetStatusSchema)
 });
 
 export type AgentTargetsResponse = z.infer<typeof agentTargetsResponseSchema>;
+
+/**
+ * Manifest published alongside the agent binaries on the rolling release. It is
+ * the contract between the CI build and the server's boot-time reconciler: the
+ * server compares each target's `sha256` to what's on disk and downloads only
+ * the diff. `version` is the DevEye version the binaries were built from.
+ */
+export const agentManifestTargetSchema = z.object({
+    id: agentTargetSchema,
+    filename: z.string(),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    size: z.number().int().nonnegative()
+});
+
+export type AgentManifestTarget = z.infer<typeof agentManifestTargetSchema>;
+
+export const agentManifestSchema = z.object({
+    version: z.string(),
+    targets: z.array(agentManifestTargetSchema)
+});
+
+export type AgentManifest = z.infer<typeof agentManifestSchema>;

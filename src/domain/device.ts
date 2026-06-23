@@ -39,6 +39,11 @@ export const deviceSchema = z.object({
     online: z.boolean(),
     lastSeen: z.number().int().nonnegative().nullable(),
     created: z.number().int().nonnegative(),
+    /**
+     * Version the running agent reported on its last connection (`agent.hello`);
+     * null until it has connected at least once.
+     */
+    agentVersion: z.string().nullable().default(null),
     /** Latest known health/security report; null until the agent sends one. */
     report: deviceReportSchema.nullable().default(null),
     /** Metric (graph) sampling interval in seconds; null → server default (10). */
@@ -77,6 +82,8 @@ export interface DeviceRow {
     token_hash: string;
     last_seen: number | null;
     created: number;
+    /** Agent version from the last `agent.hello`; null until first connection. */
+    agent_version: string | null;
     /** JSON-encoded latest `DeviceReport`, or null if none received yet. */
     report_json: string | null;
     /** Metric sampling interval in seconds; null → server default. */

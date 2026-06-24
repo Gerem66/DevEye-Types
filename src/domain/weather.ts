@@ -13,7 +13,7 @@ export type WeatherProvider = z.infer<typeof weatherProviderSchema>;
  * each with its own format. Coordinates are resolved via geocoding when added.
  */
 export const weatherLocationSchema = z.object({
-    id: z.string().uuid(),
+    id: z.uuid(),
     label: z.string().min(1).max(120),
     latitude: z.number().min(-90).max(90),
     longitude: z.number().min(-180).max(180),
@@ -64,7 +64,7 @@ export type WeatherHour = z.infer<typeof weatherHourSchema>;
 
 /** Live report fetched on demand for a given location. */
 export const weatherReportSchema = z.object({
-    locationId: z.string().uuid(),
+    locationId: z.uuid(),
     label: z.string(),
     fetchedAt: z.number().int().nonnegative(),
     /** IANA timezone of the location (e.g. "Europe/Paris"), for local-date display. */

@@ -48,7 +48,7 @@ export type MetricSnapshot = z.infer<typeof metricSnapshotSchema>;
  * keep payloads small and allow draining an offline queue in chunks.
  */
 export const metricsBatchSchema = z.object({
-    deviceId: z.string().uuid(),
+    deviceId: z.uuid(),
     snapshots: z.array(metricSnapshotSchema).min(1).max(100)
 });
 

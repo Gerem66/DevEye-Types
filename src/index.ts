@@ -16,6 +16,11 @@ export {
     AGENT_ERROR,
     AGENT_HELLO,
     AGENT_METRICS_BATCH,
+    AGENT_PKG_DONE,
+    AGENT_PKG_LIST,
+    AGENT_PKG_LIST_RESULT,
+    AGENT_PKG_PROGRESS,
+    AGENT_PKG_UPGRADE,
     AGENT_PROCESSES,
     AGENT_REPORT,
     AGENT_SERVICE,
@@ -25,6 +30,10 @@ export {
     agentClientMessageSchema,
     agentConfigPayloadSchema,
     agentDestroyedMessagePayloadSchema,
+    agentPkgDonePayloadSchema,
+    agentPkgListResultPayloadSchema,
+    agentPkgProgressPayloadSchema,
+    agentPkgUpgradePayloadSchema,
     agentProcessesMessagePayloadSchema,
     agentReportMessagePayloadSchema,
     agentServerMessageSchema,
@@ -38,18 +47,28 @@ export {
     devicePresenceSchema,
     deviceReportPushSchema,
     METRICS_PUSH_EVENT,
-    metricsPushSchema
+    metricsPushSchema,
+    PACKAGE_DONE_EVENT,
+    PACKAGE_LIST_EVENT,
+    PACKAGE_PROGRESS_EVENT,
+    packageDonePushSchema,
+    packageListPushSchema,
+    packageProgressPushSchema
 } from './protocol/agent';
 export type {
     AgentClientMessage,
     AgentConfigPayload,
+    AgentPkgUpgradePayload,
     AgentServerMessage,
     AgentServiceAction,
     AgentServicePayload,
     AgentUpdatePayload,
     DevicePresence,
     DeviceReportPush,
-    MetricsPush
+    MetricsPush,
+    PackageDonePush,
+    PackageListPush,
+    PackageProgressPush
 } from './protocol/agent';
 
 // Domain
@@ -126,6 +145,8 @@ export { workspaceSchema } from './domain/workspace';
 export type { Workspace, WorkspaceMemberRow, WorkspaceRow } from './domain/workspace';
 export { devicePlatformSchema, deviceSchema, deviceStatusSchema } from './domain/device';
 export type { Device, DevicePlatform, DeviceRow, DeviceStatus } from './domain/device';
+export { packageManagerIdSchema, packageManagerSchema } from './domain/packages';
+export type { PackageManager, PackageManagerId } from './domain/packages';
 export {
     agentInfoSchema,
     agentServiceScopeSchema,
@@ -259,13 +280,15 @@ export {
     deviceElevate,
     deviceForceDelete,
     deviceList,
+    deviceListPackages,
     deviceReactivate,
     deviceRename,
     deviceRequestDelete,
     deviceRevoke,
     deviceSetAutostart,
     deviceSetConfig,
-    deviceUpdateAgent
+    deviceUpdateAgent,
+    deviceUpgradePackages
 } from './features/device';
 export {
     metricsAvailability,

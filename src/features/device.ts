@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { deviceSchema } from '../domain/device';
+import { packageManagerIdSchema } from '../domain/packages';
 import { processCaptureSchema } from '../domain/report';
 
 const deviceId = z.uuid();
@@ -110,6 +111,28 @@ export const deviceDropPrivileges = {
 };
 
 /**
+ * Ask the agent to enumerate its package managers + pending updates. The result
+ * arrives asynchronously as a `package.list` push event (the caller must be
+ * subscribed to the device). The command itself only acknowledges the request.
+ */
+export const deviceListPackages = {
+    command: 'device.listPackages' as const,
+    input: z.object({ deviceId }),
+    output: z.object({ ok: z.boolean() })
+};
+
+/**
+ * Apply all pending updates of one manager. Progress streams as `package.progress`
+ * events, ending with `package.done`. Fails if the agent is offline or the manager
+ * needs root and the agent isn't privileged (elevate it first — see device.elevate).
+ */
+export const deviceUpgradePackages = {
+    command: 'device.upgradePackages' as const,
+    input: z.object({ deviceId, manager: packageManagerIdSchema }),
+    output: z.object({ ok: z.boolean() })
+};
+
+/**
  * Request a managed deletion (from the Appareils page). The device moves to
  * `pending_deletion`: on its next connection the agent is told to self-destruct
  * (wipe its local config + binary), after which the device is archived — its
@@ -163,6 +186,8 @@ export const deviceCommands = [
     deviceSetAutostart,
     deviceElevate,
     deviceDropPrivileges,
+    deviceListPackages,
+    deviceUpgradePackages,
     deviceRequestDelete,
     deviceCancelDelete,
     deviceForceDelete,

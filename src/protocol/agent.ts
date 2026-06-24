@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { metricsBatchSchema, metricSnapshotSchema } from '../domain/metrics';
+import { packageManagerIdSchema, packageManagerSchema } from '../domain/packages';
 import { deviceReportSchema, processCaptureSchema, processSampleSchema } from '../domain/report';
 import { agentTargetSchema } from '../http/device';
 import { ProtocolErrorSchema } from './error';
@@ -45,6 +46,39 @@ export const agentServiceActionSchema = z.enum([
     'drop'
 ]);
 export type AgentServiceAction = z.infer<typeof agentServiceActionSchema>;
+
+/** Agent's reply to `pkg.list`: the package managers present + their pending counts. */
+export const AGENT_PKG_LIST_RESULT = 'pkg.listResult' as const;
+
+export const agentPkgListResultPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    managers: z.array(packageManagerSchema)
+});
+
+/** Live line of an in-progress `pkg.upgrade`. */
+export const AGENT_PKG_PROGRESS = 'pkg.progress' as const;
+
+export const agentPkgProgressPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    manager: packageManagerIdSchema,
+    /** 0–100 when the tool emits it, else null (synthesise i/N or show the line). */
+    percent: z.number().min(0).max(100).nullable().optional(),
+    /** Coarse phase label (e.g. `download`, `install`) when derivable. */
+    phase: z.string().max(40).optional(),
+    /** The raw output line (already trimmed) to surface in the live log. */
+    line: z.string().max(2000)
+});
+
+/** Final outcome of a `pkg.upgrade`. */
+export const AGENT_PKG_DONE = 'pkg.done' as const;
+
+export const agentPkgDonePayloadSchema = z.object({
+    deviceId: z.uuid(),
+    manager: packageManagerIdSchema,
+    ok: z.boolean(),
+    rebootRequired: z.boolean().optional(),
+    error: z.string().max(500).optional()
+});
 
 /** Agent's reply to `agent.service`: outcome of a persistence/privilege change. */
 export const AGENT_SERVICE_RESULT = 'agent.serviceResult' as const;
@@ -116,6 +150,18 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_SERVICE_RESULT),
         payload: agentServiceResultPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_PKG_LIST_RESULT),
+        payload: agentPkgListResultPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_PKG_PROGRESS),
+        payload: agentPkgProgressPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_PKG_DONE),
+        payload: agentPkgDonePayloadSchema
     })
 ]);
 
@@ -154,6 +200,15 @@ export const AGENT_SERVICE = 'agent.service' as const;
 
 export const agentServicePayloadSchema = z.object({ action: agentServiceActionSchema });
 export type AgentServicePayload = z.infer<typeof agentServicePayloadSchema>;
+
+/** Ask the agent to enumerate its package managers + pending updates (`pkg.listResult`). */
+export const AGENT_PKG_LIST = 'pkg.list' as const;
+
+/** Ask the agent to apply all updates of one manager, streaming `pkg.progress`. */
+export const AGENT_PKG_UPGRADE = 'pkg.upgrade' as const;
+
+export const agentPkgUpgradePayloadSchema = z.object({ manager: packageManagerIdSchema });
+export type AgentPkgUpgradePayload = z.infer<typeof agentPkgUpgradePayloadSchema>;
 
 /** Collection config the server pushes to an agent (on connect + on change). */
 export const agentConfigPayloadSchema = z.object({
@@ -194,6 +249,14 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_SERVICE),
         payload: agentServicePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_PKG_LIST),
+        payload: z.object({})
+    }),
+    z.object({
+        command: z.literal(AGENT_PKG_UPGRADE),
+        payload: agentPkgUpgradePayloadSchema
     })
 ]);
 
@@ -206,6 +269,19 @@ export type AgentServerMessage = z.infer<typeof agentServerMessageSchema>;
 export const METRICS_PUSH_EVENT = 'metrics.push' as const;
 export const DEVICE_PRESENCE_EVENT = 'device.presence' as const;
 export const DEVICE_REPORT_EVENT = 'device.report' as const;
+/** Package-manager inventory, live upgrade progress, and completion (Appareils panel). */
+export const PACKAGE_LIST_EVENT = 'package.list' as const;
+export const PACKAGE_PROGRESS_EVENT = 'package.progress' as const;
+export const PACKAGE_DONE_EVENT = 'package.done' as const;
+
+/** Push payloads reuse the agent reply shapes (already carry `deviceId`). */
+export const packageListPushSchema = agentPkgListResultPayloadSchema;
+export const packageProgressPushSchema = agentPkgProgressPayloadSchema;
+export const packageDonePushSchema = agentPkgDonePayloadSchema;
+
+export type PackageListPush = z.infer<typeof packageListPushSchema>;
+export type PackageProgressPush = z.infer<typeof packageProgressPushSchema>;
+export type PackageDonePush = z.infer<typeof packageDonePushSchema>;
 
 export const metricsPushSchema = z.object({
     deviceId: z.uuid(),

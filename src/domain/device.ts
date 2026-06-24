@@ -30,7 +30,7 @@ export type DevicePlatform = z.infer<typeof devicePlatformSchema>;
  * `online` is live presence, derived from an active agent connection.
  */
 export const deviceSchema = z.object({
-    id: z.string().uuid(),
+    id: z.uuid(),
     ownerId: z.number().int().nonnegative(),
     name: z.string().min(1).max(128),
     fingerprint: z.string().min(1).max(128),
@@ -44,6 +44,17 @@ export const deviceSchema = z.object({
      * null until it has connected at least once.
      */
     agentVersion: z.string().nullable().default(null),
+    /**
+     * Version the server can update this agent to (the served/synced binary set),
+     * or null when nothing is synced. Server-computed, not stored.
+     */
+    latestAgentVersion: z.string().nullable().default(null),
+    /**
+     * True when a newer, *signed* binary exists for this device's build target and
+     * the running agent differs from it — i.e. the UI can offer "Mettre à jour".
+     * Server-computed from the synced manifest, not stored.
+     */
+    agentUpdateAvailable: z.boolean().default(false),
     /** Latest known health/security report; null until the agent sends one. */
     report: deviceReportSchema.nullable().default(null),
     /** Metric (graph) sampling interval in seconds; null → server default (10). */
@@ -84,6 +95,8 @@ export interface DeviceRow {
     created: number;
     /** Agent version from the last `agent.hello`; null until first connection. */
     agent_version: string | null;
+    /** Build target the agent reported (`linux-x86_64`…); null until first hello. */
+    agent_target: string | null;
     /** JSON-encoded latest `DeviceReport`, or null if none received yet. */
     report_json: string | null;
     /** Metric sampling interval in seconds; null → server default. */

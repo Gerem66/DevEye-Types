@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { deviceSchema } from '../domain/device';
 import { processCaptureSchema } from '../domain/report';
 
-const deviceId = z.string().uuid();
+const deviceId = z.uuid();
 
 /** List devices visible to the caller (own devices; all devices for admins). */
 export const deviceList = {
@@ -69,6 +69,18 @@ export const deviceReactivate = {
 };
 
 /**
+ * Push a self-update to a connected device's agent: the server resolves the newer
+ * signed binary for the device's build target and sends `agent.update`. Admin-only
+ * (Appareils page). Fails if the agent is offline, has no known target, the binary
+ * is missing/unsigned, or it's already up to date.
+ */
+export const deviceUpdateAgent = {
+    command: 'device.updateAgent' as const,
+    input: z.object({ deviceId }),
+    output: z.object({ device: deviceSchema })
+};
+
+/**
  * Request a managed deletion (from the Appareils page). The device moves to
  * `pending_deletion`: on its next connection the agent is told to self-destruct
  * (wipe its local config + binary), after which the device is archived — its
@@ -118,6 +130,7 @@ export const deviceCommands = [
     deviceReactivate,
     deviceRename,
     deviceSetConfig,
+    deviceUpdateAgent,
     deviceRequestDelete,
     deviceCancelDelete,
     deviceForceDelete,

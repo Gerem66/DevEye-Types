@@ -18,12 +18,16 @@ export {
     AGENT_METRICS_BATCH,
     AGENT_PROCESSES,
     AGENT_REPORT,
+    AGENT_UPDATE,
+    AGENT_UPDATED,
     agentClientMessageSchema,
     agentConfigPayloadSchema,
     agentDestroyedMessagePayloadSchema,
     agentProcessesMessagePayloadSchema,
     agentReportMessagePayloadSchema,
     agentServerMessageSchema,
+    agentUpdatedMessagePayloadSchema,
+    agentUpdatePayloadSchema,
     DEVICE_PRESENCE_EVENT,
     DEVICE_REPORT_EVENT,
     devicePresenceSchema,
@@ -35,6 +39,7 @@ export type {
     AgentClientMessage,
     AgentConfigPayload,
     AgentServerMessage,
+    AgentUpdatePayload,
     DevicePresence,
     DeviceReportPush,
     MetricsPush
@@ -247,7 +252,8 @@ export {
     deviceRename,
     deviceRequestDelete,
     deviceRevoke,
-    deviceSetConfig
+    deviceSetConfig,
+    deviceUpdateAgent
 } from './features/device';
 export {
     metricsAvailability,

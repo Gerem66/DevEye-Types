@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { metricsBatchSchema, metricSnapshotSchema } from '../domain/metrics';
 import { deviceReportSchema, processCaptureSchema, processSampleSchema } from '../domain/report';
+import { agentTargetSchema } from '../http/device';
 import { ProtocolErrorSchema } from './error';
 
 /**
@@ -17,19 +18,31 @@ export const AGENT_REPORT = 'agent.report' as const;
 export const AGENT_PROCESSES = 'agent.processes' as const;
 /** Agent's reply to `agent.destroy`: whether it managed to wipe itself. */
 export const AGENT_DESTROYED = 'agent.destroyed' as const;
+/** Agent's reply to `agent.update`: outcome of a self-update attempt. */
+export const AGENT_UPDATED = 'agent.updated' as const;
+
+export const agentUpdatedMessagePayloadSchema = z.object({
+    deviceId: z.uuid(),
+    /** True when the new binary was verified and swapped in (a restart follows). */
+    ok: z.boolean(),
+    /** Version the agent updated to, when `ok`. */
+    version: z.string().optional(),
+    /** Why the update was refused/aborted, when `!ok` (binary left untouched). */
+    error: z.string().max(255).optional()
+});
 
 export const agentReportMessagePayloadSchema = z.object({
-    deviceId: z.string().uuid(),
+    deviceId: z.uuid(),
     report: deviceReportSchema
 });
 
 export const agentProcessesMessagePayloadSchema = z.object({
-    deviceId: z.string().uuid(),
+    deviceId: z.uuid(),
     sample: processSampleSchema
 });
 
 export const agentDestroyedMessagePayloadSchema = z.object({
-    deviceId: z.string().uuid(),
+    deviceId: z.uuid(),
     /** True when the agent successfully wiped its local config (and binary). */
     ok: z.boolean(),
     /** Failure reason when `ok` is false (deletion is then aborted server-side). */
@@ -39,7 +52,15 @@ export const agentDestroyedMessagePayloadSchema = z.object({
 export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_HELLO),
-        payload: z.object({ agentVersion: z.string().min(1) })
+        payload: z.object({
+            agentVersion: z.string().min(1),
+            /**
+             * Build target the running agent was compiled for (e.g. `linux-x86_64`).
+             * Lets the server resolve which binary to push for a self-update.
+             * Optional: agents predating self-update don't send it.
+             */
+            target: agentTargetSchema.optional()
+        })
     }),
     z.object({
         command: z.literal(AGENT_METRICS_BATCH),
@@ -56,6 +77,10 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_DESTROYED),
         payload: agentDestroyedMessagePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_UPDATED),
+        payload: agentUpdatedMessagePayloadSchema
     })
 ]);
 
@@ -70,6 +95,24 @@ export const AGENT_COLLECT = 'agent.collect' as const;
 export const AGENT_CONFIG = 'agent.config' as const;
 /** Tell the agent to self-destruct (wipe its local config + binary) and exit. */
 export const AGENT_DESTROY = 'agent.destroy' as const;
+/** Tell the agent to download, verify and swap in a newer signed binary. */
+export const AGENT_UPDATE = 'agent.update' as const;
+
+/**
+ * Self-update order. The agent downloads the binary for `targetId` from
+ * `/api/agent/self-update/:target` (device-token auth), then refuses to replace
+ * itself unless BOTH the sha256 matches AND the ed25519 `signature` (over the
+ * sha256 bytes) verifies against its embedded public key.
+ */
+export const agentUpdatePayloadSchema = z.object({
+    targetId: agentTargetSchema,
+    version: z.string().min(1),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    /** Base64 ed25519 signature over the 32 raw bytes of `sha256`. */
+    signature: z.string().min(1)
+});
+
+export type AgentUpdatePayload = z.infer<typeof agentUpdatePayloadSchema>;
 
 /** Collection config the server pushes to an agent (on connect + on change). */
 export const agentConfigPayloadSchema = z.object({
@@ -102,6 +145,10 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_DESTROY),
         payload: z.object({})
+    }),
+    z.object({
+        command: z.literal(AGENT_UPDATE),
+        payload: agentUpdatePayloadSchema
     })
 ]);
 
@@ -116,21 +163,21 @@ export const DEVICE_PRESENCE_EVENT = 'device.presence' as const;
 export const DEVICE_REPORT_EVENT = 'device.report' as const;
 
 export const metricsPushSchema = z.object({
-    deviceId: z.string().uuid(),
+    deviceId: z.uuid(),
     snapshot: metricSnapshotSchema
 });
 
 export type MetricsPush = z.infer<typeof metricsPushSchema>;
 
 export const deviceReportPushSchema = z.object({
-    deviceId: z.string().uuid(),
+    deviceId: z.uuid(),
     report: deviceReportSchema
 });
 
 export type DeviceReportPush = z.infer<typeof deviceReportPushSchema>;
 
 export const devicePresenceSchema = z.object({
-    deviceId: z.string().uuid(),
+    deviceId: z.uuid(),
     online: z.boolean(),
     lastSeen: z.number().int().nonnegative().nullable()
 });

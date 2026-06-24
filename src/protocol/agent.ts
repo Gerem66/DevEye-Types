@@ -31,6 +31,37 @@ export const agentUpdatedMessagePayloadSchema = z.object({
     error: z.string().max(255).optional()
 });
 
+/**
+ * Persistence/privilege action the server can ask the agent to perform:
+ * - `install-user`   install a per-user autostart (no privilege needed),
+ * - `uninstall-user` remove it,
+ * - `elevate`        (try to) become a root/system service — see the hybrid flow,
+ * - `drop`           go back from system/root to a per-user service.
+ */
+export const agentServiceActionSchema = z.enum([
+    'install-user',
+    'uninstall-user',
+    'elevate',
+    'drop'
+]);
+export type AgentServiceAction = z.infer<typeof agentServiceActionSchema>;
+
+/** Agent's reply to `agent.service`: outcome of a persistence/privilege change. */
+export const AGENT_SERVICE_RESULT = 'agent.serviceResult' as const;
+
+export const agentServiceResultPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    action: agentServiceActionSchema,
+    ok: z.boolean(),
+    /**
+     * For `elevate`/`drop`: the agent had no interactive session to pop an OS auth
+     * prompt, so the user must run the elevated command on the device manually
+     * (the UI already shows it). The action itself was not performed.
+     */
+    needsManualCommand: z.boolean().optional(),
+    error: z.string().max(255).optional()
+});
+
 export const agentReportMessagePayloadSchema = z.object({
     deviceId: z.uuid(),
     report: deviceReportSchema
@@ -81,6 +112,10 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_UPDATED),
         payload: agentUpdatedMessagePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SERVICE_RESULT),
+        payload: agentServiceResultPayloadSchema
     })
 ]);
 
@@ -113,6 +148,12 @@ export const agentUpdatePayloadSchema = z.object({
 });
 
 export type AgentUpdatePayload = z.infer<typeof agentUpdatePayloadSchema>;
+
+/** Tell the agent to change its persistence/privilege install (see `AgentServiceAction`). */
+export const AGENT_SERVICE = 'agent.service' as const;
+
+export const agentServicePayloadSchema = z.object({ action: agentServiceActionSchema });
+export type AgentServicePayload = z.infer<typeof agentServicePayloadSchema>;
 
 /** Collection config the server pushes to an agent (on connect + on change). */
 export const agentConfigPayloadSchema = z.object({
@@ -149,6 +190,10 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_UPDATE),
         payload: agentUpdatePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SERVICE),
+        payload: agentServicePayloadSchema
     })
 ]);
 

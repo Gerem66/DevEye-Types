@@ -81,6 +81,35 @@ export const deviceUpdateAgent = {
 };
 
 /**
+ * Enable/disable the agent's per-user autostart (survives reboot, no privilege).
+ * Pushes `agent.service` to the connected agent (`install-user`/`uninstall-user`).
+ */
+export const deviceSetAutostart = {
+    command: 'device.setAutostart' as const,
+    input: z.object({ deviceId, enabled: z.boolean() }),
+    output: z.object({ device: deviceSchema })
+};
+
+/**
+ * Ask the agent to become a root/system service. Hybrid: the agent pops an OS auth
+ * prompt if it has an interactive session, else replies `needsManualCommand` and the
+ * UI shows `manualCommand` (always returned, deterministic per platform) to run on
+ * the device. The new privilege/scope is observed on the agent's next report.
+ */
+export const deviceElevate = {
+    command: 'device.elevate' as const,
+    input: z.object({ deviceId }),
+    output: z.object({ device: deviceSchema, manualCommand: z.string() })
+};
+
+/** Ask a root/system agent to drop back to a per-user service. */
+export const deviceDropPrivileges = {
+    command: 'device.dropPrivileges' as const,
+    input: z.object({ deviceId }),
+    output: z.object({ device: deviceSchema, manualCommand: z.string() })
+};
+
+/**
  * Request a managed deletion (from the Appareils page). The device moves to
  * `pending_deletion`: on its next connection the agent is told to self-destruct
  * (wipe its local config + binary), after which the device is archived — its
@@ -131,6 +160,9 @@ export const deviceCommands = [
     deviceRename,
     deviceSetConfig,
     deviceUpdateAgent,
+    deviceSetAutostart,
+    deviceElevate,
+    deviceDropPrivileges,
     deviceRequestDelete,
     deviceCancelDelete,
     deviceForceDelete,

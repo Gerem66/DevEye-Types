@@ -18,6 +18,8 @@ export {
     AGENT_METRICS_BATCH,
     AGENT_PROCESSES,
     AGENT_REPORT,
+    AGENT_SERVICE,
+    AGENT_SERVICE_RESULT,
     AGENT_UPDATE,
     AGENT_UPDATED,
     agentClientMessageSchema,
@@ -26,6 +28,9 @@ export {
     agentProcessesMessagePayloadSchema,
     agentReportMessagePayloadSchema,
     agentServerMessageSchema,
+    agentServiceActionSchema,
+    agentServicePayloadSchema,
+    agentServiceResultPayloadSchema,
     agentUpdatedMessagePayloadSchema,
     agentUpdatePayloadSchema,
     DEVICE_PRESENCE_EVENT,
@@ -39,6 +44,8 @@ export type {
     AgentClientMessage,
     AgentConfigPayload,
     AgentServerMessage,
+    AgentServiceAction,
+    AgentServicePayload,
     AgentUpdatePayload,
     DevicePresence,
     DeviceReportPush,
@@ -121,6 +128,7 @@ export { devicePlatformSchema, deviceSchema, deviceStatusSchema } from './domain
 export type { Device, DevicePlatform, DeviceRow, DeviceStatus } from './domain/device';
 export {
     agentInfoSchema,
+    agentServiceScopeSchema,
     cpuInfoSchema,
     deviceHardwareSchema,
     deviceReportSchema,
@@ -137,6 +145,7 @@ export {
 } from './domain/report';
 export type {
     AgentInfo,
+    AgentServiceScope,
     CpuInfo,
     DeviceHardware,
     DeviceReport,
@@ -246,12 +255,15 @@ export {
     deviceCommands,
     deviceConfirm,
     deviceDelete,
+    deviceDropPrivileges,
+    deviceElevate,
     deviceForceDelete,
     deviceList,
     deviceReactivate,
     deviceRename,
     deviceRequestDelete,
     deviceRevoke,
+    deviceSetAutostart,
     deviceSetConfig,
     deviceUpdateAgent
 } from './features/device';

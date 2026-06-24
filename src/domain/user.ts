@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { userRoleSchema } from './role';
+import { homeLayoutSchema } from './home';
 import { themeStateSchema } from '../features/user';
 
 export const minimalUserSchema = z.object({
@@ -42,7 +43,9 @@ export const userSchema = z.object({
     defaultWorkspace: z.number().int().nonnegative(),
     lastLogin: z.number().int().nonnegative(),
     created: z.number().int().nonnegative(),
-    theme: themeStateSchema.nullable()
+    theme: themeStateSchema.nullable(),
+    /** Home grid layout (tiles + order); null until the user has saved one. */
+    homeLayout: homeLayoutSchema.nullable()
 });
 
 export type User = z.infer<typeof userSchema>;
@@ -66,6 +69,8 @@ export interface UserRow {
     created: number;
     /** JSON-serialised ThemeStateDTO, or null if the user has never saved a theme. */
     theme: string | null;
+    /** JSON-serialised HomeLayout, or null if the user has never saved one. */
+    home_layout: string | null;
 }
 
 export const defaultUser: User = {
@@ -79,5 +84,6 @@ export const defaultUser: User = {
     defaultWorkspace: 0,
     lastLogin: 0,
     created: 0,
-    theme: null
+    theme: null,
+    homeLayout: null
 };

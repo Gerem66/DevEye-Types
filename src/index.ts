@@ -87,6 +87,25 @@ export type {
 } from './domain/note';
 export { userRoleSchema } from './domain/role';
 export type { UserRole } from './domain/role';
+export {
+    homeCategoryKindSchema,
+    homeCategorySchema,
+    homeFeatureIdSchema,
+    homeLayoutSchema,
+    shortcutItemSchema,
+    shortcutPreviewSchema,
+    shortcutTemplateSchema,
+    SHORTCUT_URL_MAX_LENGTH
+} from './domain/home';
+export type {
+    HomeCategory,
+    HomeCategoryKind,
+    HomeFeatureId,
+    HomeLayout,
+    ShortcutItem,
+    ShortcutPreview,
+    ShortcutTemplate
+} from './domain/home';
 export { defaultUser, minimalUserSchema, userSchema, userSecuritySchema } from './domain/user';
 export type { MinimalUser, User, UserRow, UserSecurity } from './domain/user';
 export { secrecyStatusSchema, secrecyWrapModeSchema } from './domain/secrecy';
@@ -197,6 +216,7 @@ export {
     noteList,
     noteMove
 } from './features/note';
+export { homeCommands, homeSetLayout, homeShortcutPreview } from './features/home';
 export { featureCommandRegistry, featureCommands } from './features/registry';
 export type {
     CommandInput,

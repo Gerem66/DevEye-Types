@@ -22,7 +22,9 @@ export const homeShortcutPreview = {
     command: 'home.shortcutPreview' as const,
     input: z.object({
         template: shortcutTemplateSchema,
-        url: z.string().url().max(SHORTCUT_URL_MAX_LENGTH)
+        url: z.string().url().max(SHORTCUT_URL_MAX_LENGTH),
+        /** Bypass the server cache and re-fetch (Ctrl/Cmd-click on the tile). */
+        refresh: z.boolean().optional()
     }),
     output: shortcutPreviewSchema
 };

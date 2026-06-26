@@ -396,3 +396,6 @@ export type {
 } from './http/device';
 export { bootTaskSchema, bootTaskStateSchema, serverStatusSchema } from './http/status';
 export type { BootTask, BootTaskState, ServerStatus } from './http/status';
+
+// Utils
+export { compareVersions, isNewerVersion } from './utils/version';

@@ -9,7 +9,13 @@ import { z } from 'zod';
  * topbar zone while `ready` is false, then hides it for good.
  */
 
-export const bootTaskStateSchema = z.enum(['pending', 'running', 'done', 'error']);
+/**
+ * `warning` is a terminal-but-visible outcome: the step finished without fully
+ * succeeding, yet the app is usable (e.g. the agent reconcile served an older set
+ * because this deploy's build never landed). It keeps the topbar zone shown — like
+ * `error` — but reads as a non-blocking caution rather than a hard failure.
+ */
+export const bootTaskStateSchema = z.enum(['pending', 'running', 'done', 'warning', 'error']);
 export type BootTaskState = z.infer<typeof bootTaskStateSchema>;
 
 export const bootTaskSchema = z.object({

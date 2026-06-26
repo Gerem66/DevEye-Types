@@ -69,7 +69,7 @@ export const enrollDeviceRequestSchema = z.object({
 export type EnrollDeviceRequest = z.infer<typeof enrollDeviceRequestSchema>;
 
 export const enrollDeviceResponseSchema = z.object({
-    deviceId: z.string().uuid(),
+    deviceId: z.uuid(),
     /** Long-lived device token (JWT). Stored only on the agent. */
     deviceToken: z.string().min(1),
     device: deviceSchema
@@ -195,7 +195,15 @@ export const agentManifestTargetSchema = z.object({
     id: agentTargetSchema,
     filename: z.string(),
     sha256: z.string().regex(/^[a-f0-9]{64}$/),
-    size: z.number().int().nonnegative()
+    size: z.number().int().nonnegative(),
+    /**
+     * Base64 ed25519 signature over the 32 raw bytes of `sha256`, produced by the
+     * CI release with the dedicated update-signing key. The agent verifies it with
+     * its embedded public key before self-replacing. **Optional**: a target with no
+     * signature stays manually downloadable but can never drive a self-update — so a
+     * pre-signing build degrades cleanly instead of being rejected outright.
+     */
+    signature: z.string().min(1).optional()
 });
 
 export type AgentManifestTarget = z.infer<typeof agentManifestTargetSchema>;

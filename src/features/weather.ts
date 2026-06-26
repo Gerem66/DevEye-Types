@@ -6,7 +6,7 @@ import {
     weatherReportSchema
 } from '../domain/weather';
 
-const locationId = z.string().uuid();
+const locationId = z.uuid();
 
 export const weatherList = {
     command: 'weather.list' as const,

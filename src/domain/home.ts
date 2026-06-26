@@ -72,7 +72,7 @@ export type HomeCategoryKind = z.infer<typeof homeCategoryKindSchema>;
  * stores the link objects themselves. A kind appears at most once.
  */
 export const homeCategorySchema = z.discriminatedUnion('kind', [
-    z.object({ kind: z.literal('device'), items: z.array(z.string().uuid()).max(60) }),
+    z.object({ kind: z.literal('device'), items: z.array(z.uuid()).max(60) }),
     z.object({ kind: z.literal('feature'), items: z.array(homeFeatureIdSchema).max(20) }),
     z.object({ kind: z.literal('shortcut'), items: z.array(shortcutItemSchema).max(60) })
 ]);

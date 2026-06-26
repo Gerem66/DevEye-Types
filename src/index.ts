@@ -16,28 +16,59 @@ export {
     AGENT_ERROR,
     AGENT_HELLO,
     AGENT_METRICS_BATCH,
+    AGENT_PKG_DONE,
+    AGENT_PKG_LIST,
+    AGENT_PKG_LIST_RESULT,
+    AGENT_PKG_PROGRESS,
+    AGENT_PKG_UPGRADE,
     AGENT_PROCESSES,
     AGENT_REPORT,
+    AGENT_SERVICE,
+    AGENT_SERVICE_RESULT,
+    AGENT_UPDATE,
+    AGENT_UPDATED,
     agentClientMessageSchema,
     agentConfigPayloadSchema,
     agentDestroyedMessagePayloadSchema,
+    agentPkgDonePayloadSchema,
+    agentPkgListResultPayloadSchema,
+    agentPkgProgressPayloadSchema,
+    agentPkgUpgradePayloadSchema,
     agentProcessesMessagePayloadSchema,
     agentReportMessagePayloadSchema,
     agentServerMessageSchema,
+    agentServiceActionSchema,
+    agentServicePayloadSchema,
+    agentServiceResultPayloadSchema,
+    agentUpdatedMessagePayloadSchema,
+    agentUpdatePayloadSchema,
     DEVICE_PRESENCE_EVENT,
     DEVICE_REPORT_EVENT,
     devicePresenceSchema,
     deviceReportPushSchema,
     METRICS_PUSH_EVENT,
-    metricsPushSchema
+    metricsPushSchema,
+    PACKAGE_DONE_EVENT,
+    PACKAGE_LIST_EVENT,
+    PACKAGE_PROGRESS_EVENT,
+    packageDonePushSchema,
+    packageListPushSchema,
+    packageProgressPushSchema
 } from './protocol/agent';
 export type {
     AgentClientMessage,
     AgentConfigPayload,
+    AgentPkgUpgradePayload,
     AgentServerMessage,
+    AgentServiceAction,
+    AgentServicePayload,
+    AgentUpdatePayload,
     DevicePresence,
     DeviceReportPush,
-    MetricsPush
+    MetricsPush,
+    PackageDonePush,
+    PackageListPush,
+    PackageProgressPush
 } from './protocol/agent';
 
 // Domain
@@ -114,8 +145,11 @@ export { workspaceSchema } from './domain/workspace';
 export type { Workspace, WorkspaceMemberRow, WorkspaceRow } from './domain/workspace';
 export { devicePlatformSchema, deviceSchema, deviceStatusSchema } from './domain/device';
 export type { Device, DevicePlatform, DeviceRow, DeviceStatus } from './domain/device';
+export { packageManagerIdSchema, packageManagerSchema } from './domain/packages';
+export type { PackageManager, PackageManagerId } from './domain/packages';
 export {
     agentInfoSchema,
+    agentServiceScopeSchema,
     cpuInfoSchema,
     deviceHardwareSchema,
     deviceReportSchema,
@@ -132,6 +166,7 @@ export {
 } from './domain/report';
 export type {
     AgentInfo,
+    AgentServiceScope,
     CpuInfo,
     DeviceHardware,
     DeviceReport,
@@ -241,13 +276,19 @@ export {
     deviceCommands,
     deviceConfirm,
     deviceDelete,
+    deviceDropPrivileges,
+    deviceElevate,
     deviceForceDelete,
     deviceList,
+    deviceListPackages,
     deviceReactivate,
     deviceRename,
     deviceRequestDelete,
     deviceRevoke,
-    deviceSetConfig
+    deviceSetAutostart,
+    deviceSetConfig,
+    deviceUpdateAgent,
+    deviceUpgradePackages
 } from './features/device';
 export {
     metricsAvailability,

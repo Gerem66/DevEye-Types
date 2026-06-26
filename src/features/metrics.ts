@@ -3,7 +3,7 @@ import { metricSeriesPointSchema, metricsResolutionSchema } from '../domain/metr
 import { presenceEventSchema } from '../domain/presence';
 import { processSampleSchema } from '../domain/report';
 
-const deviceId = z.string().uuid();
+const deviceId = z.uuid();
 
 /** Fetch a time-series window for graphs, optionally downsampled. */
 export const metricsQuery = {

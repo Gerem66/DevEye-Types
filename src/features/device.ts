@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import { deviceSchema } from '../domain/device';
+import { packageManagerIdSchema } from '../domain/packages';
 import { processCaptureSchema } from '../domain/report';
 
-const deviceId = z.string().uuid();
+const deviceId = z.uuid();
 
 /** List devices visible to the caller (own devices; all devices for admins). */
 export const deviceList = {
@@ -69,6 +70,69 @@ export const deviceReactivate = {
 };
 
 /**
+ * Push a self-update to a connected device's agent: the server resolves the newer
+ * signed binary for the device's build target and sends `agent.update`. Admin-only
+ * (Appareils page). Fails if the agent is offline, has no known target, the binary
+ * is missing/unsigned, or it's already up to date.
+ */
+export const deviceUpdateAgent = {
+    command: 'device.updateAgent' as const,
+    input: z.object({ deviceId }),
+    output: z.object({ device: deviceSchema })
+};
+
+/**
+ * Enable/disable the agent's per-user autostart (survives reboot, no privilege).
+ * Pushes `agent.service` to the connected agent (`install-user`/`uninstall-user`).
+ */
+export const deviceSetAutostart = {
+    command: 'device.setAutostart' as const,
+    input: z.object({ deviceId, enabled: z.boolean() }),
+    output: z.object({ device: deviceSchema })
+};
+
+/**
+ * Ask the agent to become a root/system service. Hybrid: the agent pops an OS auth
+ * prompt if it has an interactive session, else replies `needsManualCommand` and the
+ * UI shows `manualCommand` (always returned, deterministic per platform) to run on
+ * the device. The new privilege/scope is observed on the agent's next report.
+ */
+export const deviceElevate = {
+    command: 'device.elevate' as const,
+    input: z.object({ deviceId }),
+    output: z.object({ device: deviceSchema, manualCommand: z.string() })
+};
+
+/** Ask a root/system agent to drop back to a per-user service. */
+export const deviceDropPrivileges = {
+    command: 'device.dropPrivileges' as const,
+    input: z.object({ deviceId }),
+    output: z.object({ device: deviceSchema, manualCommand: z.string() })
+};
+
+/**
+ * Ask the agent to enumerate its package managers + pending updates. The result
+ * arrives asynchronously as a `package.list` push event (the caller must be
+ * subscribed to the device). The command itself only acknowledges the request.
+ */
+export const deviceListPackages = {
+    command: 'device.listPackages' as const,
+    input: z.object({ deviceId }),
+    output: z.object({ ok: z.boolean() })
+};
+
+/**
+ * Apply all pending updates of one manager. Progress streams as `package.progress`
+ * events, ending with `package.done`. Fails if the agent is offline or the manager
+ * needs root and the agent isn't privileged (elevate it first — see device.elevate).
+ */
+export const deviceUpgradePackages = {
+    command: 'device.upgradePackages' as const,
+    input: z.object({ deviceId, manager: packageManagerIdSchema }),
+    output: z.object({ ok: z.boolean() })
+};
+
+/**
  * Request a managed deletion (from the Appareils page). The device moves to
  * `pending_deletion`: on its next connection the agent is told to self-destruct
  * (wipe its local config + binary), after which the device is archived — its
@@ -118,6 +182,12 @@ export const deviceCommands = [
     deviceReactivate,
     deviceRename,
     deviceSetConfig,
+    deviceUpdateAgent,
+    deviceSetAutostart,
+    deviceElevate,
+    deviceDropPrivileges,
+    deviceListPackages,
+    deviceUpgradePackages,
     deviceRequestDelete,
     deviceCancelDelete,
     deviceForceDelete,

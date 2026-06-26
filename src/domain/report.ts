@@ -114,11 +114,22 @@ export type TcpConnection = z.infer<typeof tcpConnectionSchema>;
  * The agent's own runtime identity. Lets the UI explain *why* some best-effort
  * probes are limited — chiefly whether it runs with privileges (root/elevated).
  */
+export const agentServiceScopeSchema = z.enum(['none', 'user', 'system']);
+export type AgentServiceScope = z.infer<typeof agentServiceScopeSchema>;
+
 export const agentInfoSchema = z.object({
     /** Running as root (Unix euid 0) / elevated (Windows). */
     privileged: z.boolean(),
     /** OS account the agent runs as (e.g. `root`, `deploy`). */
-    user: z.string().max(128)
+    user: z.string().max(128),
+    /**
+     * How the agent is installed for persistence: `none` (transient run), `user`
+     * (per-user autostart, login session) or `system` (root/system service, boot).
+     * Optional + defaulted so reports from agents predating this field still parse.
+     */
+    serviceScope: agentServiceScopeSchema.default('none'),
+    /** True when launched by a service manager (so a self-update just exits to be relaunched). */
+    managed: z.boolean().default(false)
 });
 
 export type AgentInfo = z.infer<typeof agentInfoSchema>;

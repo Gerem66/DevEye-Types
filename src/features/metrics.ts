@@ -83,7 +83,39 @@ export const metricsSnapshots = {
         from: z.number().int().nonnegative(),
         to: z.number().int().positive()
     }),
-    output: z.object({ deviceId, timestamps: z.array(z.number().int().positive()) })
+    output: z.object({
+        deviceId,
+        timestamps: z.array(z.number().int().positive()),
+        /** Subset of `timestamps` that are pinned (kept past retention). */
+        pinned: z.array(z.number().int().positive())
+    })
+};
+
+/**
+ * Pin (or unpin) the snapshots within `[from, to]` (inclusive). Pinned snapshots
+ * keep their process list *and* their metric point past the device's retention.
+ * Unpinning lets them expire again: rows already past their retention deadline are
+ * deleted immediately, the rest at the next retention sweep.
+ */
+export const metricsSetSnapshotsPinned = {
+    command: 'metrics.setSnapshotsPinned' as const,
+    input: z
+        .object({
+            deviceId,
+            from: z.number().int().nonnegative(),
+            to: z.number().int().positive(),
+            pinned: z.boolean()
+        })
+        .refine((v) => v.to >= v.from, { message: 'to must be >= from' }),
+    output: z.object({
+        deviceId,
+        /** Distinct snapshot instants whose pin state changed. */
+        affected: z.number().int().nonnegative(),
+        /** Snapshot instants deleted right away on unpin (already past retention). */
+        deletedSnapshots: z.number().int().nonnegative(),
+        /** Process rows deleted right away on unpin. */
+        deletedRows: z.number().int().nonnegative()
+    })
 };
 
 /** Storage footprint of a device's stored process snapshots (count + bytes). */
@@ -133,5 +165,6 @@ export const metricsCommands = [
     metricsAvailability,
     metricsSnapshots,
     metricsStorage,
-    metricsDeleteSnapshots
+    metricsDeleteSnapshots,
+    metricsSetSnapshotsPinned
 ] as const;

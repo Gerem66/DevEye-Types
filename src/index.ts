@@ -298,6 +298,7 @@ export {
     metricsProcessesAt,
     metricsQuery,
     metricsRefresh,
+    metricsSetSnapshotsPinned,
     metricsSnapshots,
     metricsStorage,
     metricsSubscribe,

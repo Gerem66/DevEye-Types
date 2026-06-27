@@ -187,10 +187,28 @@ export const deviceHardwareSchema = z.object({
     cpu: cpuInfoSchema,
     /** Total physical RAM, in bytes. */
     memoryTotalBytes: z.number().int().nonnegative(),
-    /** GPU model names (best-effort; may be empty). */
-    gpus: z.array(z.string().max(256)).max(16).default([]),
-    /** Network interfaces (best-effort; may be empty). */
-    network: z.array(netInterfaceSchema).max(64).default([]),
+    /** GPU model names (best-effort; may be empty). Truncated, never fatal. */
+    gpus: z
+        .preprocess(
+            (v) => (Array.isArray(v) ? v.slice(0, 16) : v),
+            z.array(z.string().max(256)).max(16)
+        )
+        .catch([])
+        .default([]),
+    /**
+     * Network interfaces (best-effort; may be empty). A container host can expose
+     * dozens of virtual `veth*`/`br-*` devices, so an over-long list is *truncated*
+     * (and any residual error degrades to `[]`) rather than rejecting the whole
+     * report — one noisy field must never drop the agent's entire posture, which is
+     * validated at the agent socket's ingress (`deviceReportSchema`).
+     */
+    network: z
+        .preprocess(
+            (v) => (Array.isArray(v) ? v.slice(0, 64) : v),
+            z.array(netInterfaceSchema).max(64)
+        )
+        .catch([])
+        .default([]),
     /** Bluetooth adapter descriptor; `null` when none detected. */
     bluetooth: z.string().max(256).nullable().default(null)
 });

@@ -131,6 +131,7 @@ export {
     homeCategorySchema,
     homeFeatureIdSchema,
     homeLayoutSchema,
+    homeTopbarWidgetIdSchema,
     shortcutItemSchema,
     shortcutPreviewSchema,
     shortcutTemplateSchema,
@@ -141,6 +142,7 @@ export type {
     HomeCategoryKind,
     HomeFeatureId,
     HomeLayout,
+    HomeTopbarWidgetId,
     ShortcutItem,
     ShortcutPreview,
     ShortcutTemplate
@@ -335,9 +337,12 @@ export {
     secrecyCommands,
     secrecyDisable,
     secrecyEnable,
+    secrecyHold,
+    secrecyLock,
     secrecyRecover,
     secrecySetReauth,
     secrecyStatus,
+    secrecyTouch,
     secrecyUnlock
 } from './features/secrecy';
 export {

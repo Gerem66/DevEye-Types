@@ -24,7 +24,15 @@ export const secrecyStatusSchema = z.object({
      * within this sliding window encrypted actions don't re-prompt. `0` means the
      * password is required for every action. `null` means the server default.
      */
-    reAuthInterval: z.number().int().min(0).nullable()
+    reAuthInterval: z.number().int().min(0).nullable(),
+    /**
+     * Epoch ms at which the current grace window expires (when the cached DEK
+     * will be flushed if no further activity slides it forward). `null` when the
+     * session isn't unlocked, when the feature is off, or in "validate on every
+     * action" mode — i.e. whenever there is no countdown to display. Lets the
+     * topbar timer widget render a live progress bar without guessing the window.
+     */
+    unlockedUntil: z.number().int().nullable()
 });
 
 export type SecrecyStatus = z.infer<typeof secrecyStatusSchema>;

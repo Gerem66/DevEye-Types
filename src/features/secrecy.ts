@@ -55,6 +55,46 @@ export const secrecySetReauth = {
 };
 
 /**
+ * Hold (or release) the cached DEK for the duration of an open action popup.
+ *
+ * `active: true` is a heartbeat: it pins the DEK so the sliding grace window
+ * cannot flush it while the user composes a long action, and must be re-sent
+ * periodically — the server only honours the hold for a short lease, so if the
+ * popup vanishes for *any* reason (close, navigation, crash, disconnect) the
+ * heartbeats stop and the DEK reverts to a normal countdown. `active: false`
+ * releases the hold and restarts a fresh grace window. The DEK can therefore
+ * never linger indefinitely: only a genuinely-still-open popup keeps it alive.
+ */
+export const secrecyHold = {
+    command: 'secrecy.hold' as const,
+    input: z.object({ active: z.boolean() }),
+    output: z.object({ status: secrecyStatusSchema })
+};
+
+/**
+ * Slide the grace window forward by one full interval, as if an encrypted action
+ * had just happened — used by the topbar timer widget to let the user manually
+ * postpone the password flush. No-op when locked or when the feature is off.
+ */
+export const secrecyTouch = {
+    command: 'secrecy.touch' as const,
+    input: z.object({}),
+    output: z.object({ status: secrecyStatusSchema })
+};
+
+/**
+ * Immediately flush the cached DEK for this session, re-locking the vault so the
+ * next encrypted action re-prompts — the manual counterpart to {@link secrecyTouch},
+ * letting the user force a re-lock ahead of the grace window. No-op when already
+ * locked or when the feature is off.
+ */
+export const secrecyLock = {
+    command: 'secrecy.lock' as const,
+    input: z.object({}),
+    output: z.object({ status: secrecyStatusSchema })
+};
+
+/**
  * Recover access after a forgotten password using the recovery code, choosing
  * a new password to re-wrap the DEK with.
  */
@@ -73,5 +113,8 @@ export const secrecyCommands = [
     secrecyEnable,
     secrecyDisable,
     secrecySetReauth,
+    secrecyHold,
+    secrecyTouch,
+    secrecyLock,
     secrecyRecover
 ] as const;

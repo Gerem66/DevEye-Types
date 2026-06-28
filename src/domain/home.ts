@@ -15,6 +15,17 @@ export const homeFeatureIdSchema = z.enum(['monitoring', 'weather', 'password', 
 export type HomeFeatureId = z.infer<typeof homeFeatureIdSchema>;
 
 /**
+ * Compact widgets that can be pinned to the top-right of the navbar. Like the
+ * grid features they are individually add/remove/reorderable; the default set is
+ * empty (the navbar shows none until the user adds some).
+ *  - `weather`  → current temperature of the primary city.
+ *  - `devices`  → online / total device count.
+ *  - `secrecy`  → password-encryption lock state + re-validation countdown.
+ */
+export const homeTopbarWidgetIdSchema = z.enum(['weather', 'devices', 'secrecy']);
+export type HomeTopbarWidgetId = z.infer<typeof homeTopbarWidgetIdSchema>;
+
+/**
  * Shortcut preview type, auto-detected from the URL's domain (the user never
  * picks it manually). Each value has a server-side adapter under
  * `src/Services/shortcutTemplates/` — dedicated logic where a real source exists
@@ -63,18 +74,19 @@ export const shortcutItemSchema = z.object({
 export type ShortcutItem = z.infer<typeof shortcutItemSchema>;
 
 /** Category discriminator; also the kind of tiles a category holds. */
-export const homeCategoryKindSchema = z.enum(['device', 'feature', 'shortcut']);
+export const homeCategoryKindSchema = z.enum(['topbar', 'device', 'feature', 'shortcut']);
 export type HomeCategoryKind = z.infer<typeof homeCategoryKindSchema>;
 
 /**
- * One category: an ordered set of tiles of a single kind. Device/feature
+ * One category: an ordered set of tiles of a single kind. Device/feature/topbar
  * categories store plain ids (the entity lives elsewhere); the shortcut category
  * stores the link objects themselves. A kind appears at most once.
  */
 export const homeCategorySchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('device'), items: z.array(z.uuid()).max(60) }),
     z.object({ kind: z.literal('feature'), items: z.array(homeFeatureIdSchema).max(20) }),
-    z.object({ kind: z.literal('shortcut'), items: z.array(shortcutItemSchema).max(60) })
+    z.object({ kind: z.literal('shortcut'), items: z.array(shortcutItemSchema).max(60) }),
+    z.object({ kind: z.literal('topbar'), items: z.array(homeTopbarWidgetIdSchema).max(10) })
 ]);
 export type HomeCategory = z.infer<typeof homeCategorySchema>;
 

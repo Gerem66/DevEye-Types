@@ -10,6 +10,11 @@ import { z } from 'zod';
  *  - `bullet` → a bulleted (unordered) list item.
  *  - `number` → a numbered (ordered) list item; its visible index is derived
  *    from its position in the run of consecutive `number` blocks (not stored).
+ *  - `heading` → a section title, `level` 1 (largest) to 5 (smallest).
+ *  - `divider` → a horizontal separator; carries no text.
+ *
+ * Inline emphasis (bold `**`, italic `*`, underline `__`, strikethrough `~~`)
+ * is kept as markdown markers inside a block's `text`, not as separate blocks.
  *
  * The shape is intentionally small and forward-compatible: adding a new block
  * kind later (heading, divider, …) only widens this union.
@@ -35,17 +40,32 @@ export const noteNumberBlockSchema = z.object({
     text: z.string()
 });
 
+export const noteHeadingBlockSchema = z.object({
+    type: z.literal('heading'),
+    text: z.string(),
+    /** Heading level, 1 (largest) to 5 (smallest). */
+    level: z.number().int().min(1).max(5)
+});
+
+export const noteDividerBlockSchema = z.object({
+    type: z.literal('divider')
+});
+
 export const noteBlockSchema = z.discriminatedUnion('type', [
     noteTextBlockSchema,
     noteCheckBlockSchema,
     noteBulletBlockSchema,
-    noteNumberBlockSchema
+    noteNumberBlockSchema,
+    noteHeadingBlockSchema,
+    noteDividerBlockSchema
 ]);
 
 export type NoteTextBlock = z.infer<typeof noteTextBlockSchema>;
 export type NoteCheckBlock = z.infer<typeof noteCheckBlockSchema>;
 export type NoteBulletBlock = z.infer<typeof noteBulletBlockSchema>;
 export type NoteNumberBlock = z.infer<typeof noteNumberBlockSchema>;
+export type NoteHeadingBlock = z.infer<typeof noteHeadingBlockSchema>;
+export type NoteDividerBlock = z.infer<typeof noteDividerBlockSchema>;
 export type NoteBlock = z.infer<typeof noteBlockSchema>;
 
 /** Upper bounds, enforced both client- and server-side, to keep rows sane. */

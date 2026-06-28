@@ -105,6 +105,11 @@ export const shortcutPreviewSchema = z.object({
     title: z.string().nullable(),
     subtitle: z.string().nullable(),
     imageUrl: z.string().url().nullable(),
-    stats: z.array(z.object({ label: z.string(), value: z.string() })).max(4)
+    stats: z.array(z.object({ label: z.string(), value: z.string() })).max(4),
+    /**
+     * Optional live/online status, rendered as a small green/red dot in the tile
+     * corner (e.g. Twitch live vs offline). Omitted when not applicable.
+     */
+    status: z.enum(['online', 'offline']).optional()
 });
 export type ShortcutPreview = z.infer<typeof shortcutPreviewSchema>;

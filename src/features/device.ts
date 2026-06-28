@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { deviceSchema } from '../domain/device';
 import { packageManagerIdSchema } from '../domain/packages';
+import { agentPowerActionSchema } from '../protocol/agent';
 import { processCaptureSchema } from '../domain/report';
 
 const deviceId = z.uuid();
@@ -133,6 +134,18 @@ export const deviceUpgradePackages = {
 };
 
 /**
+ * Run a system power action on the device (shutdown / reboot / suspend / hibernate
+ * / lock). Owner-or-admin; the agent must be online. The command only acknowledges
+ * the request — the agent applies it best-effort and the outcome streams back as a
+ * `device.powerResult` push event (the caller must be subscribed to the device).
+ */
+export const devicePower = {
+    command: 'device.power' as const,
+    input: z.object({ deviceId, action: agentPowerActionSchema }),
+    output: z.object({ ok: z.boolean() })
+};
+
+/**
  * Request a managed deletion (from the Appareils page). The device moves to
  * `pending_deletion`: on its next connection the agent is told to self-destruct
  * (wipe its local config + binary), after which the device is archived — its
@@ -188,6 +201,7 @@ export const deviceCommands = [
     deviceDropPrivileges,
     deviceListPackages,
     deviceUpgradePackages,
+    devicePower,
     deviceRequestDelete,
     deviceCancelDelete,
     deviceForceDelete,

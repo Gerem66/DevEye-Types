@@ -47,6 +47,24 @@ export const agentServiceActionSchema = z.enum([
 ]);
 export type AgentServiceAction = z.infer<typeof agentServiceActionSchema>;
 
+/**
+ * System power action the server can ask the agent to perform on its host.
+ * Best-effort per platform; the agent reports the outcome (`agent.powerResult`).
+ * - `shutdown`  power the machine off,
+ * - `reboot`    restart it,
+ * - `suspend`   sleep (suspend to RAM),
+ * - `hibernate` deep sleep (suspend to disk),
+ * - `lock`      lock the screen/session (the machine keeps running).
+ */
+export const agentPowerActionSchema = z.enum([
+    'shutdown',
+    'reboot',
+    'suspend',
+    'hibernate',
+    'lock'
+]);
+export type AgentPowerAction = z.infer<typeof agentPowerActionSchema>;
+
 /** Agent's reply to `pkg.list`: the package managers present + their pending counts. */
 export const AGENT_PKG_LIST_RESULT = 'pkg.listResult' as const;
 
@@ -93,6 +111,17 @@ export const agentServiceResultPayloadSchema = z.object({
      * (the UI already shows it). The action itself was not performed.
      */
     needsManualCommand: z.boolean().optional(),
+    error: z.string().max(255).optional()
+});
+
+/** Agent's reply to `agent.power`: outcome of a system power action. */
+export const AGENT_POWER_RESULT = 'agent.powerResult' as const;
+
+export const agentPowerResultPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    action: agentPowerActionSchema,
+    ok: z.boolean(),
+    /** Why the action could not be carried out, when `!ok`. */
     error: z.string().max(255).optional()
 });
 
@@ -162,6 +191,10 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_PKG_DONE),
         payload: agentPkgDonePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_POWER_RESULT),
+        payload: agentPowerResultPayloadSchema
     })
 ]);
 
@@ -210,6 +243,12 @@ export const AGENT_PKG_UPGRADE = 'pkg.upgrade' as const;
 export const agentPkgUpgradePayloadSchema = z.object({ manager: packageManagerIdSchema });
 export type AgentPkgUpgradePayload = z.infer<typeof agentPkgUpgradePayloadSchema>;
 
+/** Ask the agent to perform a system power action (`agent.powerResult` reports the outcome). */
+export const AGENT_POWER = 'agent.power' as const;
+
+export const agentPowerPayloadSchema = z.object({ action: agentPowerActionSchema });
+export type AgentPowerPayload = z.infer<typeof agentPowerPayloadSchema>;
+
 /** Collection config the server pushes to an agent (on connect + on change). */
 export const agentConfigPayloadSchema = z.object({
     /** Light metric (graph) sampling interval in ms. */
@@ -257,6 +296,10 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_PKG_UPGRADE),
         payload: agentPkgUpgradePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_POWER),
+        payload: agentPowerPayloadSchema
     })
 ]);
 
@@ -273,15 +316,19 @@ export const DEVICE_REPORT_EVENT = 'device.report' as const;
 export const PACKAGE_LIST_EVENT = 'package.list' as const;
 export const PACKAGE_PROGRESS_EVENT = 'package.progress' as const;
 export const PACKAGE_DONE_EVENT = 'package.done' as const;
+/** Outcome of a system power action (shutdown/reboot/suspend…), fanned to subscribers. */
+export const DEVICE_POWER_EVENT = 'device.powerResult' as const;
 
 /** Push payloads reuse the agent reply shapes (already carry `deviceId`). */
 export const packageListPushSchema = agentPkgListResultPayloadSchema;
 export const packageProgressPushSchema = agentPkgProgressPayloadSchema;
 export const packageDonePushSchema = agentPkgDonePayloadSchema;
+export const devicePowerPushSchema = agentPowerResultPayloadSchema;
 
 export type PackageListPush = z.infer<typeof packageListPushSchema>;
 export type PackageProgressPush = z.infer<typeof packageProgressPushSchema>;
 export type PackageDonePush = z.infer<typeof packageDonePushSchema>;
+export type DevicePowerPush = z.infer<typeof devicePowerPushSchema>;
 
 export const metricsPushSchema = z.object({
     deviceId: z.uuid(),

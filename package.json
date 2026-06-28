@@ -25,7 +25,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
-    "ci": "npm run lint && npm run typecheck"
+    "ci": "npm run lint && npm run typecheck",
+    "prettier": "prettier --check .",
+    "prettier:fix": "prettier --write ."
   },
   "dependencies": {
     "zod": "^4.4.3"

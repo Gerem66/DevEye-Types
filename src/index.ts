@@ -100,8 +100,10 @@ export {
     NOTE_MAX_BLOCKS,
     NOTE_TITLE_MAX_LENGTH,
     noteBlockSchema,
+    noteBulletBlockSchema,
     noteCheckBlockSchema,
     noteFolderSchema,
+    noteNumberBlockSchema,
     noteSchema,
     noteSummarySchema,
     noteTextBlockSchema
@@ -109,9 +111,11 @@ export {
 export type {
     Note,
     NoteBlock,
+    NoteBulletBlock,
     NoteCheckBlock,
     NoteFolder,
     NoteFolderRow,
+    NoteNumberBlock,
     NoteRow,
     NoteSummary,
     NoteTextBlock

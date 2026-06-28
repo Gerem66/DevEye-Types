@@ -7,6 +7,10 @@ import { z } from 'zod';
  *  - `text`  → a paragraph.
  *  - `check` → a checklist item, with its own `done` state.
  *
+ *  - `bullet` → a bulleted (unordered) list item.
+ *  - `number` → a numbered (ordered) list item; its visible index is derived
+ *    from its position in the run of consecutive `number` blocks (not stored).
+ *
  * The shape is intentionally small and forward-compatible: adding a new block
  * kind later (heading, divider, …) only widens this union.
  */
@@ -21,13 +25,27 @@ export const noteCheckBlockSchema = z.object({
     done: z.boolean()
 });
 
+export const noteBulletBlockSchema = z.object({
+    type: z.literal('bullet'),
+    text: z.string()
+});
+
+export const noteNumberBlockSchema = z.object({
+    type: z.literal('number'),
+    text: z.string()
+});
+
 export const noteBlockSchema = z.discriminatedUnion('type', [
     noteTextBlockSchema,
-    noteCheckBlockSchema
+    noteCheckBlockSchema,
+    noteBulletBlockSchema,
+    noteNumberBlockSchema
 ]);
 
 export type NoteTextBlock = z.infer<typeof noteTextBlockSchema>;
 export type NoteCheckBlock = z.infer<typeof noteCheckBlockSchema>;
+export type NoteBulletBlock = z.infer<typeof noteBulletBlockSchema>;
+export type NoteNumberBlock = z.infer<typeof noteNumberBlockSchema>;
 export type NoteBlock = z.infer<typeof noteBlockSchema>;
 
 /** Upper bounds, enforced both client- and server-side, to keep rows sane. */

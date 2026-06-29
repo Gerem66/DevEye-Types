@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import {
+    deviceLogFilterSchema,
+    deviceLogLineSchema,
+    deviceLogSourceSchema
+} from '../domain/deviceLogs';
 import { metricsBatchSchema, metricSnapshotSchema } from '../domain/metrics';
 import { packageManagerIdSchema, packageManagerSchema } from '../domain/packages';
 import { deviceReportSchema, processCaptureSchema, processSampleSchema } from '../domain/report';
@@ -125,6 +130,28 @@ export const agentPowerResultPayloadSchema = z.object({
     error: z.string().max(255).optional()
 });
 
+/** Agent's reply to `log.sources`: the log sources discovered on the device. */
+export const AGENT_LOG_SOURCES_RESULT = 'log.sourcesResult' as const;
+
+export const agentLogSourcesResultPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    sources: z.array(deviceLogSourceSchema)
+});
+
+/** Agent's reply to `log.query`: a chunk of matched lines (last one `done: true`). */
+export const AGENT_LOG_LINES = 'log.lines' as const;
+
+export const agentLogLinesPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    /** Correlates back to the originating `log.query` (echoed verbatim). */
+    queryId: z.string().max(64),
+    lines: z.array(deviceLogLineSchema),
+    /** True on the final chunk of this query. */
+    done: z.boolean(),
+    /** Set on the final chunk when the query failed. */
+    error: z.string().max(500).optional()
+});
+
 export const agentReportMessagePayloadSchema = z.object({
     deviceId: z.uuid(),
     report: deviceReportSchema
@@ -195,6 +222,14 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_POWER_RESULT),
         payload: agentPowerResultPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_LOG_SOURCES_RESULT),
+        payload: agentLogSourcesResultPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_LOG_LINES),
+        payload: agentLogLinesPayloadSchema
     })
 ]);
 
@@ -249,6 +284,20 @@ export const AGENT_POWER = 'agent.power' as const;
 export const agentPowerPayloadSchema = z.object({ action: agentPowerActionSchema });
 export type AgentPowerPayload = z.infer<typeof agentPowerPayloadSchema>;
 
+/** Ask the agent to enumerate its log sources (`log.sourcesResult` carries them). */
+export const AGENT_LOG_SOURCES = 'log.sources' as const;
+
+/** Ask the agent to run one log query; results stream as `log.lines`. */
+export const AGENT_LOG_QUERY = 'log.query' as const;
+
+export const agentLogQueryPayloadSchema = z.object({
+    queryId: z.string().max(64),
+    sourceId: z.string().min(1).max(512),
+    filter: deviceLogFilterSchema.optional(),
+    limit: z.number().int().positive().optional()
+});
+export type AgentLogQueryPayload = z.infer<typeof agentLogQueryPayloadSchema>;
+
 /** Collection config the server pushes to an agent (on connect + on change). */
 export const agentConfigPayloadSchema = z.object({
     /** Light metric (graph) sampling interval in ms. */
@@ -300,6 +349,14 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_POWER),
         payload: agentPowerPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_LOG_SOURCES),
+        payload: z.object({})
+    }),
+    z.object({
+        command: z.literal(AGENT_LOG_QUERY),
+        payload: agentLogQueryPayloadSchema
     })
 ]);
 
@@ -318,17 +375,24 @@ export const PACKAGE_PROGRESS_EVENT = 'package.progress' as const;
 export const PACKAGE_DONE_EVENT = 'package.done' as const;
 /** Outcome of a system power action (shutdown/reboot/suspend…), fanned to subscribers. */
 export const DEVICE_POWER_EVENT = 'device.powerResult' as const;
+/** Device log sources inventory + queried log lines, fanned to subscribers. */
+export const DEVICE_LOG_SOURCES_EVENT = 'device.logSources' as const;
+export const DEVICE_LOG_LINES_EVENT = 'device.logLines' as const;
 
 /** Push payloads reuse the agent reply shapes (already carry `deviceId`). */
 export const packageListPushSchema = agentPkgListResultPayloadSchema;
 export const packageProgressPushSchema = agentPkgProgressPayloadSchema;
 export const packageDonePushSchema = agentPkgDonePayloadSchema;
 export const devicePowerPushSchema = agentPowerResultPayloadSchema;
+export const deviceLogSourcesPushSchema = agentLogSourcesResultPayloadSchema;
+export const deviceLogLinesPushSchema = agentLogLinesPayloadSchema;
 
 export type PackageListPush = z.infer<typeof packageListPushSchema>;
 export type PackageProgressPush = z.infer<typeof packageProgressPushSchema>;
 export type PackageDonePush = z.infer<typeof packageDonePushSchema>;
 export type DevicePowerPush = z.infer<typeof devicePowerPushSchema>;
+export type DeviceLogSourcesPush = z.infer<typeof deviceLogSourcesPushSchema>;
+export type DeviceLogLinesPush = z.infer<typeof deviceLogLinesPushSchema>;
 
 export const metricsPushSchema = z.object({
     deviceId: z.uuid(),

@@ -15,6 +15,10 @@ export {
     AGENT_DESTROYED,
     AGENT_ERROR,
     AGENT_HELLO,
+    AGENT_LOG_LINES,
+    AGENT_LOG_QUERY,
+    AGENT_LOG_SOURCES,
+    AGENT_LOG_SOURCES_RESULT,
     AGENT_METRICS_BATCH,
     AGENT_PKG_DONE,
     AGENT_PKG_LIST,
@@ -32,6 +36,9 @@ export {
     agentClientMessageSchema,
     agentConfigPayloadSchema,
     agentDestroyedMessagePayloadSchema,
+    agentLogLinesPayloadSchema,
+    agentLogQueryPayloadSchema,
+    agentLogSourcesResultPayloadSchema,
     agentPkgDonePayloadSchema,
     agentPkgListResultPayloadSchema,
     agentPkgProgressPayloadSchema,
@@ -47,9 +54,13 @@ export {
     agentServiceResultPayloadSchema,
     agentUpdatedMessagePayloadSchema,
     agentUpdatePayloadSchema,
+    DEVICE_LOG_LINES_EVENT,
+    DEVICE_LOG_SOURCES_EVENT,
     DEVICE_POWER_EVENT,
     DEVICE_PRESENCE_EVENT,
     DEVICE_REPORT_EVENT,
+    deviceLogLinesPushSchema,
+    deviceLogSourcesPushSchema,
     devicePowerPushSchema,
     devicePresenceSchema,
     deviceReportPushSchema,
@@ -65,6 +76,7 @@ export {
 export type {
     AgentClientMessage,
     AgentConfigPayload,
+    AgentLogQueryPayload,
     AgentPkgUpgradePayload,
     AgentPowerAction,
     AgentPowerPayload,
@@ -72,6 +84,8 @@ export type {
     AgentServiceAction,
     AgentServicePayload,
     AgentUpdatePayload,
+    DeviceLogLinesPush,
+    DeviceLogSourcesPush,
     DevicePowerPush,
     DevicePresence,
     DeviceReportPush,
@@ -93,6 +107,23 @@ export {
     logSourceSchema
 } from './domain/logs';
 export type { LogCategory, LogEntry, LogLevelName, LogRow, LogSource } from './domain/logs';
+export {
+    DEVICE_LOG_LEVELS,
+    DEVICE_LOG_PAGE_DEFAULT,
+    DEVICE_LOG_PAGE_MAX,
+    deviceLogFilterSchema,
+    deviceLogLevelSchema,
+    deviceLogLineSchema,
+    deviceLogSourceKindSchema,
+    deviceLogSourceSchema
+} from './domain/deviceLogs';
+export type {
+    DeviceLogFilter,
+    DeviceLogLevel,
+    DeviceLogLine,
+    DeviceLogSource,
+    DeviceLogSourceKind
+} from './domain/deviceLogs';
 export {
     passwordEntryMaskedSchema,
     passwordEntrySchema,
@@ -311,6 +342,7 @@ export {
     deviceUpdateAgent,
     deviceUpgradePackages
 } from './features/device';
+export { deviceLogCommands, deviceLogQuery, deviceLogSources } from './features/deviceLogs';
 export {
     metricsAvailability,
     metricsCommands,

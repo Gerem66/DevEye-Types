@@ -443,7 +443,8 @@ export {
     deviceTermClose,
     deviceTermInput,
     deviceTermOpen,
-    deviceTermResize
+    deviceTermResize,
+    terminalUser
 } from './features/deviceTerminal';
 export {
     metricsAvailability,

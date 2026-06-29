@@ -416,12 +416,14 @@ export type AgentLogQueryPayload = z.infer<typeof agentLogQueryPayloadSchema>;
 const terminalCols = z.number().int().min(1).max(2000);
 const terminalRows = z.number().int().min(1).max(2000);
 
-/** Open an interactive PTY session running the agent user's shell. */
+/** Open an interactive PTY session. `user`, when set, runs the shell under that
+ * account (`su -l`); omitted → the account the agent runs as. */
 export const AGENT_TERM_OPEN = 'term.open' as const;
 export const agentTermOpenPayloadSchema = z.object({
     sessionId: z.string().max(64),
     cols: terminalCols,
-    rows: terminalRows
+    rows: terminalRows,
+    user: z.string().max(32).optional()
 });
 export type AgentTermOpenPayload = z.infer<typeof agentTermOpenPayloadSchema>;
 

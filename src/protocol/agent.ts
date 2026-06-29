@@ -152,6 +152,32 @@ export const agentLogLinesPayloadSchema = z.object({
     error: z.string().max(500).optional()
 });
 
+/** Base64-encoded terminal payload (raw PTY bytes), capped per frame (~1.5 MB). */
+const terminalDataSchema = z.string().max(2_000_000);
+
+/** Agent → server: a chunk of PTY output for one terminal session. */
+export const AGENT_TERM_OUTPUT = 'term.output' as const;
+
+export const agentTermOutputPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    /** Client-generated session id (echoed from `term.open`). */
+    sessionId: z.string().max(64),
+    /** Base64 of the raw PTY output bytes. */
+    data: terminalDataSchema
+});
+
+/** Agent → server: a terminal session ended (shell exited, killed, or open failed). */
+export const AGENT_TERM_EXIT = 'term.exit' as const;
+
+export const agentTermExitPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    sessionId: z.string().max(64),
+    /** Process exit code when known. */
+    code: z.number().int().nullable().optional(),
+    /** Reason when the session ended on an error (e.g. the shell couldn't spawn). */
+    error: z.string().max(255).optional()
+});
+
 export const agentReportMessagePayloadSchema = z.object({
     deviceId: z.uuid(),
     report: deviceReportSchema
@@ -230,6 +256,14 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_LOG_LINES),
         payload: agentLogLinesPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_TERM_OUTPUT),
+        payload: agentTermOutputPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_TERM_EXIT),
+        payload: agentTermExitPayloadSchema
     })
 ]);
 
@@ -298,6 +332,40 @@ export const agentLogQueryPayloadSchema = z.object({
 });
 export type AgentLogQueryPayload = z.infer<typeof agentLogQueryPayloadSchema>;
 
+const terminalCols = z.number().int().min(1).max(2000);
+const terminalRows = z.number().int().min(1).max(2000);
+
+/** Open an interactive PTY session running the agent user's shell. */
+export const AGENT_TERM_OPEN = 'term.open' as const;
+export const agentTermOpenPayloadSchema = z.object({
+    sessionId: z.string().max(64),
+    cols: terminalCols,
+    rows: terminalRows
+});
+export type AgentTermOpenPayload = z.infer<typeof agentTermOpenPayloadSchema>;
+
+/** Write input (keystrokes) to a session's PTY. `data` is base64 of raw bytes. */
+export const AGENT_TERM_INPUT = 'term.input' as const;
+export const agentTermInputPayloadSchema = z.object({
+    sessionId: z.string().max(64),
+    data: terminalDataSchema
+});
+export type AgentTermInputPayload = z.infer<typeof agentTermInputPayloadSchema>;
+
+/** Resize a session's PTY to match the client terminal. */
+export const AGENT_TERM_RESIZE = 'term.resize' as const;
+export const agentTermResizePayloadSchema = z.object({
+    sessionId: z.string().max(64),
+    cols: terminalCols,
+    rows: terminalRows
+});
+export type AgentTermResizePayload = z.infer<typeof agentTermResizePayloadSchema>;
+
+/** Close a session: kill the shell and free the PTY. */
+export const AGENT_TERM_CLOSE = 'term.close' as const;
+export const agentTermClosePayloadSchema = z.object({ sessionId: z.string().max(64) });
+export type AgentTermClosePayload = z.infer<typeof agentTermClosePayloadSchema>;
+
 /** Collection config the server pushes to an agent (on connect + on change). */
 export const agentConfigPayloadSchema = z.object({
     /** Light metric (graph) sampling interval in ms. */
@@ -357,6 +425,22 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_LOG_QUERY),
         payload: agentLogQueryPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_TERM_OPEN),
+        payload: agentTermOpenPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_TERM_INPUT),
+        payload: agentTermInputPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_TERM_RESIZE),
+        payload: agentTermResizePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_TERM_CLOSE),
+        payload: agentTermClosePayloadSchema
     })
 ]);
 
@@ -378,6 +462,9 @@ export const DEVICE_POWER_EVENT = 'device.powerResult' as const;
 /** Device log sources inventory + queried log lines, fanned to subscribers. */
 export const DEVICE_LOG_SOURCES_EVENT = 'device.logSources' as const;
 export const DEVICE_LOG_LINES_EVENT = 'device.logLines' as const;
+/** Terminal session PTY output + session-end, fanned to subscribers. */
+export const DEVICE_TERM_OUTPUT_EVENT = 'device.termOutput' as const;
+export const DEVICE_TERM_EXIT_EVENT = 'device.termExit' as const;
 
 /** Push payloads reuse the agent reply shapes (already carry `deviceId`). */
 export const packageListPushSchema = agentPkgListResultPayloadSchema;
@@ -386,6 +473,8 @@ export const packageDonePushSchema = agentPkgDonePayloadSchema;
 export const devicePowerPushSchema = agentPowerResultPayloadSchema;
 export const deviceLogSourcesPushSchema = agentLogSourcesResultPayloadSchema;
 export const deviceLogLinesPushSchema = agentLogLinesPayloadSchema;
+export const deviceTermOutputPushSchema = agentTermOutputPayloadSchema;
+export const deviceTermExitPushSchema = agentTermExitPayloadSchema;
 
 export type PackageListPush = z.infer<typeof packageListPushSchema>;
 export type PackageProgressPush = z.infer<typeof packageProgressPushSchema>;
@@ -393,6 +482,8 @@ export type PackageDonePush = z.infer<typeof packageDonePushSchema>;
 export type DevicePowerPush = z.infer<typeof devicePowerPushSchema>;
 export type DeviceLogSourcesPush = z.infer<typeof deviceLogSourcesPushSchema>;
 export type DeviceLogLinesPush = z.infer<typeof deviceLogLinesPushSchema>;
+export type DeviceTermOutputPush = z.infer<typeof deviceTermOutputPushSchema>;
+export type DeviceTermExitPush = z.infer<typeof deviceTermExitPushSchema>;
 
 export const metricsPushSchema = z.object({
     deviceId: z.uuid(),

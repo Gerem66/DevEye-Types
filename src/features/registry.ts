@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { deviceCommands } from './device';
 import { deviceLogCommands } from './deviceLogs';
+import { deviceTerminalCommands } from './deviceTerminal';
 import { homeCommands } from './home';
 import { logsCommands } from './logs';
 import { metricsCommands } from './metrics';
@@ -25,6 +26,7 @@ export const featureCommands = [
     ...noteCommands,
     ...deviceCommands,
     ...deviceLogCommands,
+    ...deviceTerminalCommands,
     ...metricsCommands,
     ...weatherCommands,
     ...twoFactorCommands,

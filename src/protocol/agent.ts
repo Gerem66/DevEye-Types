@@ -1,5 +1,12 @@
 import { z } from 'zod';
 import {
+    fileListingSchema,
+    fileMatchSchema,
+    fileMutateOpSchema,
+    fileSearchFilterSchema,
+    fileUsageEntrySchema
+} from '../domain/deviceFiles';
+import {
     deviceLogFilterSchema,
     deviceLogLineSchema,
     deviceLogSourceSchema
@@ -178,6 +185,46 @@ export const agentTermExitPayloadSchema = z.object({
     error: z.string().max(255).optional()
 });
 
+/** Agent → server: a directory listing (reply to `files.list`). */
+export const AGENT_FILES_LISTING = 'files.listing' as const;
+export const agentFilesListingPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    opId: z.string().max(64),
+    listing: fileListingSchema.nullable(),
+    /** Set when the directory couldn't be read. */
+    error: z.string().max(500).optional()
+});
+
+/** Agent → server: recursive usage of a directory's children (reply to `files.analyze`). */
+export const AGENT_FILES_USAGE = 'files.usage' as const;
+export const agentFilesUsagePayloadSchema = z.object({
+    deviceId: z.uuid(),
+    opId: z.string().max(64),
+    entries: z.array(fileUsageEntrySchema),
+    error: z.string().max(500).optional()
+});
+
+/** Agent → server: search hits (reply to `files.search`). */
+export const AGENT_FILES_MATCHES = 'files.matches' as const;
+export const agentFilesMatchesPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    opId: z.string().max(64),
+    matches: z.array(fileMatchSchema),
+    /** True when the result was capped (more hits exist). */
+    truncated: z.boolean(),
+    error: z.string().max(500).optional()
+});
+
+/** Agent → server: outcome of a `files.mutate` (delete/mkdir/rename). */
+export const AGENT_FILES_OP_RESULT = 'files.opResult' as const;
+export const agentFilesOpResultPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    opId: z.string().max(64),
+    op: fileMutateOpSchema,
+    ok: z.boolean(),
+    error: z.string().max(500).optional()
+});
+
 export const agentReportMessagePayloadSchema = z.object({
     deviceId: z.uuid(),
     report: deviceReportSchema
@@ -264,6 +311,22 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_TERM_EXIT),
         payload: agentTermExitPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_LISTING),
+        payload: agentFilesListingPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_USAGE),
+        payload: agentFilesUsagePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_MATCHES),
+        payload: agentFilesMatchesPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_OP_RESULT),
+        payload: agentFilesOpResultPayloadSchema
     })
 ]);
 
@@ -366,6 +429,38 @@ export const AGENT_TERM_CLOSE = 'term.close' as const;
 export const agentTermClosePayloadSchema = z.object({ sessionId: z.string().max(64) });
 export type AgentTermClosePayload = z.infer<typeof agentTermClosePayloadSchema>;
 
+const filesOpId = z.string().max(64);
+const filesPath = z.string().min(1).max(4096);
+
+/** List a directory (replies `files.listing`). */
+export const AGENT_FILES_LIST = 'files.list' as const;
+export const agentFilesListPayloadSchema = z.object({ opId: filesOpId, path: filesPath });
+export type AgentFilesListPayload = z.infer<typeof agentFilesListPayloadSchema>;
+
+/** Analyse recursive disk usage of a directory's children (replies `files.usage`). */
+export const AGENT_FILES_ANALYZE = 'files.analyze' as const;
+export const agentFilesAnalyzePayloadSchema = z.object({ opId: filesOpId, path: filesPath });
+export type AgentFilesAnalyzePayload = z.infer<typeof agentFilesAnalyzePayloadSchema>;
+
+/** Recursively search a directory (replies `files.matches`). */
+export const AGENT_FILES_SEARCH = 'files.search' as const;
+export const agentFilesSearchPayloadSchema = z.object({
+    opId: filesOpId,
+    path: filesPath,
+    filter: fileSearchFilterSchema
+});
+export type AgentFilesSearchPayload = z.infer<typeof agentFilesSearchPayloadSchema>;
+
+/** Mutate the filesystem: delete / mkdir / rename (replies `files.opResult`). */
+export const AGENT_FILES_MUTATE = 'files.mutate' as const;
+export const agentFilesMutatePayloadSchema = z.object({
+    opId: filesOpId,
+    op: fileMutateOpSchema,
+    path: filesPath,
+    dest: filesPath.optional()
+});
+export type AgentFilesMutatePayload = z.infer<typeof agentFilesMutatePayloadSchema>;
+
 /** Collection config the server pushes to an agent (on connect + on change). */
 export const agentConfigPayloadSchema = z.object({
     /** Light metric (graph) sampling interval in ms. */
@@ -441,6 +536,22 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_TERM_CLOSE),
         payload: agentTermClosePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_LIST),
+        payload: agentFilesListPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_ANALYZE),
+        payload: agentFilesAnalyzePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_SEARCH),
+        payload: agentFilesSearchPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_MUTATE),
+        payload: agentFilesMutatePayloadSchema
     })
 ]);
 
@@ -465,6 +576,11 @@ export const DEVICE_LOG_LINES_EVENT = 'device.logLines' as const;
 /** Terminal session PTY output + session-end, fanned to subscribers. */
 export const DEVICE_TERM_OUTPUT_EVENT = 'device.termOutput' as const;
 export const DEVICE_TERM_EXIT_EVENT = 'device.termExit' as const;
+/** File explorer results (listing, usage, search hits, mutation outcome). */
+export const DEVICE_FILES_LISTING_EVENT = 'device.filesListing' as const;
+export const DEVICE_FILES_USAGE_EVENT = 'device.filesUsage' as const;
+export const DEVICE_FILES_MATCHES_EVENT = 'device.filesMatches' as const;
+export const DEVICE_FILES_OP_EVENT = 'device.filesOp' as const;
 
 /** Push payloads reuse the agent reply shapes (already carry `deviceId`). */
 export const packageListPushSchema = agentPkgListResultPayloadSchema;
@@ -475,6 +591,10 @@ export const deviceLogSourcesPushSchema = agentLogSourcesResultPayloadSchema;
 export const deviceLogLinesPushSchema = agentLogLinesPayloadSchema;
 export const deviceTermOutputPushSchema = agentTermOutputPayloadSchema;
 export const deviceTermExitPushSchema = agentTermExitPayloadSchema;
+export const deviceFilesListingPushSchema = agentFilesListingPayloadSchema;
+export const deviceFilesUsagePushSchema = agentFilesUsagePayloadSchema;
+export const deviceFilesMatchesPushSchema = agentFilesMatchesPayloadSchema;
+export const deviceFilesOpPushSchema = agentFilesOpResultPayloadSchema;
 
 export type PackageListPush = z.infer<typeof packageListPushSchema>;
 export type PackageProgressPush = z.infer<typeof packageProgressPushSchema>;
@@ -484,6 +604,10 @@ export type DeviceLogSourcesPush = z.infer<typeof deviceLogSourcesPushSchema>;
 export type DeviceLogLinesPush = z.infer<typeof deviceLogLinesPushSchema>;
 export type DeviceTermOutputPush = z.infer<typeof deviceTermOutputPushSchema>;
 export type DeviceTermExitPush = z.infer<typeof deviceTermExitPushSchema>;
+export type DeviceFilesListingPush = z.infer<typeof deviceFilesListingPushSchema>;
+export type DeviceFilesUsagePush = z.infer<typeof deviceFilesUsagePushSchema>;
+export type DeviceFilesMatchesPush = z.infer<typeof deviceFilesMatchesPushSchema>;
+export type DeviceFilesOpPush = z.infer<typeof deviceFilesOpPushSchema>;
 
 export const metricsPushSchema = z.object({
     deviceId: z.uuid(),

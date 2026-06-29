@@ -14,6 +14,14 @@ export {
     AGENT_DESTROY,
     AGENT_DESTROYED,
     AGENT_ERROR,
+    AGENT_FILES_ANALYZE,
+    AGENT_FILES_LIST,
+    AGENT_FILES_LISTING,
+    AGENT_FILES_MATCHES,
+    AGENT_FILES_MUTATE,
+    AGENT_FILES_OP_RESULT,
+    AGENT_FILES_SEARCH,
+    AGENT_FILES_USAGE,
     AGENT_HELLO,
     AGENT_LOG_LINES,
     AGENT_LOG_QUERY,
@@ -42,6 +50,14 @@ export {
     agentClientMessageSchema,
     agentConfigPayloadSchema,
     agentDestroyedMessagePayloadSchema,
+    agentFilesAnalyzePayloadSchema,
+    agentFilesListPayloadSchema,
+    agentFilesListingPayloadSchema,
+    agentFilesMatchesPayloadSchema,
+    agentFilesMutatePayloadSchema,
+    agentFilesOpResultPayloadSchema,
+    agentFilesSearchPayloadSchema,
+    agentFilesUsagePayloadSchema,
     agentLogLinesPayloadSchema,
     agentLogQueryPayloadSchema,
     agentLogSourcesResultPayloadSchema,
@@ -66,6 +82,10 @@ export {
     agentTermResizePayloadSchema,
     agentUpdatedMessagePayloadSchema,
     agentUpdatePayloadSchema,
+    DEVICE_FILES_LISTING_EVENT,
+    DEVICE_FILES_MATCHES_EVENT,
+    DEVICE_FILES_OP_EVENT,
+    DEVICE_FILES_USAGE_EVENT,
     DEVICE_LOG_LINES_EVENT,
     DEVICE_LOG_SOURCES_EVENT,
     DEVICE_POWER_EVENT,
@@ -73,6 +93,10 @@ export {
     DEVICE_REPORT_EVENT,
     DEVICE_TERM_EXIT_EVENT,
     DEVICE_TERM_OUTPUT_EVENT,
+    deviceFilesListingPushSchema,
+    deviceFilesMatchesPushSchema,
+    deviceFilesOpPushSchema,
+    deviceFilesUsagePushSchema,
     deviceLogLinesPushSchema,
     deviceLogSourcesPushSchema,
     devicePowerPushSchema,
@@ -92,6 +116,10 @@ export {
 export type {
     AgentClientMessage,
     AgentConfigPayload,
+    AgentFilesAnalyzePayload,
+    AgentFilesListPayload,
+    AgentFilesMutatePayload,
+    AgentFilesSearchPayload,
     AgentLogQueryPayload,
     AgentPkgUpgradePayload,
     AgentPowerAction,
@@ -104,6 +132,10 @@ export type {
     AgentTermOpenPayload,
     AgentTermResizePayload,
     AgentUpdatePayload,
+    DeviceFilesListingPush,
+    DeviceFilesMatchesPush,
+    DeviceFilesOpPush,
+    DeviceFilesUsagePush,
     DeviceLogLinesPush,
     DeviceLogSourcesPush,
     DevicePowerPush,
@@ -146,6 +178,27 @@ export type {
     DeviceLogSource,
     DeviceLogSourceKind
 } from './domain/deviceLogs';
+export {
+    FILE_SEARCH_MAX,
+    fileEntrySchema,
+    fileKindSchema,
+    fileListingSchema,
+    fileMatchSchema,
+    fileMutateOpSchema,
+    fileSearchFieldSchema,
+    fileSearchFilterSchema,
+    fileUsageEntrySchema
+} from './domain/deviceFiles';
+export type {
+    FileEntry,
+    FileKind,
+    FileListing,
+    FileMatch,
+    FileMutateOp,
+    FileSearchField,
+    FileSearchFilter,
+    FileUsageEntry
+} from './domain/deviceFiles';
 export {
     passwordEntryMaskedSchema,
     passwordEntrySchema,
@@ -365,6 +418,13 @@ export {
     deviceUpgradePackages
 } from './features/device';
 export { deviceLogCommands, deviceLogQuery, deviceLogSources } from './features/deviceLogs';
+export {
+    deviceFilesAnalyze,
+    deviceFilesCommands,
+    deviceFilesList,
+    deviceFilesMutate,
+    deviceFilesSearch
+} from './features/deviceFiles';
 export {
     deviceTerminalCommands,
     deviceTermClose,

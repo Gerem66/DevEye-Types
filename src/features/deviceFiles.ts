@@ -46,9 +46,38 @@ export const deviceFilesMutate = {
     output: z.object({ ok: z.boolean() })
 };
 
+/**
+ * Download a file. Bytes stream back as `device.filesChunk` push events keyed by
+ * `opId` (base64, the last with `done: true`); the client reassembles them.
+ */
+export const deviceFilesDownload = {
+    command: 'device.filesDownload' as const,
+    input: z.object({ deviceId, opId, path }),
+    output: z.object({ ok: z.boolean() })
+};
+
+/**
+ * Upload one chunk of a file at `offset` (0 truncates/creates it). The completion
+ * (on `done`) arrives as a `device.filesOp` push event (op `upload`).
+ */
+export const deviceFilesUpload = {
+    command: 'device.filesUpload' as const,
+    input: z.object({
+        deviceId,
+        opId,
+        path,
+        offset: z.number().int().nonnegative(),
+        data: z.string().max(1_400_000),
+        done: z.boolean()
+    }),
+    output: z.object({ ok: z.boolean() })
+};
+
 export const deviceFilesCommands = [
     deviceFilesList,
     deviceFilesAnalyze,
     deviceFilesSearch,
-    deviceFilesMutate
+    deviceFilesMutate,
+    deviceFilesDownload,
+    deviceFilesUpload
 ] as const;

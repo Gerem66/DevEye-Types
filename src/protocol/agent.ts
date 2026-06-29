@@ -215,13 +215,27 @@ export const agentFilesMatchesPayloadSchema = z.object({
     error: z.string().max(500).optional()
 });
 
-/** Agent → server: outcome of a `files.mutate` (delete/mkdir/rename). */
+/** Agent → server: outcome of a `files.mutate` (delete/mkdir/rename) or an upload. */
 export const AGENT_FILES_OP_RESULT = 'files.opResult' as const;
 export const agentFilesOpResultPayloadSchema = z.object({
     deviceId: z.uuid(),
     opId: z.string().max(64),
-    op: fileMutateOpSchema,
+    /** The operation label (a mutate op, or `upload`). */
+    op: z.string().max(32),
     ok: z.boolean(),
+    error: z.string().max(500).optional()
+});
+
+/** Agent → server: one chunk of a downloaded file (`data` base64; last has `done`). */
+export const AGENT_FILES_CHUNK = 'files.chunk' as const;
+export const agentFilesChunkPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    opId: z.string().max(64),
+    /** Base64 of the raw file bytes for this chunk (empty on the terminal frame). */
+    data: z.string().max(1_400_000),
+    /** True on the final chunk. */
+    done: z.boolean(),
+    /** Set on the final chunk when the download failed. */
     error: z.string().max(500).optional()
 });
 
@@ -327,6 +341,10 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_FILES_OP_RESULT),
         payload: agentFilesOpResultPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_CHUNK),
+        payload: agentFilesChunkPayloadSchema
     })
 ]);
 
@@ -461,6 +479,25 @@ export const agentFilesMutatePayloadSchema = z.object({
 });
 export type AgentFilesMutatePayload = z.infer<typeof agentFilesMutatePayloadSchema>;
 
+/** Download a file (streams `files.chunk`). */
+export const AGENT_FILES_DOWNLOAD = 'files.download' as const;
+export const agentFilesDownloadPayloadSchema = z.object({ opId: filesOpId, path: filesPath });
+export type AgentFilesDownloadPayload = z.infer<typeof agentFilesDownloadPayloadSchema>;
+
+/** Upload one chunk of a file at `offset` (replies `files.opResult` when `done`). */
+export const AGENT_FILES_UPLOAD = 'files.upload' as const;
+export const agentFilesUploadPayloadSchema = z.object({
+    opId: filesOpId,
+    path: filesPath,
+    /** Byte offset of this chunk (0 truncates/creates the file). */
+    offset: z.number().int().nonnegative(),
+    /** Base64 of this chunk's bytes. */
+    data: z.string().max(1_400_000),
+    /** True on the final chunk (the agent then confirms via `files.opResult`). */
+    done: z.boolean()
+});
+export type AgentFilesUploadPayload = z.infer<typeof agentFilesUploadPayloadSchema>;
+
 /** Collection config the server pushes to an agent (on connect + on change). */
 export const agentConfigPayloadSchema = z.object({
     /** Light metric (graph) sampling interval in ms. */
@@ -552,6 +589,14 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_FILES_MUTATE),
         payload: agentFilesMutatePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_DOWNLOAD),
+        payload: agentFilesDownloadPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_UPLOAD),
+        payload: agentFilesUploadPayloadSchema
     })
 ]);
 
@@ -581,6 +626,7 @@ export const DEVICE_FILES_LISTING_EVENT = 'device.filesListing' as const;
 export const DEVICE_FILES_USAGE_EVENT = 'device.filesUsage' as const;
 export const DEVICE_FILES_MATCHES_EVENT = 'device.filesMatches' as const;
 export const DEVICE_FILES_OP_EVENT = 'device.filesOp' as const;
+export const DEVICE_FILES_CHUNK_EVENT = 'device.filesChunk' as const;
 
 /** Push payloads reuse the agent reply shapes (already carry `deviceId`). */
 export const packageListPushSchema = agentPkgListResultPayloadSchema;
@@ -595,6 +641,7 @@ export const deviceFilesListingPushSchema = agentFilesListingPayloadSchema;
 export const deviceFilesUsagePushSchema = agentFilesUsagePayloadSchema;
 export const deviceFilesMatchesPushSchema = agentFilesMatchesPayloadSchema;
 export const deviceFilesOpPushSchema = agentFilesOpResultPayloadSchema;
+export const deviceFilesChunkPushSchema = agentFilesChunkPayloadSchema;
 
 export type PackageListPush = z.infer<typeof packageListPushSchema>;
 export type PackageProgressPush = z.infer<typeof packageProgressPushSchema>;
@@ -608,6 +655,7 @@ export type DeviceFilesListingPush = z.infer<typeof deviceFilesListingPushSchema
 export type DeviceFilesUsagePush = z.infer<typeof deviceFilesUsagePushSchema>;
 export type DeviceFilesMatchesPush = z.infer<typeof deviceFilesMatchesPushSchema>;
 export type DeviceFilesOpPush = z.infer<typeof deviceFilesOpPushSchema>;
+export type DeviceFilesChunkPush = z.infer<typeof deviceFilesChunkPushSchema>;
 
 export const metricsPushSchema = z.object({
     deviceId: z.uuid(),

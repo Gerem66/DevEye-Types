@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { cloudSyncCommands } from './cloudSync';
 import { deviceCommands } from './device';
 import { deviceFilesCommands } from './deviceFiles';
 import { deviceLogCommands } from './deviceLogs';
@@ -29,6 +30,7 @@ export const featureCommands = [
     ...deviceLogCommands,
     ...deviceTerminalCommands,
     ...deviceFilesCommands,
+    ...cloudSyncCommands,
     ...metricsCommands,
     ...weatherCommands,
     ...twoFactorCommands,

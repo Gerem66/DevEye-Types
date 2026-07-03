@@ -1,5 +1,17 @@
 import { z } from 'zod';
 import {
+    cloudSyncProgressSchema,
+    cloudSyncShareStateSchema,
+    sha256HexSchema,
+    SYNC_CHUNK_MAX,
+    SYNC_INDEX_BATCH_MAX,
+    SYNC_PATTERN_MAX,
+    SYNC_REL_PATH_MAX,
+    SYNC_STORAGE_PATH_MAX,
+    syncExclusionKindSchema,
+    syncShareStatusSchema
+} from '../domain/cloudSync';
+import {
     fileListingSchema,
     fileMatchSchema,
     fileMutateOpSchema,
@@ -239,6 +251,80 @@ export const agentFilesChunkPayloadSchema = z.object({
     error: z.string().max(500).optional()
 });
 
+const syncOpId = z.string().min(1).max(64);
+const syncRelPath = z.string().min(1).max(SYNC_REL_PATH_MAX);
+
+/**
+ * CloudSync, agent → serveur. La correction est toujours basée scan : l'agent
+ * ne pousse jamais de contenu spontanément, il signale (`sync.changed`), scanne
+ * sur ordre (`sync.index`), et transfère sur ordre (`sync.chunk`).
+ */
+
+/** Le watcher local (débouncé) a vu bouger le dossier d'un partage. */
+export const AGENT_SYNC_CHANGED = 'sync.changed' as const;
+export const agentSyncChangedPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    shareId: z.number().int().positive()
+});
+
+/** Une entrée du scan local (fichiers réguliers uniquement, exclusions déjà appliquées). */
+export const syncIndexEntrySchema = z.object({
+    relPath: syncRelPath,
+    hash: sha256HexSchema,
+    size: z.number().int().nonnegative(),
+    /** Millisecondes unix. */
+    mtime: z.number().int().nonnegative()
+});
+export type SyncIndexEntry = z.infer<typeof syncIndexEntrySchema>;
+
+/** Un lot d'index du scan (réponse à `sync.scan`, dernier lot `done: true`). */
+export const AGENT_SYNC_INDEX = 'sync.index' as const;
+export const agentSyncIndexPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    sessionId: syncOpId,
+    shareId: z.number().int().positive(),
+    entries: z.array(syncIndexEntrySchema).max(SYNC_INDEX_BATCH_MAX),
+    done: z.boolean(),
+    /** Posé sur le lot final quand le scan a échoué (la session est abandonnée). */
+    error: z.string().max(500).optional()
+});
+
+/**
+ * Un chunk d'upload (réponse à `sync.push`). La frame finale porte le hash,
+ * la taille et le mtime constatés — s'ils diffèrent de l'annonce du scan, le
+ * fichier a bougé entre-temps et le serveur jette le transfert.
+ */
+export const AGENT_SYNC_CHUNK = 'sync.chunk' as const;
+export const agentSyncChunkPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    opId: syncOpId,
+    /** Base64 des octets du chunk (vide autorisé sur la frame terminale). */
+    data: z.string().max(SYNC_CHUNK_MAX),
+    done: z.boolean(),
+    hash: sha256HexSchema.optional(),
+    size: z.number().int().nonnegative().optional(),
+    mtime: z.number().int().nonnegative().optional(),
+    error: z.string().max(500).optional()
+});
+
+/** Crédit de flux : l'agent a écrit le chunk `seq` d'un `sync.applyChunk`. */
+export const AGENT_SYNC_ACK = 'sync.ack' as const;
+export const agentSyncAckPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    opId: syncOpId,
+    seq: z.number().int().nonnegative()
+});
+
+/** Issue d'une op locale : install atomique (`apply`), corbeille (`delete`), upload (`push`). */
+export const AGENT_SYNC_OP_RESULT = 'sync.opResult' as const;
+export const agentSyncOpResultPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    opId: syncOpId,
+    op: z.enum(['apply', 'delete', 'push']),
+    ok: z.boolean(),
+    error: z.string().max(500).optional()
+});
+
 export const agentReportMessagePayloadSchema = z.object({
     deviceId: z.uuid(),
     report: deviceReportSchema
@@ -345,6 +431,26 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_FILES_CHUNK),
         payload: agentFilesChunkPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SYNC_CHANGED),
+        payload: agentSyncChangedPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SYNC_INDEX),
+        payload: agentSyncIndexPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SYNC_CHUNK),
+        payload: agentSyncChunkPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SYNC_ACK),
+        payload: agentSyncAckPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SYNC_OP_RESULT),
+        payload: agentSyncOpResultPayloadSchema
     })
 ]);
 
@@ -500,6 +606,85 @@ export const agentFilesUploadPayloadSchema = z.object({
 });
 export type AgentFilesUploadPayload = z.infer<typeof agentFilesUploadPayloadSchema>;
 
+/**
+ * CloudSync, serveur → agent. Le serveur orchestre tout : l'agent reçoit ses
+ * assignations (`sync.config`), scanne sur ordre, transfère sur ordre.
+ */
+
+/** L'assignation d'un partage à cet appareil (dossier local + exclusions). */
+export const syncShareAssignmentSchema = z.object({
+    shareId: z.number().int().positive(),
+    localPath: z.string().min(1).max(SYNC_STORAGE_PATH_MAX),
+    /** `paused` = watcher coupé, scans refusés (pause partage OU appareil). */
+    status: syncShareStatusSchema,
+    exclusions: z.array(
+        z.object({
+            kind: syncExclusionKindSchema,
+            pattern: z.string().min(1).max(SYNC_PATTERN_MAX)
+        })
+    )
+});
+export type SyncShareAssignment = z.infer<typeof syncShareAssignmentSchema>;
+
+/** Pousse la liste complète des assignations (à la connexion + à chaque changement). */
+export const AGENT_SYNC_CONFIG = 'sync.config' as const;
+export const agentSyncConfigPayloadSchema = z.object({
+    shares: z.array(syncShareAssignmentSchema)
+});
+export type AgentSyncConfigPayload = z.infer<typeof agentSyncConfigPayloadSchema>;
+
+/** Demande un scan complet du dossier local (répond en lots `sync.index`). */
+export const AGENT_SYNC_SCAN = 'sync.scan' as const;
+export const agentSyncScanPayloadSchema = z.object({
+    sessionId: syncOpId,
+    shareId: z.number().int().positive()
+});
+export type AgentSyncScanPayload = z.infer<typeof agentSyncScanPayloadSchema>;
+
+/** Demande l'upload d'un fichier local (répond en chunks `sync.chunk`). */
+export const AGENT_SYNC_PUSH = 'sync.push' as const;
+export const agentSyncPushPayloadSchema = z.object({
+    opId: syncOpId,
+    shareId: z.number().int().positive(),
+    relPath: syncRelPath
+});
+export type AgentSyncPushPayload = z.infer<typeof agentSyncPushPayloadSchema>;
+
+/**
+ * Un chunk de download à installer. hash/size/mtime sont répétés sur chaque
+ * frame (sans état) ; l'agent écrit dans un fichier temporaire, vérifie le
+ * hash sur `done`, installe par rename atomique puis répond `sync.opResult`.
+ * Chaque frame est acquittée (`sync.ack`) — le serveur borne les frames en vol.
+ */
+export const AGENT_SYNC_APPLY_CHUNK = 'sync.applyChunk' as const;
+export const agentSyncApplyChunkPayloadSchema = z.object({
+    opId: syncOpId,
+    shareId: z.number().int().positive(),
+    relPath: syncRelPath,
+    seq: z.number().int().nonnegative(),
+    /** Base64 des octets du chunk. */
+    data: z.string().max(SYNC_CHUNK_MAX),
+    done: z.boolean(),
+    hash: sha256HexSchema,
+    size: z.number().int().nonnegative(),
+    /** Millisecondes unix, appliqué au fichier installé. */
+    mtime: z.number().int().nonnegative()
+});
+export type AgentSyncApplyChunkPayload = z.infer<typeof agentSyncApplyChunkPayloadSchema>;
+
+/**
+ * Propage une suppression : l'agent déplace le fichier vers sa corbeille locale
+ * (`.deveye-trash/`) puis répond `sync.opResult`. N'est émis qu'une fois la
+ * version archivée côté serveur — jamais de destruction sans sauvegarde.
+ */
+export const AGENT_SYNC_DELETE = 'sync.delete' as const;
+export const agentSyncDeletePayloadSchema = z.object({
+    opId: syncOpId,
+    shareId: z.number().int().positive(),
+    relPath: syncRelPath
+});
+export type AgentSyncDeletePayload = z.infer<typeof agentSyncDeletePayloadSchema>;
+
 /** Collection config the server pushes to an agent (on connect + on change). */
 export const agentConfigPayloadSchema = z.object({
     /** Light metric (graph) sampling interval in ms. */
@@ -599,6 +784,26 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_FILES_UPLOAD),
         payload: agentFilesUploadPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SYNC_CONFIG),
+        payload: agentSyncConfigPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SYNC_SCAN),
+        payload: agentSyncScanPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SYNC_PUSH),
+        payload: agentSyncPushPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SYNC_APPLY_CHUNK),
+        payload: agentSyncApplyChunkPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SYNC_DELETE),
+        payload: agentSyncDeletePayloadSchema
     })
 ]);
 
@@ -629,6 +834,10 @@ export const DEVICE_FILES_USAGE_EVENT = 'device.filesUsage' as const;
 export const DEVICE_FILES_MATCHES_EVENT = 'device.filesMatches' as const;
 export const DEVICE_FILES_OP_EVENT = 'device.filesOp' as const;
 export const DEVICE_FILES_CHUNK_EVENT = 'device.filesChunk' as const;
+/** CloudSync : progression de session, état agrégé d'un partage, et chunks de téléchargement. */
+export const CLOUD_SYNC_PROGRESS_EVENT = 'cloudSync.progress' as const;
+export const CLOUD_SYNC_STATE_EVENT = 'cloudSync.state' as const;
+export const CLOUD_SYNC_CHUNK_EVENT = 'cloudSync.chunk' as const;
 
 /** Push payloads reuse the agent reply shapes (already carry `deviceId`). */
 export const packageListPushSchema = agentPkgListResultPayloadSchema;
@@ -644,6 +853,21 @@ export const deviceFilesUsagePushSchema = agentFilesUsagePayloadSchema;
 export const deviceFilesMatchesPushSchema = agentFilesMatchesPayloadSchema;
 export const deviceFilesOpPushSchema = agentFilesOpResultPayloadSchema;
 export const deviceFilesChunkPushSchema = agentFilesChunkPayloadSchema;
+
+/** Push CloudSync : abonnement par partage (pas par appareil). */
+export const cloudSyncProgressPushSchema = cloudSyncProgressSchema;
+export const cloudSyncStatePushSchema = cloudSyncShareStateSchema;
+export const cloudSyncChunkPushSchema = z.object({
+    opId: z.string().max(64),
+    /** Base64 des octets du chunk (vide autorisé sur la frame terminale). */
+    data: z.string().max(SYNC_CHUNK_MAX),
+    done: z.boolean(),
+    error: z.string().max(500).optional()
+});
+
+export type CloudSyncProgressPush = z.infer<typeof cloudSyncProgressPushSchema>;
+export type CloudSyncStatePush = z.infer<typeof cloudSyncStatePushSchema>;
+export type CloudSyncChunkPush = z.infer<typeof cloudSyncChunkPushSchema>;
 
 export type PackageListPush = z.infer<typeof packageListPushSchema>;
 export type PackageProgressPush = z.infer<typeof packageProgressPushSchema>;

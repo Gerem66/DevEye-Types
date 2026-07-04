@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { deviceSchema } from '../domain/device';
 import { packageManagerIdSchema } from '../domain/packages';
-import { agentPowerActionSchema } from '../protocol/agent';
+import { agentLifecycleActionSchema, agentPowerActionSchema } from '../protocol/agent';
 import { processCaptureSchema } from '../domain/report';
 
 const deviceId = z.uuid();
@@ -146,6 +146,22 @@ export const devicePower = {
 };
 
 /**
+ * Stop or cleanly restart the agent *process* on the device (not the machine).
+ * - `stop`: the agent exits. With autostart (supervised service) the manager
+ *   relaunches it within seconds; standalone, the device stays offline — and
+ *   unmanageable remotely — until someone relaunches it on the machine.
+ * - `restart`: exit-and-relaunch (manager or self-respawn), e.g. to pick up a
+ *   clean state.
+ * Owner-or-admin; the agent must be online. Fire-and-forget: the command only
+ * acknowledges the push — the outcome is observed through presence.
+ */
+export const deviceAgentLifecycle = {
+    command: 'device.agentLifecycle' as const,
+    input: z.object({ deviceId, action: agentLifecycleActionSchema }),
+    output: z.object({ ok: z.boolean() })
+};
+
+/**
  * Request a managed deletion (from the Appareils page). The device moves to
  * `pending_deletion`: on its next connection the agent is told to self-destruct
  * (wipe its local config + binary), after which the device is archived — its
@@ -202,6 +218,7 @@ export const deviceCommands = [
     deviceListPackages,
     deviceUpgradePackages,
     devicePower,
+    deviceAgentLifecycle,
     deviceRequestDelete,
     deviceCancelDelete,
     deviceForceDelete,

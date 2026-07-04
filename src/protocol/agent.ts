@@ -484,6 +484,23 @@ export const agentUpdatePayloadSchema = z.object({
 
 export type AgentUpdatePayload = z.infer<typeof agentUpdatePayloadSchema>;
 
+/**
+ * Ask the agent to stop or cleanly restart its own *process* (not the machine):
+ * - `stop`    exit now. Supervised (autostart service) → the manager relaunches
+ *   it; standalone → the device stays offline until a manual relaunch.
+ * - `restart` exit and come back: the manager relaunches a supervised agent, a
+ *   standalone one respawns itself first.
+ * Fire-and-forget: no reply frame (the process exits) — the outcome is observed
+ * through presence (offline, then online again for a restart).
+ */
+export const AGENT_LIFECYCLE = 'agent.lifecycle' as const;
+
+export const agentLifecycleActionSchema = z.enum(['stop', 'restart']);
+export type AgentLifecycleAction = z.infer<typeof agentLifecycleActionSchema>;
+
+export const agentLifecyclePayloadSchema = z.object({ action: agentLifecycleActionSchema });
+export type AgentLifecyclePayload = z.infer<typeof agentLifecyclePayloadSchema>;
+
 /** Tell the agent to change its persistence/privilege install (see `AgentServiceAction`). */
 export const AGENT_SERVICE = 'agent.service' as const;
 
@@ -720,6 +737,10 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_UPDATE),
         payload: agentUpdatePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_LIFECYCLE),
+        payload: agentLifecyclePayloadSchema
     }),
     z.object({
         command: z.literal(AGENT_SERVICE),

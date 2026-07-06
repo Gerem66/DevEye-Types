@@ -19,6 +19,21 @@ import { z } from 'zod';
  * The shape is intentionally small and forward-compatible: adding a new block
  * kind later (heading, divider, …) only widens this union.
  */
+/**
+ * Named colour palette shared by the two colouring features:
+ *  - inline text colour, carried as `{c:name}…{/c}` markers inside a block's
+ *    `text` (so it lives in the freeform string, not the schema);
+ *  - the block-level `color` below, which tints a marker (bullet dot, ordinal,
+ *    checkbox, divider rule).
+ *
+ * A *named* palette (not a free hex) keeps the stored value tied to a theme
+ * token (`--note-<name>`), so colours stay coherent with the app's design and
+ * adapt if the palette is retuned. Widen this enum to add a colour.
+ */
+export const noteColorSchema = z.enum(['red', 'orange', 'yellow', 'green', 'blue', 'purple']);
+
+export type NoteColor = z.infer<typeof noteColorSchema>;
+
 export const noteTextBlockSchema = z.object({
     type: z.literal('text'),
     text: z.string()
@@ -27,17 +42,23 @@ export const noteTextBlockSchema = z.object({
 export const noteCheckBlockSchema = z.object({
     type: z.literal('check'),
     text: z.string(),
-    done: z.boolean()
+    done: z.boolean(),
+    /** Optional tint for the checkbox marker (theme token `--note-<color>`). */
+    color: noteColorSchema.optional()
 });
 
 export const noteBulletBlockSchema = z.object({
     type: z.literal('bullet'),
-    text: z.string()
+    text: z.string(),
+    /** Optional tint for the bullet dot (theme token `--note-<color>`). */
+    color: noteColorSchema.optional()
 });
 
 export const noteNumberBlockSchema = z.object({
     type: z.literal('number'),
-    text: z.string()
+    text: z.string(),
+    /** Optional tint for the ordinal marker (theme token `--note-<color>`). */
+    color: noteColorSchema.optional()
 });
 
 export const noteHeadingBlockSchema = z.object({
@@ -48,7 +69,9 @@ export const noteHeadingBlockSchema = z.object({
 });
 
 export const noteDividerBlockSchema = z.object({
-    type: z.literal('divider')
+    type: z.literal('divider'),
+    /** Optional tint for the horizontal rule (theme token `--note-<color>`). */
+    color: noteColorSchema.optional()
 });
 
 export const noteBlockSchema = z.discriminatedUnion('type', [

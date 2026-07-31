@@ -69,6 +69,8 @@ export const uptimeServiceSchema = z.object({
     notify: z.boolean(),
     /** Paused services keep their history but are never probed. */
     enabled: z.boolean(),
+    /** Rank in the list; only the user's drag & drop changes it. */
+    sortOrder: z.number().int().nonnegative(),
 
     status: uptimeStatusSchema,
     lastCheckedAt: z.number().int().nonnegative().nullable(),
@@ -176,6 +178,7 @@ export interface UptimeServiceRow {
     retention_days: number | null;
     notify: number;
     enabled: number;
+    sort_order: number;
     status: UptimeStatus;
     consecutive_failures: number;
     last_checked_at: number | null;

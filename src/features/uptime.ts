@@ -39,10 +39,9 @@ const uptimeDraftSchema = z.object({
 });
 
 /**
- * List the workspace's services, each carrying its live state and its
- * 24 h / 7 d / 30 d ratios. Never gated: uptime data lives in the open tier, so
- * the feature opens with no password prompt. Ordered by creation; the client
- * floats the failing ones to the top, which is the order that actually matters.
+ * List the workspace's services in the user's own order, each carrying its live
+ * state and its 24 h / 7 d / 30 d ratios. Never gated: uptime data lives in the
+ * open tier, so the feature opens with no password prompt.
  */
 export const uptimeList = {
     command: 'uptime.list' as const,
@@ -94,6 +93,18 @@ export const uptimeRemove = {
     command: 'uptime.remove' as const,
     input: z.object({ workspaceId, id: serviceId }),
     output: z.object({ id: serviceId })
+};
+
+/**
+ * Lay out the workspace's services: `ids` is the **complete** list in its final
+ * order (lower index first). Nothing else positions a service — new ones are
+ * appended — so the order is entirely the user's, as it is for notes. Touches no
+ * probe state, so reordering never disturbs monitoring.
+ */
+export const uptimeReorder = {
+    command: 'uptime.reorder' as const,
+    input: z.object({ workspaceId, ids: z.array(serviceId).min(1) }),
+    output: z.object({ ids: z.array(serviceId) })
 };
 
 /** Probe a service right now instead of waiting for its next tick. */
@@ -200,6 +211,7 @@ export const uptimeCommands = [
     uptimeUpdate,
     uptimeSetEnabled,
     uptimeRemove,
+    uptimeReorder,
     uptimeCheckNow,
     uptimeHistory,
     uptimeChecks,

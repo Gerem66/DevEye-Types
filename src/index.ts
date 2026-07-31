@@ -652,6 +652,7 @@ export {
     uptimeIncidents,
     uptimeList,
     uptimeRemove,
+    uptimeReorder,
     uptimeSetEnabled,
     uptimeSetSettings,
     uptimeTestNotification,

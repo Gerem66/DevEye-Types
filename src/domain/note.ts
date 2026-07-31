@@ -156,6 +156,8 @@ export const noteSummarySchema = z.object({
     private: z.boolean(),
     /** True when the body stayed encrypted for this response (private + locked). */
     masked: z.boolean(),
+    /** Epoch seconds the note was archived, or `null` while it is active. */
+    archivedAt: z.number().int().nonnegative().nullable(),
     updated: z.number().int().nonnegative(),
     /** Epoch seconds the note was first created. */
     created: z.number().int().nonnegative()
@@ -176,6 +178,11 @@ export interface NoteRow {
     pinned: number;
     /** 1 when the body is encrypted with the password-protected key. */
     is_private: number;
+    /**
+     * Epoch seconds the note was archived; `NULL` while active. Deleting a note
+     * archives it — only an already-archived note can be destroyed for good.
+     */
+    archived_at: number | null;
     updated: number;
     created: number;
 }

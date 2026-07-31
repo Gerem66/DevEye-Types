@@ -27,18 +27,21 @@ const noteDraftSchema = z.object({
  * open key, and private notes come back **masked** (metadata only,
  * `masked: true`) while the session is locked. Unlocking and re-listing reveals
  * them — no per-command password is involved.
+ *
+ * `archived` swaps the two disjoint sets: the active notes (default) or the
+ * archive, most recently archived first.
  */
 export const noteList = {
     command: 'note.list' as const,
-    input: z.object({ workspaceId }),
+    input: z.object({ workspaceId, archived: z.boolean().optional() }),
     output: z.object({ notes: z.array(noteSummarySchema) })
 };
 
 /**
- * Count the caller's notes in a workspace. Pure clear metadata: every row is
- * counted the same way — private notes included, no special case — without
- * decrypting anything, so the dashboard widget always shows a number even when
- * the session is locked.
+ * Count the caller's **active** notes in a workspace. Pure clear metadata: every
+ * row is counted the same way — private notes included, no special case —
+ * without decrypting anything, so the dashboard widget always shows a number
+ * even when the session is locked. Archived notes are excluded.
  */
 export const noteCount = {
     command: 'note.count' as const,
@@ -79,8 +82,26 @@ export const noteEdit = {
 };
 
 /**
- * Delete a note. Destroying a private note requires the session to be unlocked;
- * moving it (benign) is not gated.
+ * Archive a note: it leaves the main list but nothing is destroyed. This is what
+ * "supprimer" does in the UI — {@link noteDelete} is the deliberate second step.
+ */
+export const noteArchive = {
+    command: 'note.archive' as const,
+    input: z.object({ workspaceId, noteId: z.number().int().positive() }),
+    output: z.object({ noteId: z.number().int().positive() })
+};
+
+/** Bring an archived note back into the active list. */
+export const noteRestore = {
+    command: 'note.restore' as const,
+    input: z.object({ workspaceId, noteId: z.number().int().positive() }),
+    output: z.object({ noteId: z.number().int().positive() })
+};
+
+/**
+ * Destroy a note for good. Only ever accepted on an **archived** note (`conflict`
+ * otherwise), so nothing can be lost in one click. Like archiving, it requires
+ * the session to be unlocked when the note is private.
  */
 export const noteDelete = {
     command: 'note.delete' as const,
@@ -145,6 +166,8 @@ export const noteCommands = [
     noteGet,
     noteAdd,
     noteEdit,
+    noteArchive,
+    noteRestore,
     noteDelete,
     noteMove,
     folderList,

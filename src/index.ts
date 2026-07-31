@@ -480,13 +480,15 @@ export {
     folderRename,
     folderReorder,
     noteAdd,
+    noteArchive,
     noteCommands,
     noteCount,
     noteDelete,
     noteEdit,
     noteGet,
     noteList,
-    noteMove
+    noteMove,
+    noteRestore
 } from './features/note';
 export { homeCommands, homeSetLayout, homeShortcutPreview } from './features/home';
 export { featureCommandRegistry, featureCommands } from './features/registry';

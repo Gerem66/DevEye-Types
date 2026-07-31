@@ -11,6 +11,7 @@ import { noteCommands } from './note';
 import { passwordCommands } from './password';
 import { secrecyCommands } from './secrecy';
 import { twoFactorCommands } from './twoFactor';
+import { uptimeCommands } from './uptime';
 import { userCommands } from './user';
 import { weatherCommands } from './weather';
 import { workspaceCommands } from './workspace';
@@ -33,6 +34,7 @@ export const featureCommands = [
     ...cloudSyncCommands,
     ...metricsCommands,
     ...weatherCommands,
+    ...uptimeCommands,
     ...twoFactorCommands,
     ...secrecyCommands,
     ...logsCommands,

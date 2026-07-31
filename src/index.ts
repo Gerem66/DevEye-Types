@@ -351,6 +351,44 @@ export type {
     NoteSummary,
     NoteTextBlock
 } from './domain/note';
+export {
+    UPTIME_INTERVAL_MAX,
+    UPTIME_INTERVAL_MIN,
+    UPTIME_KEYWORD_MAX_LENGTH,
+    UPTIME_NAME_MAX_LENGTH,
+    UPTIME_THRESHOLD_MAX,
+    UPTIME_TIMEOUT_MAX,
+    UPTIME_TIMEOUT_MIN,
+    UPTIME_URL_MAX_LENGTH,
+    uptimeCheckSchema,
+    uptimeCheckStatsSchema,
+    uptimeIncidentSchema,
+    uptimeMethodSchema,
+    uptimePointSchema,
+    uptimeRangeSchema,
+    uptimeResolutionSchema,
+    uptimeRetentionSchema,
+    uptimeServiceSchema,
+    uptimeSettingsSchema,
+    uptimeStatusSchema
+} from './domain/uptime';
+export type {
+    UptimeCheck,
+    UptimeCheckRow,
+    UptimeCheckStats,
+    UptimeDayRow,
+    UptimeIncident,
+    UptimeIncidentRow,
+    UptimeMethod,
+    UptimePoint,
+    UptimeRange,
+    UptimeResolution,
+    UptimeService,
+    UptimeServiceRow,
+    UptimeSettings,
+    UptimeSettingsRow,
+    UptimeStatus
+} from './domain/uptime';
 export { userRoleSchema } from './domain/role';
 export type { UserRole } from './domain/role';
 export {
@@ -602,6 +640,23 @@ export {
     weatherSetPrimary,
     weatherUpdate
 } from './features/weather';
+export {
+    uptimeAdd,
+    uptimeCheckNow,
+    uptimeChecks,
+    uptimeCheckStats,
+    uptimeCommands,
+    uptimeCount,
+    uptimeGetSettings,
+    uptimeHistory,
+    uptimeIncidents,
+    uptimeList,
+    uptimeRemove,
+    uptimeSetEnabled,
+    uptimeSetSettings,
+    uptimeTestNotification,
+    uptimeUpdate
+} from './features/uptime';
 export {
     twoFactorCommands,
     twoFactorDisable,

@@ -16,7 +16,8 @@ export const homeFeatureIdSchema = z.enum([
     'weather',
     'password',
     'notes',
-    'cloudsync'
+    'cloudsync',
+    'uptime'
 ]);
 export type HomeFeatureId = z.infer<typeof homeFeatureIdSchema>;
 
@@ -27,8 +28,9 @@ export type HomeFeatureId = z.infer<typeof homeFeatureIdSchema>;
  *  - `weather`  → current temperature of the primary city.
  *  - `devices`  → online / total device count.
  *  - `secrecy`  → password-encryption lock state + re-validation countdown.
+ *  - `uptime`   → services up / total monitored.
  */
-export const homeTopbarWidgetIdSchema = z.enum(['weather', 'devices', 'secrecy']);
+export const homeTopbarWidgetIdSchema = z.enum(['weather', 'devices', 'secrecy', 'uptime']);
 export type HomeTopbarWidgetId = z.infer<typeof homeTopbarWidgetIdSchema>;
 
 /**

@@ -50,6 +50,12 @@ export type SecrecyWrapMode = z.infer<typeof secrecyWrapModeSchema>;
 export interface UserSecretKeyRow {
     user_id: number;
     dek_wrapped: string;
+    /**
+     * Second, distinct DEK, always wrapped by the server key — the "open" tier
+     * for data that must stay readable without the password. Created lazily on
+     * the first open write, so `null` until then. Unaffected by `wrap_mode`.
+     */
+    open_dek_wrapped: string | null;
     wrap_mode: SecrecyWrapMode;
     kdf_salt: Uint8Array | null;
     recovery_wrapped: string | null;

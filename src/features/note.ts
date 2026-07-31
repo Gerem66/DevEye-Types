@@ -12,31 +12,21 @@ import {
 const workspaceId = z.number().int().nonnegative();
 const folderId = z.number().int().positive();
 
-/**
- * How a save should affect the note's lock:
- *  - omitted        → leave the lock as-is (content-only edit).
- *  - `{ set: pwd }`  → (re)lock the note with this dedicated password.
- *  - `{ remove: true }` → remove the lock (note becomes open).
- */
-const lockChangeSchema = z.union([
-    z.object({ set: z.string().min(1) }),
-    z.object({ remove: z.literal(true) })
-]);
-
 /** The editable shape of a note — everything the client may set. */
 const noteDraftSchema = z.object({
     title: z.string().max(NOTE_TITLE_MAX_LENGTH),
     folderId: folderId.nullable(),
     blocks: z.array(noteBlockSchema).max(NOTE_MAX_BLOCKS),
     pinned: z.boolean(),
-    /** Optional change to the note's lock; omit to leave it unchanged. */
-    lock: lockChangeSchema.optional()
+    /** Encrypt the body with the password-protected key rather than the open one. */
+    private: z.boolean()
 });
 
 /**
- * List notes for a workspace. Returns summaries; locked notes come back masked
- * (metadata only, `locked: true`) — the caller prompts for the note's dedicated
- * password and refetches the full note via `note.get` when the user opens it.
+ * List notes for a workspace. Never gated: regular notes are decrypted with the
+ * open key, and private notes come back **masked** (metadata only,
+ * `masked: true`) while the session is locked. Unlocking and re-listing reveals
+ * them — no per-command password is involved.
  */
 export const noteList = {
     command: 'note.list' as const,
@@ -46,10 +36,9 @@ export const noteList = {
 
 /**
  * Count the caller's notes in a workspace. Pure clear metadata: every row is
- * counted the same way — locked notes included, no special case — without
- * decrypting anything. Unlike `note.list` this never requires the password
- * encryption layer to be unlocked, so the dashboard widget always shows a
- * number, even when the session is locked.
+ * counted the same way — private notes included, no special case — without
+ * decrypting anything, so the dashboard widget always shows a number even when
+ * the session is locked.
  */
 export const noteCount = {
     command: 'note.count' as const,
@@ -58,17 +47,13 @@ export const noteCount = {
 };
 
 /**
- * Fetch one note in full. For a locked note the caller must supply the note's
- * dedicated `password`; otherwise the server replies `auth_required` and the
- * client prompts. The password is verified on every open (no session reveal).
+ * Fetch one note in full. A private note requires the session to be unlocked;
+ * otherwise the server replies `locked` and the client opens the usual unlock
+ * prompt before retrying.
  */
 export const noteGet = {
     command: 'note.get' as const,
-    input: z.object({
-        workspaceId,
-        noteId: z.number().int().positive(),
-        password: z.string().optional()
-    }),
+    input: z.object({ workspaceId, noteId: z.number().int().positive() }),
     output: z.object({ note: noteSchema })
 };
 
@@ -79,33 +64,27 @@ export const noteAdd = {
 };
 
 /**
- * Edit a note. For a currently-locked note the caller must supply its existing
- * `password` (proof it was legitimately opened); `note.lock` may then change or
- * remove the lock. Open notes need no password.
+ * Edit a note. Touching a note that is (or becomes) private requires the session
+ * to be unlocked; the draft's `private` flag decides which key the new body is
+ * written with, so flipping it re-encrypts the note into the other tier.
  */
 export const noteEdit = {
     command: 'note.edit' as const,
     input: z.object({
         workspaceId,
         noteId: z.number().int().positive(),
-        note: noteDraftSchema,
-        password: z.string().optional()
+        note: noteDraftSchema
     }),
     output: z.object({ note: noteSchema })
 };
 
 /**
- * Delete a note. A locked note is destructive to remove, so its dedicated
- * `password` is required; moving it (benign) is not gated. Open notes need no
- * password.
+ * Delete a note. Destroying a private note requires the session to be unlocked;
+ * moving it (benign) is not gated.
  */
 export const noteDelete = {
     command: 'note.delete' as const,
-    input: z.object({
-        workspaceId,
-        noteId: z.number().int().positive(),
-        password: z.string().optional()
-    }),
+    input: z.object({ workspaceId, noteId: z.number().int().positive() }),
     output: z.object({ noteId: z.number().int().positive() })
 };
 

@@ -98,9 +98,10 @@ export const NOTE_BLOCK_TEXT_MAX_LENGTH = 5_000;
 export const NOTE_MAX_BLOCKS = 500;
 
 /**
- * A folder is a first-class, server-persisted bucket. Its `name` is sensitive
- * and stored encrypted server-side; only the linkage (`folderId` on notes) is
- * kept in clear. `id` is stable across renames, so notes reference it directly.
+ * A folder is a first-class, server-persisted bucket. Its `name` is stored
+ * encrypted server-side (with the open key, so the folder tree is readable
+ * without a password); only the linkage (`folderId` on notes) is kept in clear.
+ * `id` is stable across renames, so notes reference it directly.
  */
 export const noteFolderSchema = z.object({
     id: z.number().int().positive(),
@@ -113,10 +114,12 @@ export type NoteFolder = z.infer<typeof noteFolderSchema>;
 
 /**
  * A full note as exchanged with the client. `folderId` references a
- * {@link noteFolderSchema}; `null` means "no folder" (Sans dossier). `locked`
- * notes carry their own dedicated password: reading (and deleting) one requires
- * that password, checked per open — see the note feature handlers. The lock is
- * an access gate only; the body stays encrypted by the SecureStore regardless.
+ * {@link noteFolderSchema}; `null` means "no folder" (Sans dossier).
+ *
+ * A **private** note is encrypted with the password-wrapped DEK, so reading or
+ * writing it requires the session to be unlocked; a regular note is encrypted
+ * with the user's open key, which the server can always resolve — that's what
+ * lets the feature open without any prompt.
  */
 export const noteSchema = z.object({
     id: z.number().int().nonnegative(),
@@ -124,8 +127,8 @@ export const noteSchema = z.object({
     folderId: z.number().int().positive().nullable(),
     blocks: z.array(noteBlockSchema).max(NOTE_MAX_BLOCKS),
     pinned: z.boolean(),
-    /** True when the note is protected by its own dedicated password. */
-    locked: z.boolean(),
+    /** True when the note is encrypted with the password-protected key. */
+    private: z.boolean(),
     /** Epoch seconds; set by the server, surfaced for sorting/display. */
     updated: z.number().int().nonnegative(),
     /** Epoch seconds the note was first created. */
@@ -135,23 +138,24 @@ export const noteSchema = z.object({
 export type Note = z.infer<typeof noteSchema>;
 
 /**
- * Lightweight list variant. A `locked` note is always returned masked here —
- * metadata only, no `title`/`blocks` — so the UI shows a padlock placeholder
- * without ever decrypting the body or revealing the title before the per-note
- * password is entered.
+ * Lightweight list variant. A private note listed while the session is locked
+ * comes back **masked** — metadata only, no `title`/`preview` — so the UI can
+ * render a padlock placeholder without the body ever being decrypted.
  */
 export const noteSummarySchema = z.object({
     id: z.number().int().nonnegative(),
     title: z.string(),
     folderId: z.number().int().positive().nullable(),
     pinned: z.boolean(),
-    /** Present only when the body is readable; absent for locked notes. */
+    /** Present only when the body is readable; absent for masked notes. */
     preview: z.string().optional(),
     /** Total checklist items / how many are done — for an at-a-glance summary. */
     checkTotal: z.number().int().nonnegative(),
     checkDone: z.number().int().nonnegative(),
-    /** True when this is a locked note (its dedicated password is required). */
-    locked: z.boolean(),
+    /** True when the note is encrypted with the password-protected key. */
+    private: z.boolean(),
+    /** True when the body stayed encrypted for this response (private + locked). */
+    masked: z.boolean(),
     updated: z.number().int().nonnegative(),
     /** Epoch seconds the note was first created. */
     created: z.number().int().nonnegative()
@@ -164,11 +168,14 @@ export interface NoteRow {
     user_id: number;
     workspace_id: number | null;
     folder_id: number | null;
-    /** Encrypted JSON payload (title + blocks). */
+    /**
+     * Encrypted JSON payload (title + blocks), keyed by the private DEK when
+     * `is_private`, by the user's open DEK otherwise.
+     */
     content: string;
     pinned: number;
-    /** argon2 hash of the note's dedicated password; NULL when not locked. */
-    lock_hash: string | null;
+    /** 1 when the body is encrypted with the password-protected key. */
+    is_private: number;
     updated: number;
     created: number;
 }

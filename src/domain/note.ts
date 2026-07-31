@@ -126,7 +126,8 @@ export const noteSchema = z.object({
     title: z.string().max(NOTE_TITLE_MAX_LENGTH),
     folderId: z.number().int().positive().nullable(),
     blocks: z.array(noteBlockSchema).max(NOTE_MAX_BLOCKS),
-    pinned: z.boolean(),
+    /** Rank within its folder; lower comes first. Only drag & drop changes it. */
+    sortOrder: z.number().int().nonnegative(),
     /** True when the note is encrypted with the password-protected key. */
     private: z.boolean(),
     /** Epoch seconds; set by the server, surfaced for sorting/display. */
@@ -146,7 +147,8 @@ export const noteSummarySchema = z.object({
     id: z.number().int().nonnegative(),
     title: z.string(),
     folderId: z.number().int().positive().nullable(),
-    pinned: z.boolean(),
+    /** Rank within its folder; lower comes first. Only drag & drop changes it. */
+    sortOrder: z.number().int().nonnegative(),
     /** Present only when the body is readable; absent for masked notes. */
     preview: z.string().optional(),
     /** Total checklist items / how many are done — for an at-a-glance summary. */
@@ -175,7 +177,8 @@ export interface NoteRow {
      * `is_private`, by the user's open DEK otherwise.
      */
     content: string;
-    pinned: number;
+    /** Manual rank within its folder; lower comes first. */
+    sort_order: number;
     /** 1 when the body is encrypted with the password-protected key. */
     is_private: number;
     /**

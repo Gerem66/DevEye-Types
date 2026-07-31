@@ -17,7 +17,6 @@ const noteDraftSchema = z.object({
     title: z.string().max(NOTE_TITLE_MAX_LENGTH),
     folderId: folderId.nullable(),
     blocks: z.array(noteBlockSchema).max(NOTE_MAX_BLOCKS),
-    pinned: z.boolean(),
     /** Encrypt the body with the password-protected key rather than the open one. */
     private: z.boolean()
 });
@@ -110,18 +109,26 @@ export const noteDelete = {
 };
 
 /**
- * Move a note into a folder (or out of one with `folderId: null`). A lightweight
- * relocation that doesn't touch the encrypted body — used by the move menu and
- * drag & drop.
+ * Lay out one folder: `noteIds` is its **complete** content in its final order
+ * (lower index first), and every listed note is filed into `folderId` on the way.
+ * One command covers both reordering inside a folder and moving a note across
+ * folders — the destination's new order is all the server needs.
+ *
+ * Notes carry no automatic ordering: this, plus appending new notes at the end,
+ * is the only thing that positions them. Never touches the encrypted body, so it
+ * works on masked private notes too.
  */
-export const noteMove = {
-    command: 'note.move' as const,
+export const noteReorder = {
+    command: 'note.reorder' as const,
     input: z.object({
         workspaceId,
-        noteId: z.number().int().positive(),
-        folderId: folderId.nullable()
+        folderId: folderId.nullable(),
+        noteIds: z.array(z.number().int().positive()).min(1)
     }),
-    output: z.object({ noteId: z.number().int().positive(), folderId: folderId.nullable() })
+    output: z.object({
+        folderId: folderId.nullable(),
+        noteIds: z.array(z.number().int().positive())
+    })
 };
 
 /** List the caller's folders for a workspace (names decrypted server-side). */
@@ -169,7 +176,7 @@ export const noteCommands = [
     noteArchive,
     noteRestore,
     noteDelete,
-    noteMove,
+    noteReorder,
     folderList,
     folderAdd,
     folderRename,

@@ -487,7 +487,7 @@ export {
     noteEdit,
     noteGet,
     noteList,
-    noteMove,
+    noteReorder,
     noteRestore
 } from './features/note';
 export { homeCommands, homeSetLayout, homeShortcutPreview } from './features/home';

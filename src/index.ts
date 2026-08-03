@@ -389,6 +389,65 @@ export type {
     UptimeSettingsRow,
     UptimeStatus
 } from './domain/uptime';
+export {
+    MAIL_DISPLAY_NAME_MAX_LENGTH,
+    MAIL_EMAIL_MAX_LENGTH,
+    MAIL_HOST_MAX_LENGTH,
+    MAIL_SEARCH_QUERY_MAX_LENGTH,
+    MAIL_SNIPPET_MAX_LENGTH,
+    MAIL_SUBJECT_MAX_LENGTH,
+    MAIL_SYNC_INTERVAL_DEFAULT_MINUTES,
+    MAIL_SYNC_INTERVAL_MAX_MINUTES,
+    MAIL_SYNC_INTERVAL_MIN_MINUTES,
+    mailAccountDraftSchema,
+    mailAccountEditSchema,
+    mailAccountSchema,
+    mailAddressSchema,
+    mailAttachmentSchema,
+    mailAuthMethodSchema,
+    mailBodyRenderModeSchema,
+    mailFlagsSchema,
+    mailFolderSchema,
+    mailFolderSpecialUseSchema,
+    mailHeaderSchema,
+    mailLinkWarningReasonSchema,
+    mailMessageCursorSchema,
+    mailMessageSchema,
+    mailMessageSummarySchema,
+    mailOAuthProviderSchema,
+    mailProxyKindSchema,
+    mailProxySchema,
+    mailSecurityTierSchema,
+    mailSettingsSchema,
+    mailSuspiciousLinkSchema
+} from './domain/mail';
+export type {
+    MailAccount,
+    MailAccountDraft,
+    MailAccountEdit,
+    MailAccountRow,
+    MailAddress,
+    MailAttachment,
+    MailAuthMethod,
+    MailBodyRenderMode,
+    MailFlags,
+    MailFolder,
+    MailFolderRow,
+    MailFolderSpecialUse,
+    MailHeader,
+    MailLinkWarningReason,
+    MailMessage,
+    MailMessageCursor,
+    MailMessageRow,
+    MailMessageSummary,
+    MailOAuthProvider,
+    MailProxy,
+    MailProxyKind,
+    MailSecurityTier,
+    MailSettings,
+    MailSettingsRow,
+    MailSuspiciousLink
+} from './domain/mail';
 export { userRoleSchema } from './domain/role';
 export type { UserRole } from './domain/role';
 export {
@@ -689,6 +748,35 @@ export {
     logsList
 } from './features/logs';
 export type { LogFilter } from './features/logs';
+export {
+    mailAccountAdd,
+    mailAccountCount,
+    mailAccountDelete,
+    mailAccountList,
+    mailAccountReorder,
+    mailAccountSetEnabled,
+    mailAccountSetProfile,
+    mailAccountTestConnection,
+    mailAccountUpdate,
+    mailAttachmentDownload,
+    mailAttachmentScan,
+    mailCommands,
+    mailFolderBackfill,
+    mailFolderList,
+    mailFolderReorder,
+    mailFolderReset,
+    mailFolderSync,
+    mailGetSettings,
+    mailMessageDelete,
+    mailMessageGet,
+    mailMessageList,
+    mailMessageMove,
+    mailMessageSearch,
+    mailMessageSetFlags,
+    mailOAuthStart,
+    mailSend,
+    mailSetSettings
+} from './features/mail';
 
 // HTTP
 export {

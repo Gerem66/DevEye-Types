@@ -184,8 +184,10 @@ export const uptimeSetSettings = {
     command: 'uptime.setSettings' as const,
     input: z.object({
         emailEnabled: z.boolean(),
-        /** Empty string clears it back to the account address. */
+        /** Empty string clears it back to the sending mail account's own address. */
         email: z.string().max(320),
+        /** One of the caller's configured Mail accounts (`mail.accountList`); must be "open" tier. `null` clears it. */
+        mailAccountId: z.number().int().positive().nullable(),
         webhookEnabled: z.boolean(),
         /** Empty string clears the webhook. */
         webhookUrl: z.string().max(UPTIME_URL_MAX_LENGTH)

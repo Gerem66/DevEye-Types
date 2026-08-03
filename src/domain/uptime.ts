@@ -153,13 +153,15 @@ export type UptimeIncident = z.infer<typeof uptimeIncidentSchema>;
 /** Where down/recovery alerts are delivered. One row per user. */
 export const uptimeSettingsSchema = z.object({
     emailEnabled: z.boolean(),
-    /** Recipient, or `null` to use the account's own address. */
+    /** Recipient, or `null` to use the sending mail account's own address. */
     email: z.string().nullable(),
+    /** Which configured Mail account (see `domain/mail.ts`) sends the alert; `null` = none picked. */
+    mailAccountId: z.number().int().positive().nullable(),
+    /** False when `mailAccountId` is unset, or points at a missing/non-"open" account — the UI warns instead of lying. */
+    mailAccountReady: z.boolean(),
     webhookEnabled: z.boolean(),
     /** POSTed a JSON body on every transition; `null` when unset. */
-    webhookUrl: z.string().nullable(),
-    /** False when the server has no SMTP configured — the UI warns instead of lying. */
-    mailerReady: z.boolean()
+    webhookUrl: z.string().nullable()
 });
 export type UptimeSettings = z.infer<typeof uptimeSettingsSchema>;
 
@@ -225,8 +227,10 @@ export interface UptimeIncidentRow {
 export interface UptimeSettingsRow {
     user_id: number;
     email_enabled: number;
-    /** Encrypted recipient address (open tier), or null → the account address. */
+    /** Encrypted recipient address (open tier), or null → the sending mail account's own address. */
     email_enc: string | null;
+    /** FK to `mail_accounts.id` (must be "open" tier); null = no sender picked, alerts can't go out. */
+    mail_account_id: number | null;
     webhook_enabled: number;
     /** Encrypted webhook URL (open tier). */
     webhook_enc: string | null;

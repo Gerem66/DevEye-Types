@@ -9,8 +9,14 @@ import {
     noteSummarySchema
 } from '../domain/note';
 
-const workspaceId = z.number().int().nonnegative();
 const folderId = z.number().int().positive();
+
+/**
+ * Commandes des notes et de leurs dossiers.
+ *
+ * L'espace visé n'apparaît dans aucune entrée : il voyage sur l'enveloppe WS
+ * (voir `protocol/envelope`) et le dispatcheur le résout avant le handler.
+ */
 
 /** The editable shape of a note — everything the client may set. */
 const noteDraftSchema = z.object({
@@ -22,7 +28,7 @@ const noteDraftSchema = z.object({
 });
 
 /**
- * List notes for a workspace. Never gated: regular notes are decrypted with the
+ * List the notes of the active workspace. Never gated: regular notes are decrypted with the
  * open key, and private notes come back **masked** (metadata only,
  * `masked: true`) while the session is locked. Unlocking and re-listing reveals
  * them — no per-command password is involved.
@@ -32,19 +38,19 @@ const noteDraftSchema = z.object({
  */
 export const noteList = {
     command: 'note.list' as const,
-    input: z.object({ workspaceId, archived: z.boolean().optional() }),
+    input: z.object({ archived: z.boolean().optional() }),
     output: z.object({ notes: z.array(noteSummarySchema) })
 };
 
 /**
- * Count the caller's **active** notes in a workspace. Pure clear metadata: every
+ * Count the **active** notes of the active workspace. Pure clear metadata: every
  * row is counted the same way — private notes included, no special case —
  * without decrypting anything, so the dashboard widget always shows a number
  * even when the session is locked. Archived notes are excluded.
  */
 export const noteCount = {
     command: 'note.count' as const,
-    input: z.object({ workspaceId }),
+    input: z.object({}),
     output: z.object({ count: z.number().int().nonnegative() })
 };
 
@@ -55,13 +61,13 @@ export const noteCount = {
  */
 export const noteGet = {
     command: 'note.get' as const,
-    input: z.object({ workspaceId, noteId: z.number().int().positive() }),
+    input: z.object({ noteId: z.number().int().positive() }),
     output: z.object({ note: noteSchema })
 };
 
 export const noteAdd = {
     command: 'note.add' as const,
-    input: z.object({ workspaceId, note: noteDraftSchema }),
+    input: z.object({ note: noteDraftSchema }),
     output: z.object({ note: noteSchema })
 };
 
@@ -73,7 +79,6 @@ export const noteAdd = {
 export const noteEdit = {
     command: 'note.edit' as const,
     input: z.object({
-        workspaceId,
         noteId: z.number().int().positive(),
         note: noteDraftSchema
     }),
@@ -86,14 +91,14 @@ export const noteEdit = {
  */
 export const noteArchive = {
     command: 'note.archive' as const,
-    input: z.object({ workspaceId, noteId: z.number().int().positive() }),
+    input: z.object({ noteId: z.number().int().positive() }),
     output: z.object({ noteId: z.number().int().positive() })
 };
 
 /** Bring an archived note back into the active list. */
 export const noteRestore = {
     command: 'note.restore' as const,
-    input: z.object({ workspaceId, noteId: z.number().int().positive() }),
+    input: z.object({ noteId: z.number().int().positive() }),
     output: z.object({ noteId: z.number().int().positive() })
 };
 
@@ -104,7 +109,7 @@ export const noteRestore = {
  */
 export const noteDelete = {
     command: 'note.delete' as const,
-    input: z.object({ workspaceId, noteId: z.number().int().positive() }),
+    input: z.object({ noteId: z.number().int().positive() }),
     output: z.object({ noteId: z.number().int().positive() })
 };
 
@@ -121,7 +126,6 @@ export const noteDelete = {
 export const noteReorder = {
     command: 'note.reorder' as const,
     input: z.object({
-        workspaceId,
         folderId: folderId.nullable(),
         noteIds: z.array(z.number().int().positive()).min(1)
     }),
@@ -131,39 +135,39 @@ export const noteReorder = {
     })
 };
 
-/** List the caller's folders for a workspace (names decrypted server-side). */
+/** List the active workspace's folders (names decrypted server-side). */
 export const folderList = {
     command: 'folder.list' as const,
-    input: z.object({ workspaceId }),
+    input: z.object({}),
     output: z.object({ folders: z.array(noteFolderSchema) })
 };
 
 export const folderAdd = {
     command: 'folder.add' as const,
-    input: z.object({ workspaceId, name: z.string().min(1).max(NOTE_FOLDER_MAX_LENGTH) }),
+    input: z.object({ name: z.string().min(1).max(NOTE_FOLDER_MAX_LENGTH) }),
     output: z.object({ folder: noteFolderSchema })
 };
 
 export const folderRename = {
     command: 'folder.rename' as const,
-    input: z.object({ workspaceId, folderId, name: z.string().min(1).max(NOTE_FOLDER_MAX_LENGTH) }),
+    input: z.object({ folderId, name: z.string().min(1).max(NOTE_FOLDER_MAX_LENGTH) }),
     output: z.object({ folder: noteFolderSchema })
 };
 
 /**
- * Reorder all of the caller's folders for a workspace; `folderIds` is the new
+ * Reorder all of the active workspace's folders; `folderIds` is the new
  * full order (lower index = listed first). Used by the move up/down controls.
  */
 export const folderReorder = {
     command: 'folder.reorder' as const,
-    input: z.object({ workspaceId, folderIds: z.array(folderId).min(1) }),
+    input: z.object({ folderIds: z.array(folderId).min(1) }),
     output: z.object({ folders: z.array(noteFolderSchema) })
 };
 
 /** Delete a folder; its notes are un-filed (folderId → null), not destroyed. */
 export const folderDelete = {
     command: 'folder.delete' as const,
-    input: z.object({ workspaceId, folderId }),
+    input: z.object({ folderId }),
     output: z.object({ folderId })
 };
 

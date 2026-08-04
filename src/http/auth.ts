@@ -1,6 +1,28 @@
 import { z } from 'zod';
+import { homeLayoutSchema } from '../domain/home';
 import { userSchema } from '../domain/user';
 import { workspaceSchema } from '../domain/workspace';
+import { themeStateSchema } from '../features/user';
+
+/**
+ * Contenu commun à `/login`, `/refresh` et `/me` : le compte, les espaces
+ * auxquels il a accès, et **l'espace actif seul** — son thème et sa disposition
+ * d'accueil.
+ *
+ * Le thème des autres espaces n'est délibérément pas embarqué : `bgImages` peut
+ * contenir plusieurs data URLs, et les livrer tous multiplierait la charge utile
+ * par le nombre d'espaces. Basculer d'espace va chercher les siens.
+ */
+export const sessionBundleSchema = z.object({
+    user: userSchema,
+    workspaces: z.array(workspaceSchema),
+    /** Espace chargé à l'ouverture : le favori s'il est encore accessible, sinon le personnel. */
+    activeWorkspaceId: z.number().int().positive(),
+    theme: themeStateSchema.nullable(),
+    homeLayout: homeLayoutSchema.nullable()
+});
+
+export type SessionBundle = z.infer<typeof sessionBundleSchema>;
 
 export const loginRequestSchema = z.object({
     username: z.string().min(1).max(120),
@@ -40,14 +62,8 @@ export type ChangePasswordResponse = z.infer<typeof changePasswordResponseSchema
  * interim challenge token (cookie); the client then posts a TOTP/backup code.
  */
 export const loginResponseSchema = z.discriminatedUnion('twoFactorRequired', [
-    z.object({
-        twoFactorRequired: z.literal(false),
-        user: userSchema,
-        workspaces: z.array(workspaceSchema)
-    }),
-    z.object({
-        twoFactorRequired: z.literal(true)
-    })
+    sessionBundleSchema.extend({ twoFactorRequired: z.literal(false) }),
+    z.object({ twoFactorRequired: z.literal(true) })
 ]);
 
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
@@ -59,16 +75,10 @@ export const twoFactorChallengeRequestSchema = z.object({
 
 export type TwoFactorChallengeRequest = z.infer<typeof twoFactorChallengeRequestSchema>;
 
-export const refreshResponseSchema = z.object({
-    user: userSchema,
-    workspaces: z.array(workspaceSchema)
-});
+export const refreshResponseSchema = sessionBundleSchema;
 
 export type RefreshResponse = z.infer<typeof refreshResponseSchema>;
 
-export const meResponseSchema = z.object({
-    user: userSchema,
-    workspaces: z.array(workspaceSchema)
-});
+export const meResponseSchema = sessionBundleSchema;
 
 export type MeResponse = z.infer<typeof meResponseSchema>;

@@ -469,12 +469,17 @@ export type {
     ShortcutPreview,
     ShortcutTemplate
 } from './domain/home';
-export { defaultUser, minimalUserSchema, userSchema, userSecuritySchema } from './domain/user';
-export type { MinimalUser, User, UserRow, UserSecurity } from './domain/user';
+export { minimalUserSchema, userSchema, userSecuritySchema, userStatusSchema } from './domain/user';
+export type { MinimalUser, User, UserRow, UserSecurity, UserStatus } from './domain/user';
 export { secrecyStatusSchema, secrecyWrapModeSchema } from './domain/secrecy';
 export type { SecrecyStatus, SecrecyWrapMode, UserSecretKeyRow } from './domain/secrecy';
-export { workspaceSchema } from './domain/workspace';
-export type { Workspace, WorkspaceMemberRow, WorkspaceRow } from './domain/workspace';
+export { workspaceKindSchema, workspaceSchema } from './domain/workspace';
+export type {
+    Workspace,
+    WorkspaceKind,
+    WorkspaceMemberRow,
+    WorkspaceRow
+} from './domain/workspace';
 export { devicePlatformSchema, deviceSchema, deviceStatusSchema } from './domain/device';
 export type { Device, DevicePlatform, DeviceRow, DeviceStatus } from './domain/device';
 export { packageManagerIdSchema, packageManagerSchema } from './domain/packages';
@@ -784,6 +789,7 @@ export {
     meResponseSchema,
     refreshResponseSchema,
     registerRequestSchema,
+    sessionBundleSchema,
     twoFactorChallengeRequestSchema
 } from './http/auth';
 export type {
@@ -794,6 +800,7 @@ export type {
     MeResponse,
     RefreshResponse,
     RegisterRequest,
+    SessionBundle,
     TwoFactorChallengeRequest
 } from './http/auth';
 export {

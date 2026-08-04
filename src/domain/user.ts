@@ -1,7 +1,13 @@
 import { z } from 'zod';
 import { userRoleSchema } from './role';
-import { homeLayoutSchema } from './home';
-import { themeStateSchema } from '../features/user';
+
+/**
+ * État d'un compte au niveau du site. `suspended` conserve toutes les données
+ * mais refuse la connexion — c'est une révocation réversible, pas une
+ * suppression.
+ */
+export const userStatusSchema = z.enum(['active', 'suspended']);
+export type UserStatus = z.infer<typeof userStatusSchema>;
 
 export const minimalUserSchema = z.object({
     id: z.number().int().nonnegative(),
@@ -40,12 +46,17 @@ export const userSchema = z.object({
     role: userRoleSchema,
     settings: z.array(z.string()),
     security: userSecuritySchema,
-    defaultWorkspace: z.number().int().nonnegative(),
+    /** Espace personnel du compte : créé avec lui, toujours présent. */
+    personalWorkspaceId: z.number().int().positive(),
+    /**
+     * Espace « favori », chargé en premier à la connexion et au rechargement.
+     * `null` → l'espace personnel. Pointe sur un espace dont le compte est
+     * membre ; il repasse à `null` si cet espace disparaît ou si l'accès est
+     * révoqué.
+     */
+    defaultWorkspaceId: z.number().int().positive().nullable(),
     lastLogin: z.number().int().nonnegative(),
-    created: z.number().int().nonnegative(),
-    theme: themeStateSchema.nullable(),
-    /** Home grid layout (tiles + order); null until the user has saved one. */
-    homeLayout: homeLayoutSchema.nullable()
+    created: z.number().int().nonnegative()
 });
 
 export type User = z.infer<typeof userSchema>;
@@ -60,30 +71,13 @@ export interface UserRow {
     password_hash: string;
     avatar: string;
     role: string;
+    status: UserStatus;
     settings: string;
-    /** Features of the user's private/personal workspace (workspace id 0). */
-    features: string;
-    default_workspace: number;
+    /** Espace personnel du compte (FK `workspaces.id`), unique par utilisateur. */
+    personal_workspace_id: number;
+    /** Espace favori chargé en premier ; `null` → l'espace personnel. */
+    default_workspace_id: number | null;
     re_auth_interval: number | null;
     last_login: number;
     created: number;
-    /** JSON-serialised ThemeStateDTO, or null if the user has never saved a theme. */
-    theme: string | null;
-    /** JSON-serialised HomeLayout, or null if the user has never saved one. */
-    home_layout: string | null;
 }
-
-export const defaultUser: User = {
-    id: 0,
-    email: '',
-    username: '',
-    avatar: '',
-    role: 'user',
-    settings: [],
-    security: { twoFactor: false, passwordEncryption: false, reAuthValidation: false },
-    defaultWorkspace: 0,
-    lastLogin: 0,
-    created: 0,
-    theme: null,
-    homeLayout: null
-};

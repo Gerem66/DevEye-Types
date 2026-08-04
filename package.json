@@ -1,49 +1,49 @@
 {
-  "name": "@gerem66/deveye-types",
-  "version": "0.7.2",
-  "description": "Shared contracts (types + zod schemas) for DevEye apps",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
-  "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
-    }
-  },
-  "files": [
-    "src",
-    "dist"
-  ],
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  },
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "typecheck": "tsc --noEmit",
-    "ci": "npm run lint && npm run typecheck",
-    "prettier": "prettier --check .",
-    "prettier:fix": "prettier --write ."
-  },
-  "dependencies": {
-    "zod": "^4.4.3"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Gerem66/DevEye-Types.git"
-  },
-  "devDependencies": {
-    "@eslint/js": "^8.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "eslint": "^8.0.0",
-    "eslint-plugin-prettier": "^5.5.4",
-    "typescript": "^5.0.0",
-    "typescript-eslint": "^8.39.1"
-  },
-  "type": "module"
+    "name": "@gerem66/deveye-types",
+    "version": "0.8.0",
+    "description": "Shared contracts (types + zod schemas) for DevEye apps",
+    "main": "src/index.ts",
+    "types": "src/index.ts",
+    "exports": {
+        ".": {
+            "types": "./src/index.ts",
+            "default": "./src/index.ts"
+        }
+    },
+    "files": [
+        "src",
+        "dist"
+    ],
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
+    },
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "clean": "rm -rf dist",
+        "prepublishOnly": "npm run clean && npm run build",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "typecheck": "tsc --noEmit",
+        "ci": "npm run lint && npm run typecheck",
+        "prettier": "prettier --check .",
+        "prettier:fix": "prettier --write ."
+    },
+    "dependencies": {
+        "zod": "^4.4.3"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Gerem66/DevEye-Types.git"
+    },
+    "devDependencies": {
+        "@eslint/js": "^8.0.0",
+        "@typescript-eslint/eslint-plugin": "^6.0.0",
+        "@typescript-eslint/parser": "^6.0.0",
+        "eslint": "^8.0.0",
+        "eslint-plugin-prettier": "^5.5.4",
+        "typescript": "^5.0.0",
+        "typescript-eslint": "^8.39.1"
+    },
+    "type": "module"
 }

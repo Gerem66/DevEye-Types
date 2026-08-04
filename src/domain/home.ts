@@ -2,9 +2,10 @@ import { z } from 'zod';
 
 /**
  * Home dashboard layout (per-user). The grid is composed from ordered
- * **categories**, each holding ordered tiles of a single kind. In normal mode
- * the categories render as lightly-spaced groups (no titles); in edit mode each
- * shows its title and its tiles are drag-sortable within the category.
+ * **sections**, each holding ordered tiles of a single kind. Sections are fully
+ * modular: none by default, the user adds/removes/reorders them freely and may
+ * have several of the same kind. A section's title is optional — without one it
+ * renders as a bare, lightly-spaced group (no heading) on the home.
  *
  * Stored in clear as non-sensitive personalization metadata (like the theme),
  * never zero-knowledge payload.
@@ -67,7 +68,7 @@ export type ShortcutTemplate = z.infer<typeof shortcutTemplateSchema>;
 /** Max length of a shortcut URL kept in the layout. */
 export const SHORTCUT_URL_MAX_LENGTH = 2048;
 
-/** A user-pinned link tile (the shortcut category carries these objects). */
+/** A user-pinned link tile (shortcut sections carry these objects). */
 export const shortcutItemSchema = z.object({
     /** Stable client-generated id, used as the React / drag key. */
     id: z.string().min(1).max(64),
@@ -82,25 +83,44 @@ export const shortcutItemSchema = z.object({
 });
 export type ShortcutItem = z.infer<typeof shortcutItemSchema>;
 
-/** Category discriminator; also the kind of tiles a category holds. */
-export const homeCategoryKindSchema = z.enum(['topbar', 'device', 'feature', 'shortcut']);
-export type HomeCategoryKind = z.infer<typeof homeCategoryKindSchema>;
+/** Section discriminator; also the kind of tiles a section holds. */
+export const homeSectionKindSchema = z.enum(['device', 'feature', 'shortcut']);
+export type HomeSectionKind = z.infer<typeof homeSectionKindSchema>;
+
+/** Fields every section carries, whatever its kind. */
+const sectionBase = {
+    /** Stable client-generated id: React key, drag id, and mutation target. */
+    id: z.string().min(1).max(64),
+    /** User-chosen heading; absent → the section renders untitled on the home. */
+    title: z.string().max(40).optional()
+};
 
 /**
- * One category: an ordered set of tiles of a single kind. Device/feature/topbar
- * categories store plain ids (the entity lives elsewhere); the shortcut category
- * stores the link objects themselves. A kind appears at most once.
+ * One section: an ordered set of tiles of a single kind. Device/feature sections
+ * store plain ids (the entity lives elsewhere); shortcut sections store the link
+ * objects themselves. Several sections may share a kind — the `id` is what
+ * identifies them.
  */
-export const homeCategorySchema = z.discriminatedUnion('kind', [
-    z.object({ kind: z.literal('device'), items: z.array(z.uuid()).max(60) }),
-    z.object({ kind: z.literal('feature'), items: z.array(homeFeatureIdSchema).max(20) }),
-    z.object({ kind: z.literal('shortcut'), items: z.array(shortcutItemSchema).max(60) }),
-    z.object({ kind: z.literal('topbar'), items: z.array(homeTopbarWidgetIdSchema).max(10) })
+export const homeSectionSchema = z.discriminatedUnion('kind', [
+    z.object({ ...sectionBase, kind: z.literal('device'), items: z.array(z.uuid()).max(60) }),
+    z.object({
+        ...sectionBase,
+        kind: z.literal('feature'),
+        items: z.array(homeFeatureIdSchema).max(20)
+    }),
+    z.object({
+        ...sectionBase,
+        kind: z.literal('shortcut'),
+        items: z.array(shortcutItemSchema).max(60)
+    })
 ]);
-export type HomeCategory = z.infer<typeof homeCategorySchema>;
+export type HomeSection = z.infer<typeof homeSectionSchema>;
 
 export const homeLayoutSchema = z.object({
-    categories: z.array(homeCategorySchema).max(8)
+    /** Navbar mini-widgets — not a grid section, edited in the navbar itself. */
+    topbar: z.array(homeTopbarWidgetIdSchema).max(10),
+    /** Ordered grid sections. Empty by default: a fresh home shows none. */
+    sections: z.array(homeSectionSchema).max(12)
 });
 export type HomeLayout = z.infer<typeof homeLayoutSchema>;
 

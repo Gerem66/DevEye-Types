@@ -451,10 +451,10 @@ export type {
 export { userRoleSchema } from './domain/role';
 export type { UserRole } from './domain/role';
 export {
-    homeCategoryKindSchema,
-    homeCategorySchema,
     homeFeatureIdSchema,
     homeLayoutSchema,
+    homeSectionKindSchema,
+    homeSectionSchema,
     homeTopbarWidgetIdSchema,
     shortcutItemSchema,
     shortcutPreviewSchema,
@@ -462,10 +462,10 @@ export {
     SHORTCUT_URL_MAX_LENGTH
 } from './domain/home';
 export type {
-    HomeCategory,
-    HomeCategoryKind,
     HomeFeatureId,
     HomeLayout,
+    HomeSection,
+    HomeSectionKind,
     HomeTopbarWidgetId,
     ShortcutItem,
     ShortcutPreview,

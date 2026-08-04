@@ -75,7 +75,12 @@ export const metricsAvailability = {
     output: z.object({ deviceId, days: z.array(z.string()) })
 };
 
-/** Timestamps of process snapshots in a window, to mark them on the timeline. */
+/**
+ * Timestamps of stored process snapshots in a window, to mark them on the
+ * timeline. With a single collection cadence every metric point has one, so this
+ * is dense — the timeline draws continuous bands rather than individual marks
+ * above a threshold.
+ */
 export const metricsSnapshots = {
     command: 'metrics.snapshots' as const,
     input: z.object({
@@ -109,12 +114,10 @@ export const metricsSetSnapshotsPinned = {
         .refine((v) => v.to >= v.from, { message: 'to must be >= from' }),
     output: z.object({
         deviceId,
-        /** Distinct snapshot instants whose pin state changed. */
+        /** Snapshot instants whose pin state changed. */
         affected: z.number().int().nonnegative(),
         /** Snapshot instants deleted right away on unpin (already past retention). */
-        deletedSnapshots: z.number().int().nonnegative(),
-        /** Process rows deleted right away on unpin. */
-        deletedRows: z.number().int().nonnegative()
+        deletedSnapshots: z.number().int().nonnegative()
     })
 };
 
@@ -124,11 +127,11 @@ export const metricsStorage = {
     input: z.object({ deviceId }),
     output: z.object({
         deviceId,
-        /** Distinct snapshot instants kept for the device. */
+        /** Snapshot instants kept for the device (one stored row each). */
         snapshots: z.number().int().nonnegative(),
-        /** Total process rows across those snapshots. */
-        rows: z.number().int().nonnegative(),
-        /** Estimated bytes those rows occupy in the database (data + index). */
+        /** Total process entries recorded across those instants. */
+        processes: z.number().int().nonnegative(),
+        /** Bytes the compressed process blobs occupy — measured, not estimated. */
         bytes: z.number().int().nonnegative()
     })
 };
@@ -148,10 +151,8 @@ export const metricsDeleteSnapshots = {
         .refine((v) => v.to >= v.from, { message: 'to must be >= from' }),
     output: z.object({
         deviceId,
-        /** Distinct snapshot instants removed. */
-        deletedSnapshots: z.number().int().nonnegative(),
-        /** Process rows removed. */
-        deletedRows: z.number().int().nonnegative()
+        /** Snapshot instants removed. */
+        deletedSnapshots: z.number().int().nonnegative()
     })
 };
 

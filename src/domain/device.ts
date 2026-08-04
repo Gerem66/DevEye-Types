@@ -57,15 +57,16 @@ export const deviceSchema = z.object({
     agentUpdateAvailable: z.boolean().default(false),
     /** Latest known health/security report; null until the agent sends one. */
     report: deviceReportSchema.nullable().default(null),
-    /** Metric (graph) sampling interval in seconds; null → server default (10). */
+    /**
+     * The agent's single collection interval in seconds — one tick yields
+     * metrics *and* processes under one timestamp. Null → server default (60).
+     */
     metricIntervalSeconds: z.number().int().positive().nullable().default(null),
-    /** Snapshot (process capture) interval in seconds; null → server default (300). */
-    snapshotIntervalSeconds: z.number().int().positive().nullable().default(null),
-    /** Which processes to capture per snapshot; null → server default (`all`). */
+    /** How much of the process list each tick carries; null → server default (`all`). */
     processCapture: processCaptureSchema.nullable().default(null),
     /** Metric/presence history retention in days; null → server default. */
     retentionDays: z.number().int().positive().nullable().default(null),
-    /** Process-history retention in days; null → server default (1). */
+    /** Process-history retention in days; null → server default. */
     processRetentionDays: z.number().int().positive().nullable().default(null),
     /**
      * Last self-destruct failure message: set when an agent failed to wipe itself
@@ -99,10 +100,8 @@ export interface DeviceRow {
     agent_target: string | null;
     /** JSON-encoded latest `DeviceReport`, or null if none received yet. */
     report_json: string | null;
-    /** Metric sampling interval in seconds; null → server default. */
+    /** Collection interval in seconds (metrics + processes); null → server default. */
     metric_interval_seconds: number | null;
-    /** Snapshot (process capture) interval in seconds; null → server default. */
-    snapshot_interval_seconds: number | null;
     /** Process capture mode (`off`|`top`|`all`); null → server default. */
     process_capture: string | null;
     /** Metric/presence history retention in days; null → server default. */

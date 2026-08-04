@@ -39,7 +39,6 @@ export {
     AGENT_PKG_UPGRADE,
     AGENT_POWER,
     AGENT_POWER_RESULT,
-    AGENT_PROCESSES,
     AGENT_REPORT,
     AGENT_SERVICE,
     AGENT_SERVICE_RESULT,
@@ -87,7 +86,6 @@ export {
     agentPowerActionSchema,
     agentPowerPayloadSchema,
     agentPowerResultPayloadSchema,
-    agentProcessesMessagePayloadSchema,
     agentReportMessagePayloadSchema,
     agentServerMessageSchema,
     agentServiceActionSchema,
@@ -511,7 +509,6 @@ export type {
     ProcessCapture,
     ProcessKind,
     ProcessSample,
-    ProcessSampleRow,
     ReportDisk,
     ReportProcess,
     TcpConnection

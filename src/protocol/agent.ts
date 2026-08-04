@@ -25,7 +25,7 @@ import {
 } from '../domain/deviceLogs';
 import { metricsBatchSchema, metricSnapshotSchema } from '../domain/metrics';
 import { packageManagerIdSchema, packageManagerSchema } from '../domain/packages';
-import { deviceReportSchema, processCaptureSchema, processSampleSchema } from '../domain/report';
+import { deviceReportSchema, processCaptureSchema } from '../domain/report';
 import { agentTargetSchema } from '../http/device';
 import { ProtocolErrorSchema } from './error';
 
@@ -40,7 +40,6 @@ import { ProtocolErrorSchema } from './error';
 export const AGENT_METRICS_BATCH = 'metrics.batch' as const;
 export const AGENT_HELLO = 'agent.hello' as const;
 export const AGENT_REPORT = 'agent.report' as const;
-export const AGENT_PROCESSES = 'agent.processes' as const;
 /** Agent's reply to `agent.destroy`: whether it managed to wipe itself. */
 export const AGENT_DESTROYED = 'agent.destroyed' as const;
 /** Agent's reply to `agent.update`: outcome of a self-update attempt. */
@@ -330,11 +329,6 @@ export const agentReportMessagePayloadSchema = z.object({
     report: deviceReportSchema
 });
 
-export const agentProcessesMessagePayloadSchema = z.object({
-    deviceId: z.uuid(),
-    sample: processSampleSchema
-});
-
 export const agentDestroyedMessagePayloadSchema = z.object({
     deviceId: z.uuid(),
     /** True when the agent successfully wiped its local config (and binary). */
@@ -363,10 +357,6 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_REPORT),
         payload: agentReportMessagePayloadSchema
-    }),
-    z.object({
-        command: z.literal(AGENT_PROCESSES),
-        payload: agentProcessesMessagePayloadSchema
     }),
     z.object({
         command: z.literal(AGENT_DESTROYED),
@@ -704,10 +694,12 @@ export type AgentSyncDeletePayload = z.infer<typeof agentSyncDeletePayloadSchema
 
 /** Collection config the server pushes to an agent (on connect + on change). */
 export const agentConfigPayloadSchema = z.object({
-    /** Light metric (graph) sampling interval in ms. */
+    /**
+     * The agent's single collection interval, in ms. One tick produces one
+     * instant: graph signals *and* the process list, under one timestamp.
+     */
     metricIntervalMs: z.number().int().positive(),
-    /** Heavy snapshot (process capture) interval in ms. */
-    snapshotIntervalMs: z.number().int().positive(),
+    /** How much of the process list to carry on each tick (`off`/`top`/`all`). */
     processCapture: processCaptureSchema
 });
 

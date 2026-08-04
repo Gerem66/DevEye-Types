@@ -1,8 +1,16 @@
 import { z } from 'zod';
 
+import { processKindSchema, reportProcessSchema } from './report';
+
 /**
- * A single point-in-time sample emitted by an agent. Byte counters are absolute
- * (used/total); the UI derives percentages and rates. `timestamp` is unix ms.
+ * A single point-in-time sample emitted by an agent — **one instant, everything
+ * together**: graph signals, the process count and the process list itself. The
+ * agent runs one collection cadence, so a graph point can never exist without
+ * the processes that explain it.
+ *
+ * Byte counters are absolute (used/total); the UI derives percentages and rates.
+ * `timestamp` is unix ms and is the single key correlating a metric row with its
+ * stored process list.
  */
 export const metricSnapshotSchema = z.object({
     timestamp: z.number().int().positive(),
@@ -28,24 +36,41 @@ export const metricSnapshotSchema = z.object({
     /** GPU utilization (%); null when no readable GPU sensor is available. */
     gpuPercent: z.number().min(0).max(100).nullable().default(null),
     /**
-     * Cumulative disk bytes read since boot/process start. Only the heavier
-     * "snapshot" cycle fills this (it needs the full process scan); the light
-     * ~10s metric cycle leaves it null. Treated as a counter (rate derived).
+     * Cumulative disk bytes read since boot, summed over every process. Treated
+     * as a counter (rate derived). Null when the platform doesn't expose
+     * per-process I/O or the agent lacks the privileges to read it.
      */
     diskReadBytes: z.number().int().nonnegative().nullable().default(null),
-    /** Cumulative disk bytes written; null on the light metric cycle. */
+    /** Cumulative disk bytes written; null under the same conditions. */
     diskWriteBytes: z.number().int().nonnegative().nullable().default(null),
     /** Battery charge (%); null when the machine has no battery. */
     batteryPercent: z.number().min(0).max(100).nullable().default(null),
     /** Whether the battery is charging / on AC; null when unknown or no battery. */
-    batteryCharging: z.boolean().nullable().default(null)
+    batteryCharging: z.boolean().nullable().default(null),
+    /**
+     * Programs running at this instant, heaviest first, aggregated by name.
+     * `null` means "not carried by this row" — either the device's capture mode
+     * is `off`, or the snapshot sat long enough in the agent's offline queue for
+     * the detail to be trimmed (graphs keep full fidelity, process detail is
+     * bounded). Persisted separately (`device_process_samples`) under this row's
+     * `timestamp`, so it is *not* echoed back by `metrics.query`.
+     */
+    processes: z.array(reportProcessSchema).max(2000).nullable().default(null),
+    /**
+     * Capture mode in effect when `processes` was taken, so history stays
+     * labelled correctly even after the device's setting later changes (a queued
+     * offline snapshot may predate the change). `null` when `processes` is null.
+     */
+    processKind: processKindSchema.nullable().default(null)
 });
 
 export type MetricSnapshot = z.infer<typeof metricSnapshotSchema>;
 
 /**
  * Batch of snapshots pushed by an agent over the agent WebSocket. Bounded to
- * keep payloads small and allow draining an offline queue in chunks.
+ * keep payloads small and allow draining an offline queue in chunks. The agent
+ * additionally caps a batch by serialized size, since a snapshot now carries its
+ * process list and 100 of them would make a multi-megabyte frame.
  */
 export const metricsBatchSchema = z.object({
     deviceId: z.uuid(),
@@ -58,7 +83,17 @@ export type MetricsBatch = z.infer<typeof metricsBatchSchema>;
 export const metricsResolutionSchema = z.enum(['raw', 'minute', 'hour', 'day']);
 export type MetricsResolution = z.infer<typeof metricsResolutionSchema>;
 
-export const metricSeriesPointSchema = metricSnapshotSchema;
+/**
+ * A point read back from `device_metrics` — a live snapshot minus its process
+ * list, which lives in its own table and is read through `metrics.processesAt`.
+ * Keeping it out of the series is deliberate: a graph window holds hundreds of
+ * points, and carrying every process list along would cost megabytes for data
+ * the graphs never read.
+ */
+export const metricSeriesPointSchema = metricSnapshotSchema.omit({
+    processes: true,
+    processKind: true
+});
 export type MetricSeriesPoint = z.infer<typeof metricSeriesPointSchema>;
 
 export interface MetricRow {

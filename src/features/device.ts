@@ -43,10 +43,8 @@ export const deviceSetConfig = {
     input: z
         .object({
             deviceId,
-            /** Metric (graph) sampling interval in seconds (5s–1h). */
+            /** Collection interval in seconds — metrics *and* processes (5s–1h). */
             metricIntervalSeconds: z.number().int().min(5).max(3600).nullable().optional(),
-            /** Snapshot (process capture) interval in seconds (1min–1day). */
-            snapshotIntervalSeconds: z.number().int().min(60).max(86400).nullable().optional(),
             processCapture: processCaptureSchema.nullable().optional(),
             retentionDays: z.number().int().positive().max(3650).nullable().optional(),
             processRetentionDays: z.number().int().positive().max(3650).nullable().optional()
@@ -54,7 +52,6 @@ export const deviceSetConfig = {
         .refine(
             (v) =>
                 v.metricIntervalSeconds !== undefined ||
-                v.snapshotIntervalSeconds !== undefined ||
                 v.processCapture !== undefined ||
                 v.retentionDays !== undefined ||
                 v.processRetentionDays !== undefined,

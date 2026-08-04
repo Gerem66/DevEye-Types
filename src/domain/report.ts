@@ -11,15 +11,49 @@ import { z } from 'zod';
  * Every security field is nullable: collectors are best-effort and shell out to
  * OS tools that may be absent or require privileges. `null` means "unknown".
  *
- * Processes are historised separately (see `processSampleSchema`) so the UI can
- * show what was running at any past moment, not just the latest.
+ * Processes are *not* in the report: they ride along with each metric snapshot
+ * (`metricSnapshotSchema.processes`) so every graph point has the process list of
+ * that exact instant, and are historised under the same `ts`.
  */
 
-/** One process at sample time (CPU%, resident memory in bytes). */
+/**
+ * One *program* at sample time, aggregated across every process sharing its name
+ * (modern apps are multi-process: a browser splits work across helpers, so a
+ * single PID looks idle while the app is busy).
+ *
+ * Every field beyond CPU/memory is best-effort: the collectors read OS surfaces
+ * that may be unavailable on a platform (`threads` on macOS) or unreadable
+ * without privileges (`/proc/<pid>/io`, socket→process mapping for other users'
+ * processes). Unknown is always `null` — never a misleading `0`. The UI can
+ * explain *why* via `report.agent.privileged`.
+ */
 export const reportProcessSchema = z.object({
     name: z.string().min(1).max(128),
+    /** Number of PIDs aggregated under this name. */
+    instances: z.number().int().positive().default(1),
+    /** Summed CPU%, cumulative across cores (can exceed 100 — divide by `os.cores`). */
     cpuPercent: z.number().min(0),
-    memBytes: z.number().int().nonnegative()
+    /** Summed resident memory, in bytes. */
+    memBytes: z.number().int().nonnegative(),
+    /** Summed thread count; null on macOS (`ps` exposes no thread column). */
+    threads: z.number().int().nonnegative().nullable().default(null),
+    /** Owning OS account (the most frequent one among the aggregated PIDs). */
+    user: z.string().max(64).nullable().default(null),
+    /** Age of the oldest instance, in seconds. */
+    uptimeSeconds: z.number().int().nonnegative().nullable().default(null),
+    /** Cumulative bytes read; null when unreadable (privileges) or unsupported. */
+    diskReadBytes: z.number().int().nonnegative().nullable().default(null),
+    /** Cumulative bytes written; null when unreadable or unsupported. */
+    diskWriteBytes: z.number().int().nonnegative().nullable().default(null),
+    /**
+     * Established connections *to* one of this program's listening ports
+     * (inbound) and away from it (outbound). Byte counters per process are not
+     * collected: no OS exposes them without eBPF/packet capture.
+     */
+    connIn: z.number().int().nonnegative().nullable().default(null),
+    connOut: z.number().int().nonnegative().nullable().default(null),
+    /** Ports this program listens on (ascending, deduped). */
+    listenPorts: z.array(z.number().int().min(0).max(65535)).max(32).default([])
 });
 
 export type ReportProcess = z.infer<typeof reportProcessSchema>;
@@ -41,6 +75,12 @@ export type ProcessCapture = z.infer<typeof processCaptureSchema>;
 export const processKindSchema = z.enum(['top', 'all']);
 export type ProcessKind = z.infer<typeof processKindSchema>;
 
+/**
+ * A stored process list at one instant. **Read model only**: the agent no longer
+ * emits it on its own — processes travel inside `metricSnapshotSchema.processes`
+ * so a graph point and its process list always share one `ts`. This is what
+ * `metrics.processesAt` returns when reading history back.
+ */
 export const processSampleSchema = z.object({
     ts: z.number().int().positive(),
     kind: processKindSchema,
@@ -48,16 +88,6 @@ export const processSampleSchema = z.object({
 });
 
 export type ProcessSample = z.infer<typeof processSampleSchema>;
-
-export interface ProcessSampleRow {
-    id: number;
-    device_id: string;
-    ts: number;
-    kind: ProcessKind;
-    name: string;
-    cpu_percent: number;
-    mem_bytes: number;
-}
 
 /** Security posture of the monitored machine. `null` = could not be determined. */
 export const deviceSecuritySchema = z.object({
@@ -84,14 +114,25 @@ export const reportDiskSchema = z.object({
 export type ReportDisk = z.infer<typeof reportDiskSchema>;
 
 /**
- * One listening socket on the monitored machine. `address` is the bind address
- * (`0.0.0.0`/`::` = all interfaces, `127.0.0.1`/`::1` = loopback only) so the UI
- * can distinguish world-exposed ports from local ones.
+ * One listening socket on the monitored machine.
+ *
+ * `address` is the bind address (`0.0.0.0`/`::` = all interfaces,
+ * `127.0.0.1`/`::1` = loopback only, anything else = one specific interface), so
+ * the UI can tell world-exposed ports from local ones and group them per
+ * interface. One entry per *bind address*: a dual-stack service legitimately
+ * yields two entries (`0.0.0.0:22` and `:::22`) which the UI merges into a
+ * single bubble.
  */
 export const openPortSchema = z.object({
     proto: z.enum(['tcp', 'udp']),
     port: z.number().int().min(0).max(65535),
-    address: z.string().max(64)
+    address: z.string().max(64),
+    /** IPv6 scope id — the interface a link-local socket is bound to (`fe80::1%eth0`). */
+    zone: z.string().max(64).nullable().default(null),
+    /** Owning process id; null when the mapping needs privileges we don't have. */
+    pid: z.number().int().nonnegative().nullable().default(null),
+    /** Owning program name; null for the same reason as `pid`. */
+    process: z.string().max(128).nullable().default(null)
 });
 
 export type OpenPort = z.infer<typeof openPortSchema>;
@@ -173,7 +214,19 @@ export const netInterfaceSchema = z.object({
     name: z.string().min(1).max(128),
     kind: netInterfaceKindSchema,
     /** MAC address, `null` when unavailable or all-zero (e.g. loopback). */
-    mac: z.string().max(64).nullable().default(null)
+    mac: z.string().max(64).nullable().default(null),
+    /**
+     * IP addresses assigned to the interface. Lets the ports view attribute a
+     * bind address to the interface it belongs to. Truncated rather than
+     * rejected (an interface can carry many addresses), `[]` when unknown.
+     */
+    addresses: z
+        .preprocess(
+            (v) => (Array.isArray(v) ? v.slice(0, 16) : v),
+            z.array(z.string().max(64)).max(16)
+        )
+        .catch([])
+        .default([])
 });
 
 export type NetInterface = z.infer<typeof netInterfaceSchema>;
@@ -239,8 +292,9 @@ export const deviceReportSchema = z.object({
      */
     hardware: deviceHardwareSchema.nullable().default(null),
     /**
-     * Listening sockets. `null` = not collected (legacy report); `[]` = collected
-     * and none found. Sorted by port, capped at 500 by the agent.
+     * Listening sockets, one entry per bind address. `null` = not collected
+     * (legacy report); `[]` = collected and none found. Sorted by port, capped at
+     * 500 by the agent.
      */
     openPorts: z.array(openPortSchema).max(500).nullable().default(null),
     /**

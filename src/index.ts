@@ -604,6 +604,7 @@ export {
     workspaceAdd,
     workspaceCommands,
     workspaceDelete,
+    workspaceEnableSharedKey,
     workspaceInviteAccept,
     workspaceInviteCreate,
     workspaceInviteList,
@@ -612,7 +613,8 @@ export {
     workspaceLeave,
     workspaceRemoveMember,
     workspaceRename,
-    workspaceSetFavorite
+    workspaceSetFavorite,
+    workspaceSharedKeyStatus
 } from './features/workspace';
 export {
     AVATAR_MAX_LENGTH,

@@ -14,7 +14,7 @@ import { z } from 'zod';
 export const workspaceCapabilitySchema = z.enum([
     /** Renommer l'espace, changer son logo, le supprimer. */
     'workspace.manage',
-    /** Inviter, révoquer un lien, exclure un membre, lui attribuer un rôle. */
+    /** Ajouter un membre par son adresse, l'exclure, lui attribuer un rôle. */
     'workspace.members',
     /** Créer, modifier, supprimer et ordonner les rôles. */
     'workspace.roles',

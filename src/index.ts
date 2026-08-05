@@ -597,7 +597,13 @@ export type {
     FeatureCommandDescriptor,
     FeatureCommandName
 } from './features/registry';
-export { workspaceAdd, workspaceCommands, workspaceDelete } from './features/workspace';
+export {
+    workspaceActivate,
+    workspaceAdd,
+    workspaceCommands,
+    workspaceDelete,
+    workspaceSetFavorite
+} from './features/workspace';
 export {
     AVATAR_MAX_LENGTH,
     THEME_IMAGE_MAX_LENGTH,

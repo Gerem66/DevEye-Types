@@ -84,6 +84,8 @@ export type Device = z.infer<typeof deviceSchema>;
 export interface DeviceRow {
     id: string;
     owner_id: number;
+    /** Espace où la machine est rangée — la frontière d'accès. */
+    workspace_id: number;
     name: string;
     fingerprint: string;
     platform: string;

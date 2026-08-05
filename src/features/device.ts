@@ -9,7 +9,15 @@ const deviceId = z.uuid();
 /** List devices visible to the caller (own devices; all devices for admins). */
 export const deviceList = {
     command: 'device.list' as const,
-    input: z.object({}),
+    input: z.object({
+        /**
+         * `workspace` (défaut) : les appareils de l'espace actif — ce qu'affichent
+         * l'accueil, la topbar et Monitoring.
+         * `fleet` : toute la flotte, tous espaces confondus. Réservé aux
+         * administrateurs, pour la page Appareils.
+         */
+        scope: z.enum(['workspace', 'fleet']).optional()
+    }),
     output: z.object({ devices: z.array(deviceSchema) })
 };
 

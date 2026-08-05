@@ -34,7 +34,14 @@ export const loginRequestSchema = z.object({
 
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 
+/**
+ * L'inscription n'est plus libre : elle exige un jeton d'invitation émis par un
+ * administrateur. La route existait déjà, ouverte à tous et connectant
+ * automatiquement — simplement inatteignable depuis l'interface, ce qui n'est
+ * pas une protection.
+ */
 export const registerRequestSchema = z.object({
+    inviteToken: z.string().min(1),
     username: z
         .string()
         .min(3)

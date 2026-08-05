@@ -620,6 +620,19 @@ export type {
     FeatureCommandName
 } from './features/registry';
 export {
+    adminCommands,
+    adminDeleteUser,
+    adminInviteCreate,
+    adminInviteList,
+    adminInviteRevoke,
+    adminInviteSchema,
+    adminSetUserRole,
+    adminSetUserStatus,
+    adminUserList,
+    adminUserSchema
+} from './features/admin';
+export type { AdminInvite, AdminUser } from './features/admin';
+export {
     workspaceActivate,
     workspaceAdd,
     workspaceCommands,

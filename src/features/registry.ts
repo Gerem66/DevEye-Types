@@ -15,6 +15,7 @@ import { twoFactorCommands } from './twoFactor';
 import { uptimeCommands } from './uptime';
 import { userCommands } from './user';
 import { weatherCommands } from './weather';
+import { adminCommands } from './admin';
 import { workspaceCommands } from './workspace';
 
 export interface FeatureCommandDescriptor<C extends string = string> {
@@ -25,6 +26,7 @@ export interface FeatureCommandDescriptor<C extends string = string> {
 
 export const featureCommands = [
     ...workspaceCommands,
+    ...adminCommands,
     ...userCommands,
     ...passwordCommands,
     ...noteCommands,

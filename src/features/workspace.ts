@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { homeLayoutSchema } from '../domain/home';
-import { workspaceSchema } from '../domain/workspace';
+import { workspaceInviteSchema, workspaceSchema } from '../domain/workspace';
 import { themeStateSchema } from './user';
 
 export const workspaceAdd = {
@@ -43,7 +43,91 @@ export const workspaceSetFavorite = {
     output: z.object({ workspaceId: z.number().int().positive().nullable() })
 };
 
+/** Renomme l'espace actif. Réservé à son propriétaire. */
+export const workspaceRename = {
+    command: 'workspace.rename' as const,
+    input: z.object({ name: z.string().min(1).max(120) }),
+    output: z.object({ workspace: workspaceSchema })
+};
+
+/**
+ * Quitte l'espace actif. Le propriétaire ne le peut pas : il supprime son espace
+ * ou le transmet, il ne l'abandonne pas avec ses membres dedans.
+ */
+export const workspaceLeave = {
+    command: 'workspace.leave' as const,
+    input: z.object({}),
+    output: z.object({ workspaceId: z.number().int().positive() })
+};
+
+/** Exclut un membre de l'espace actif. Réservé au propriétaire. */
+export const workspaceRemoveMember = {
+    command: 'workspace.removeMember' as const,
+    input: z.object({ userId: z.number().int().positive() }),
+    output: z.object({ userId: z.number().int().positive() })
+};
+
+/** Crée un lien d'invitation pour l'espace actif. */
+export const workspaceInviteCreate = {
+    command: 'workspace.inviteCreate' as const,
+    input: z.object({
+        /** `null` → n'expire jamais. */
+        ttlSeconds: z
+            .number()
+            .int()
+            .positive()
+            .max(30 * 24 * 3600)
+            .nullable(),
+        /** `null` → usages illimités. */
+        maxUses: z.number().int().positive().max(100).nullable()
+    }),
+    output: z.object({ invite: workspaceInviteSchema })
+};
+
+/** Liens encore utilisables de l'espace actif. */
+export const workspaceInviteList = {
+    command: 'workspace.inviteList' as const,
+    input: z.object({}),
+    output: z.object({ invites: z.array(workspaceInviteSchema) })
+};
+
+export const workspaceInviteRevoke = {
+    command: 'workspace.inviteRevoke' as const,
+    input: z.object({ token: z.string().min(1) }),
+    output: z.object({ token: z.string().min(1) })
+};
+
+/**
+ * Décrit une invitation sans la consommer, pour que l'écran d'acceptation
+ * annonce l'espace rejoint. N'exige aucune appartenance — c'est justement le cas
+ * de quelqu'un qui n'est pas encore membre.
+ */
+export const workspaceInvitePreview = {
+    command: 'workspace.invitePreview' as const,
+    input: z.object({ token: z.string().min(1) }),
+    output: z.object({
+        workspaceName: z.string(),
+        /** Déjà membre : accepter serait un no-op, l'UI le dit plutôt que d'échouer. */
+        alreadyMember: z.boolean()
+    })
+};
+
+/** Consomme une invitation et rejoint l'espace. */
+export const workspaceInviteAccept = {
+    command: 'workspace.inviteAccept' as const,
+    input: z.object({ token: z.string().min(1) }),
+    output: z.object({ workspace: workspaceSchema })
+};
+
 export const workspaceCommands = [
+    workspaceRename,
+    workspaceLeave,
+    workspaceRemoveMember,
+    workspaceInviteCreate,
+    workspaceInviteList,
+    workspaceInviteRevoke,
+    workspaceInvitePreview,
+    workspaceInviteAccept,
     workspaceAdd,
     workspaceDelete,
     workspaceActivate,

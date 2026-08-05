@@ -36,7 +36,9 @@ export const workspaceActivate = {
     input: z.object({}),
     output: z.object({
         theme: themeStateSchema.nullable(),
-        homeLayout: homeLayoutSchema.nullable()
+        homeLayout: homeLayoutSchema.nullable(),
+        /** Droits dans l'espace rejoint : l'UI s'y conforme dès la bascule. */
+        permissions: workspacePermissionsSchema
     })
 };
 
@@ -166,6 +168,13 @@ export const workspaceRoleList = {
     input: z.object({}),
     output: z.object({
         roles: z.array(workspaceRoleSchema),
+        /** Quel membre porte quel rôle. `null` = aucun, donc aucun droit. */
+        memberRoles: z.array(
+            z.object({
+                userId: z.number().int().positive(),
+                roleId: z.number().int().positive().nullable()
+            })
+        ),
         /** Droits effectifs de l'appelant, pour que l'UI n'affiche que l'accessible. */
         permissions: workspacePermissionsSchema
     })

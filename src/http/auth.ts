@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { homeLayoutSchema } from '../domain/home';
 import { userSchema } from '../domain/user';
 import { workspaceSchema } from '../domain/workspace';
+import { workspacePermissionsSchema } from '../domain/workspaceRole';
 import { themeStateSchema } from '../features/user';
 
 /**
@@ -19,7 +20,9 @@ export const sessionBundleSchema = z.object({
     /** Espace chargé à l'ouverture : le favori s'il est encore accessible, sinon le personnel. */
     activeWorkspaceId: z.number().int().positive(),
     theme: themeStateSchema.nullable(),
-    homeLayout: homeLayoutSchema.nullable()
+    homeLayout: homeLayoutSchema.nullable(),
+    /** Droits de l'appelant dans l'espace actif, pour que l'UI masque le reste. */
+    permissions: workspacePermissionsSchema
 });
 
 export type SessionBundle = z.infer<typeof sessionBundleSchema>;

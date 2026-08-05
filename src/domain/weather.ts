@@ -82,6 +82,7 @@ export type WeatherReport = z.infer<typeof weatherReportSchema>;
 export interface WeatherLocationRow {
     id: string;
     user_id: number;
+    workspace_id: number;
     label: string;
     latitude: number;
     longitude: number;
@@ -96,7 +97,7 @@ export interface WeatherLocationRow {
 }
 
 export interface WeatherProviderKeyRow {
-    user_id: number;
+    workspace_id: number;
     provider: WeatherProvider;
     /** Encrypted API key (zero-knowledge at rest). */
     key_enc: string;

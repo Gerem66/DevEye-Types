@@ -20,7 +20,6 @@ import {
     uptimeSettingsSchema
 } from '../domain/uptime';
 
-const workspaceId = z.number().int().nonnegative();
 const serviceId = z.number().int().positive();
 
 /** Everything the user may set on a service. */
@@ -45,7 +44,7 @@ const uptimeDraftSchema = z.object({
  */
 export const uptimeList = {
     command: 'uptime.list' as const,
-    input: z.object({ workspaceId }),
+    input: z.object({}),
     output: z.object({ services: z.array(uptimeServiceSchema) })
 };
 
@@ -57,7 +56,7 @@ export const uptimeList = {
  */
 export const uptimeCount = {
     command: 'uptime.count' as const,
-    input: z.object({ workspaceId }),
+    input: z.object({}),
     output: z.object({
         total: z.number().int().nonnegative(),
         up: z.number().int().nonnegative(),
@@ -67,14 +66,14 @@ export const uptimeCount = {
 
 export const uptimeAdd = {
     command: 'uptime.add' as const,
-    input: z.object({ workspaceId, service: uptimeDraftSchema }),
+    input: z.object({ service: uptimeDraftSchema }),
     output: z.object({ service: uptimeServiceSchema })
 };
 
 /** Replace a service's whole configuration. History and incidents are kept. */
 export const uptimeUpdate = {
     command: 'uptime.update' as const,
-    input: z.object({ workspaceId, id: serviceId, service: uptimeDraftSchema }),
+    input: z.object({ id: serviceId, service: uptimeDraftSchema }),
     output: z.object({ service: uptimeServiceSchema })
 };
 
@@ -84,14 +83,14 @@ export const uptimeUpdate = {
  */
 export const uptimeSetEnabled = {
     command: 'uptime.setEnabled' as const,
-    input: z.object({ workspaceId, id: serviceId, enabled: z.boolean() }),
+    input: z.object({ id: serviceId, enabled: z.boolean() }),
     output: z.object({ service: uptimeServiceSchema })
 };
 
 /** Destroy a service **and its whole history** — there is no archive here. */
 export const uptimeRemove = {
     command: 'uptime.remove' as const,
-    input: z.object({ workspaceId, id: serviceId }),
+    input: z.object({ id: serviceId }),
     output: z.object({ id: serviceId })
 };
 
@@ -103,14 +102,14 @@ export const uptimeRemove = {
  */
 export const uptimeReorder = {
     command: 'uptime.reorder' as const,
-    input: z.object({ workspaceId, ids: z.array(serviceId).min(1) }),
+    input: z.object({ ids: z.array(serviceId).min(1) }),
     output: z.object({ ids: z.array(serviceId) })
 };
 
 /** Probe a service right now instead of waiting for its next tick. */
 export const uptimeCheckNow = {
     command: 'uptime.checkNow' as const,
-    input: z.object({ workspaceId, id: serviceId }),
+    input: z.object({ id: serviceId }),
     output: z.object({ service: uptimeServiceSchema })
 };
 
@@ -121,7 +120,7 @@ export const uptimeCheckNow = {
  */
 export const uptimeHistory = {
     command: 'uptime.history' as const,
-    input: z.object({ workspaceId, id: serviceId, range: uptimeRangeSchema }),
+    input: z.object({ id: serviceId, range: uptimeRangeSchema }),
     output: z.object({
         resolution: uptimeResolutionSchema,
         points: z.array(uptimePointSchema)
@@ -147,7 +146,6 @@ const checkFilterSchema = z.object({
 export const uptimeChecks = {
     command: 'uptime.checks' as const,
     input: z.object({
-        workspaceId,
         id: serviceId,
         limit: z.number().int().min(1).max(200),
         before: z.number().int().nonnegative().optional(),
@@ -163,14 +161,14 @@ export const uptimeChecks = {
  */
 export const uptimeCheckStats = {
     command: 'uptime.checkStats' as const,
-    input: z.object({ workspaceId, id: serviceId, filter: checkFilterSchema }),
+    input: z.object({ id: serviceId, filter: checkFilterSchema }),
     output: z.object({ stats: uptimeCheckStatsSchema })
 };
 
 /** Outage history, most recent first; the ongoing one (if any) comes back too. */
 export const uptimeIncidents = {
     command: 'uptime.incidents' as const,
-    input: z.object({ workspaceId, id: serviceId, limit: z.number().int().min(1).max(100) }),
+    input: z.object({ id: serviceId, limit: z.number().int().min(1).max(100) }),
     output: z.object({ incidents: z.array(uptimeIncidentSchema) })
 };
 

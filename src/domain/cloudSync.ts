@@ -210,7 +210,7 @@ export interface SyncShareRow {
     id: number;
     user_id: number;
     /** NULL = espace personnel (id 0 côté client). Toujours NULL en V1. */
-    workspace_id: number | null;
+    workspace_id: number;
     name: string;
     storage_path: string;
     status: SyncShareStatus;

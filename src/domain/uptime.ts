@@ -169,7 +169,7 @@ export type UptimeSettings = z.infer<typeof uptimeSettingsSchema>;
 export interface UptimeServiceRow {
     id: number;
     user_id: number;
-    workspace_id: number | null;
+    workspace_id: number;
     /** Encrypted `{ name, url, keyword }` (open tier). */
     content: string;
     method: UptimeMethod;
@@ -225,7 +225,7 @@ export interface UptimeIncidentRow {
 }
 
 export interface UptimeSettingsRow {
-    user_id: number;
+    workspace_id: number;
     email_enabled: number;
     /** Encrypted recipient address (open tier), or null → the sending mail account's own address. */
     email_enc: string | null;

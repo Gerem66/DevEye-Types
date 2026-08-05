@@ -289,6 +289,7 @@ export type MailSettings = z.infer<typeof mailSettingsSchema>;
 export interface MailAccountRow {
     id: number;
     user_id: number;
+    workspace_id: number;
     sort_order: number;
     /** Encrypted (tier-dependent). */
     display_name_enc: string;
@@ -345,7 +346,7 @@ export interface MailMessageRow {
 }
 
 export interface MailSettingsRow {
-    user_id: number;
+    workspace_id: number;
     external_scan_enabled_default: number;
     /** JSON-encoded string array, or null when empty. Not encrypted — hostnames, not secrets. */
     trusted_image_domains: string | null;

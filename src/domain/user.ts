@@ -14,6 +14,8 @@ export const minimalUserSchema = z.object({
     email: z.string().email(),
     username: z.string().min(1),
     avatar: z.string(),
+    /** Époque Unix de la dernière connexion ; `0` pour un compte jamais venu. */
+    lastLogin: z.number().int().nonnegative(),
     created: z.number().int().nonnegative()
 });
 

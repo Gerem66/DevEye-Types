@@ -54,28 +54,3 @@ export interface WorkspaceMemberRow {
     workspace_id: number;
     date: number;
 }
-
-/** Invitation à rejoindre un espace, telle que la voit le client. */
-export const workspaceInviteSchema = z.object({
-    token: z.string().min(1),
-    /** Lien complet à transmettre, construit à partir de `PUBLIC_ORIGIN`. */
-    url: z.string().min(1),
-    expiresAt: z.number().int().nullable(),
-    maxUses: z.number().int().positive().nullable(),
-    uses: z.number().int().nonnegative(),
-    createdBy: z.string(),
-    created: z.number().int().nonnegative()
-});
-
-export type WorkspaceInvite = z.infer<typeof workspaceInviteSchema>;
-
-export interface WorkspaceInviteRow {
-    token: string;
-    workspace_id: number;
-    created_by: number;
-    expires_at: number | null;
-    max_uses: number | null;
-    uses: number;
-    revoked_at: number | null;
-    created: number;
-}

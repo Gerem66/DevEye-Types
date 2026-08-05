@@ -473,7 +473,7 @@ export { minimalUserSchema, userSchema, userSecuritySchema, userStatusSchema } f
 export type { MinimalUser, User, UserRow, UserSecurity, UserStatus } from './domain/user';
 export { secrecyStatusSchema, secrecyWrapModeSchema } from './domain/secrecy';
 export type { SecrecyStatus, SecrecyWrapMode, UserSecretKeyRow } from './domain/secrecy';
-export { workspaceInviteSchema, workspaceKindSchema, workspaceSchema } from './domain/workspace';
+export { workspaceKindSchema, workspaceSchema } from './domain/workspace';
 export {
     featureAccessSchema,
     WORKSPACE_CAPABILITIES,
@@ -496,8 +496,6 @@ export type {
 } from './domain/workspaceRole';
 export type {
     Workspace,
-    WorkspaceInvite,
-    WorkspaceInviteRow,
     WorkspaceKind,
     WorkspaceMemberRow,
     WorkspaceRow
@@ -638,13 +636,9 @@ export {
     workspaceCommands,
     workspaceDelete,
     workspaceEnableSharedKey,
-    workspaceInviteAccept,
-    workspaceInviteCreate,
-    workspaceInviteList,
-    workspaceInvitePreview,
-    workspaceInviteRevoke,
     workspaceLeave,
     workspaceRemoveMember,
+    workspaceAddMember,
     workspaceAssignRole,
     workspaceRename,
     workspaceRoleCreate,

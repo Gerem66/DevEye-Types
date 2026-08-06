@@ -470,6 +470,7 @@ export type {
     ShortcutTemplate
 } from './domain/home';
 export {
+    liveCursorKindSchema,
     liveCursorSchema,
     livePathGate,
     livePathSchema,
@@ -480,7 +481,14 @@ export {
     segmentValue,
     TOPIC_FEATURE
 } from './domain/live';
-export type { LiveCursor, LivePath, LivePathGate, LivePeer, LiveTopic } from './domain/live';
+export type {
+    LiveCursor,
+    LiveCursorKind,
+    LivePath,
+    LivePathGate,
+    LivePeer,
+    LiveTopic
+} from './domain/live';
 export {
     LIVE_CHANGED_EVENT,
     LIVE_CURSOR_COMMAND,

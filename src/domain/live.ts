@@ -47,6 +47,36 @@ export function segmentValue(segment: string): string {
 }
 
 /**
+ * L'**état** du curseur, tel que le navigateur le dessine à celui qui le tient.
+ *
+ * Transmis avec la position parce qu'il porte l'intention : une flèche qui
+ * devient main dit « il s'apprête à cliquer », un curseur de texte dit « il
+ * lit ou il sélectionne », une main fermée dit « il déplace quelque chose ».
+ * Sans lui, tous les pairs seraient perpétuellement en flèche neutre, et le
+ * geste d'en face resterait illisible.
+ *
+ * Volontairement **court** : l'ensemble des curseurs CSS compte une trentaine de
+ * valeurs, dont la plupart ne se distinguent pas à seize pixels. Sept familles
+ * suffisent, et c'est autant de dessins à tenir.
+ */
+export const liveCursorKindSchema = z.enum([
+    'default',
+    /** `pointer` — quelque chose de cliquable est sous le curseur. */
+    'pointer',
+    /** `text` — du texte lisible ou sélectionnable. */
+    'text',
+    /** `grab` — saisissable, mais pas encore saisi. */
+    'grab',
+    /** `grabbing` / `move` — quelque chose est en train d'être déplacé. */
+    'grabbing',
+    /** Les `*-resize` — une poignée de redimensionnement. */
+    'resize',
+    /** `not-allowed` / `no-drop` — l'action est refusée ici. */
+    'blocked'
+]);
+export type LiveCursorKind = z.infer<typeof liveCursorKindSchema>;
+
+/**
  * Position du curseur dans la **surface** de la vue (le corps de la popup, ou la
  * grille de l'accueil quand rien n'est ouvert).
  *
@@ -60,10 +90,16 @@ export function segmentValue(segment: string): string {
  *    le 14ᵉ message » est le sens qu'on veut, alors qu'une fraction de la
  *    hauteur totale se décalerait dès qu'une liste est chargée plus loin d'un
  *    côté que de l'autre.
+ *
+ * Les bornes de `x` dépassent [0, 1] à dessein : le pointeur vit aussi **à côté**
+ * de la surface (les marges de la popup, les bords de l'écran), et l'y écrêter
+ * ferait disparaître le curseur du pair alors qu'on est toujours sur la même
+ * page. Seul le cadre de la fenêtre borne l'affichage.
  */
 export const liveCursorSchema = z.object({
     x: z.number().min(-1).max(2),
-    y: z.number().min(-100_000).max(100_000)
+    y: z.number().min(-100_000).max(100_000),
+    kind: liveCursorKindSchema
 });
 export type LiveCursor = z.infer<typeof liveCursorSchema>;
 

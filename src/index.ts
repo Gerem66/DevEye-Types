@@ -469,8 +469,53 @@ export type {
     ShortcutPreview,
     ShortcutTemplate
 } from './domain/home';
-export { minimalUserSchema, userSchema, userSecuritySchema, userStatusSchema } from './domain/user';
-export type { MinimalUser, User, UserRow, UserSecurity, UserStatus } from './domain/user';
+export {
+    liveCursorSchema,
+    livePathGate,
+    livePathSchema,
+    livePathSegmentSchema,
+    livePeerSchema,
+    liveTopicSchema,
+    segmentKind,
+    segmentValue,
+    TOPIC_FEATURE
+} from './domain/live';
+export type { LiveCursor, LivePath, LivePathGate, LivePeer, LiveTopic } from './domain/live';
+export {
+    LIVE_CHANGED_EVENT,
+    LIVE_CURSOR_COMMAND,
+    LIVE_CURSORS_EVENT,
+    LIVE_PEERS_EVENT,
+    liveChangedPushSchema,
+    liveCommands,
+    liveCursorFrameSchema,
+    liveCursorsPushSchema,
+    liveHere,
+    livePeersPushSchema
+} from './features/live';
+export type {
+    LiveChangedPush,
+    LiveCursorFrame,
+    LiveCursorsPush,
+    LivePeersPush
+} from './features/live';
+export {
+    defaultUserColor,
+    minimalUserSchema,
+    USER_COLORS,
+    userColorSchema,
+    userSchema,
+    userSecuritySchema,
+    userStatusSchema
+} from './domain/user';
+export type {
+    MinimalUser,
+    User,
+    UserColor,
+    UserRow,
+    UserSecurity,
+    UserStatus
+} from './domain/user';
 export { secrecyStatusSchema, secrecyWrapModeSchema } from './domain/secrecy';
 export type { SecrecyStatus, SecrecyWrapMode, UserSecretKeyRow } from './domain/secrecy';
 export { workspaceKindSchema, workspaceSchema } from './domain/workspace';
@@ -657,6 +702,7 @@ export {
     themeStateSchema,
     userCommands,
     userSetAvatar,
+    userSetColor,
     userSetTheme
 } from './features/user';
 export type { ThemeStateDTO } from './features/user';

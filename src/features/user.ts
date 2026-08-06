@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { userColorSchema } from '../domain/user';
 
 /**
  * Upper bound on the avatar data URL length (characters ≈ bytes for base64
@@ -62,4 +63,14 @@ export const userSetTheme = {
     output: z.object({ ok: z.literal(true) })
 };
 
-export const userCommands = [userSetAvatar, userSetTheme] as const;
+/**
+ * Couleur d'identité du compte. En `scope: 'account'` côté serveur : elle suit
+ * le compte, pas l'espace depuis lequel on la change.
+ */
+export const userSetColor = {
+    command: 'user.setColor' as const,
+    input: z.object({ color: userColorSchema }),
+    output: z.object({ color: userColorSchema })
+};
+
+export const userCommands = [userSetAvatar, userSetTheme, userSetColor] as const;

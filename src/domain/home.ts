@@ -31,8 +31,9 @@ export type HomeFeatureId = z.infer<typeof homeFeatureIdSchema>;
  *  - `devices`  → online / total device count.
  *  - `secrecy`  → password-encryption lock state + re-validation countdown.
  *  - `uptime`   → services up / total monitored.
+ *  - `live`     → qui d'autre est dans l'espace, et où (bulles cliquables).
  */
-export const homeTopbarWidgetIdSchema = z.enum(['weather', 'devices', 'secrecy', 'uptime']);
+export const homeTopbarWidgetIdSchema = z.enum(['weather', 'devices', 'secrecy', 'uptime', 'live']);
 export type HomeTopbarWidgetId = z.infer<typeof homeTopbarWidgetIdSchema>;
 
 /**

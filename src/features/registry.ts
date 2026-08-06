@@ -5,6 +5,7 @@ import { deviceFilesCommands } from './deviceFiles';
 import { deviceLogCommands } from './deviceLogs';
 import { deviceTerminalCommands } from './deviceTerminal';
 import { homeCommands } from './home';
+import { liveCommands } from './live';
 import { logsCommands } from './logs';
 import { mailCommands } from './mail';
 import { metricsCommands } from './metrics';
@@ -42,7 +43,8 @@ export const featureCommands = [
     ...secrecyCommands,
     ...logsCommands,
     ...homeCommands,
-    ...mailCommands
+    ...mailCommands,
+    ...liveCommands
 ] as const;
 
 export const featureCommandRegistry: Record<string, FeatureCommandDescriptor> = Object.fromEntries(

@@ -9,11 +9,46 @@ import { userRoleSchema } from './role';
 export const userStatusSchema = z.enum(['active', 'suspended']);
 export type UserStatus = z.infer<typeof userStatusSchema>;
 
+/**
+ * Couleur d'identité du compte : son curseur chez les autres, sa bulle dans la
+ * barre du haut, la bordure du nœud où il se trouve. Une identité visuelle, donc
+ * portée par le compte et non par l'adhésion à un espace.
+ *
+ * Huit teintes, le cyan exclu — c'est celui de `--accent`, un curseur de cette
+ * couleur se lirait comme un élément de l'interface. La valeur est toujours
+ * rendue via le jeton `--user-<nom>` (Styles/theme.css), jamais en hexadécimal.
+ */
+export const userColorSchema = z.enum([
+    'red',
+    'orange',
+    'yellow',
+    'green',
+    'blue',
+    'indigo',
+    'purple',
+    'pink'
+]);
+export type UserColor = z.infer<typeof userColorSchema>;
+
+/** L'ordre fait foi : `defaultUserColor` et la migration 059 l'indexent tous deux. */
+export const USER_COLORS = userColorSchema.options;
+
+/**
+ * Teinte attribuée d'office à un compte, depuis son identifiant. Deux comptes
+ * créés à la suite n'ont pas la même, et aucun compte n'existe sans couleur —
+ * la migration 059 colorie l'existant, `usersRepo.create` fait de même à
+ * l'inscription.
+ */
+export function defaultUserColor(userId: number): UserColor {
+    return USER_COLORS[Math.abs(userId) % USER_COLORS.length];
+}
+
 export const minimalUserSchema = z.object({
     id: z.number().int().nonnegative(),
     email: z.string().email(),
     username: z.string().min(1),
     avatar: z.string(),
+    color: userColorSchema,
     /** Époque Unix de la dernière connexion ; `0` pour un compte jamais venu. */
     lastLogin: z.number().int().nonnegative(),
     created: z.number().int().nonnegative()
@@ -45,6 +80,7 @@ export const userSchema = z.object({
     email: z.string().email(),
     username: z.string().min(1),
     avatar: z.string(),
+    color: userColorSchema,
     role: userRoleSchema,
     settings: z.array(z.string()),
     security: userSecuritySchema,
@@ -72,6 +108,7 @@ export interface UserRow {
     username: string;
     password_hash: string;
     avatar: string;
+    color: UserColor;
     role: string;
     status: UserStatus;
     settings: string;

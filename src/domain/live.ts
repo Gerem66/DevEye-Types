@@ -91,13 +91,15 @@ export type LiveCursorKind = z.infer<typeof liveCursorKindSchema>;
  *    hauteur totale se décalerait dès qu'une liste est chargée plus loin d'un
  *    côté que de l'autre.
  *
- * Les bornes de `x` dépassent [0, 1] à dessein : le pointeur vit aussi **à côté**
- * de la surface (les marges de la popup, les bords de l'écran), et l'y écrêter
- * ferait disparaître le curseur du pair alors qu'on est toujours sur la même
- * page. Seul le cadre de la fenêtre borne l'affichage.
+ * Les bornes de `x` dépassent [0, 1] très largement, et à dessein : le pointeur
+ * vit aussi **à côté** de la boîte de contenu — ses marges, les bords de l'écran
+ * — et l'y écrêter ferait disparaître le curseur d'un pair alors qu'on est
+ * toujours sur la même page. Sur un écran très large, ces marges représentent
+ * plusieurs fois la largeur du contenu ; les bornes ne sont donc qu'un garde-fou
+ * contre l'absurde, et seul le cadre de la fenêtre décide de ce qui s'affiche.
  */
 export const liveCursorSchema = z.object({
-    x: z.number().min(-1).max(2),
+    x: z.number().min(-10).max(10),
     y: z.number().min(-100_000).max(100_000),
     kind: liveCursorKindSchema
 });

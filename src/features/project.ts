@@ -32,12 +32,15 @@ import {
     PROJECT_REPO_OWNER_MAX_LENGTH,
     projectBranchSchema,
     projectCommitAuthorSchema,
+    projectCommitDetailSchema,
     projectCommitPointSchema,
     projectCommitSchema,
     projectCredentialSchema,
     projectProviderSchema,
+    projectPullRequestSchema,
     projectReleaseSchema,
-    projectRepoSchema
+    projectRepoSchema,
+    projectSyncStatusSchema
 } from '../domain/projectGit';
 import {
     PROJECT_DEPLOY_DESCRIPTION_MAX_LENGTH,
@@ -522,6 +525,39 @@ export const projectReleaseList = {
     output: z.object({ releases: z.array(projectReleaseSchema) })
 };
 
+export const projectPullRequestList = {
+    command: 'project.pullRequestList' as const,
+    input: z.object({ projectId }),
+    output: z.object({ pullRequests: z.array(projectPullRequestSchema) })
+};
+
+/**
+ * L'avancement de la synchronisation d'un dépôt.
+ *
+ * Lecture pure et **très bon marché** : elle n'interroge qu'une table en
+ * mémoire du service de fond. C'est ce qui la rend sondable pendant qu'une
+ * synchronisation tourne, sans passer par une diffusion `live` qui ferait
+ * re-solliciter tout le tableau à chaque étape.
+ */
+export const projectSyncStatus = {
+    command: 'project.syncStatus' as const,
+    input: z.object({ projectId }),
+    output: z.object({ status: projectSyncStatusSchema })
+};
+
+/**
+ * Le diff d'un commit, lu **chez le fournisseur au moment de la demande**.
+ *
+ * La seule commande du module qui sorte du cache local : voir
+ * `projectCommitDetailSchema` pour la raison. Elle est donc aussi la seule dont
+ * la latence dépend d'une API tierce — l'interface doit l'annoncer.
+ */
+export const projectCommitDetail = {
+    command: 'project.commitDetail' as const,
+    input: z.object({ projectId, sha: z.string().min(7).max(40) }),
+    output: z.object({ detail: projectCommitDetailSchema })
+};
+
 // ------------------------------------------------------------- transverse
 
 /**
@@ -760,6 +796,9 @@ export const projectCommands = [
     projectCommitGraph,
     projectAuthorMap,
     projectReleaseList,
+    projectPullRequestList,
+    projectSyncStatus,
+    projectCommitDetail,
     projectDeployGet,
     projectDeployCandidates,
     projectDeployLink,

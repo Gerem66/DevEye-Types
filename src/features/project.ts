@@ -43,6 +43,7 @@ import {
     PROJECT_DEPLOY_DESCRIPTION_MAX_LENGTH,
     PROJECT_DEPLOY_TITLE_MAX_LENGTH,
     deployCandidateSchema,
+    deployTargetKindSchema,
     projectDeployTargetSchema,
     projectDeploymentSchema
 } from '../domain/projectDeploy';
@@ -587,6 +588,7 @@ export const projectDeployLink = {
     input: z.object({
         projectId,
         credentialId: z.number().int().positive(),
+        kind: deployTargetKindSchema,
         externalId: z.string().min(1).max(128),
         name: z.string().min(1).max(120)
     }),

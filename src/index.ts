@@ -444,6 +444,7 @@ export {
     PROJECT_DEPLOY_TITLE_MAX_LENGTH,
     deployCandidateSchema,
     deployStatusSchema,
+    deployTargetKindSchema,
     projectDeployTargetSchema,
     projectDeploymentSchema
 } from './domain/projectDeploy';
@@ -452,6 +453,7 @@ export type { MyTask, ProjectLink, ProjectLinkKind, ProjectLinkRow } from './dom
 export type {
     DeployCandidate,
     DeployStatus,
+    DeployTargetKind,
     ProjectDeployTarget,
     ProjectDeployTargetRow,
     ProjectDeployment,

@@ -25,19 +25,35 @@ export const PROJECT_DEPLOY_DESCRIPTION_MAX_LENGTH = 500;
 export const deployStatusSchema = z.enum(['queued', 'running', 'success', 'failed']);
 export type DeployStatus = z.infer<typeof deployStatusSchema>;
 
-/** L'application liée au projet chez le fournisseur. */
+/**
+ * Ce qu'on déploie chez Dokploy : une **application** ou une pile **compose**.
+ *
+ * La distinction n'est pas cosmétique — chaque type a sa propre procédure de
+ * déclenchement (`application.deploy` / `compose.deploy`) et sa propre
+ * procédure d'historique (`deployment.all` / `deployment.allByCompose`). Une
+ * cible sans son type serait indéployable.
+ *
+ * En pratique, une infra Dokploy est souvent majoritairement composée de piles
+ * compose : les ignorer reviendrait à ne rien pouvoir déployer.
+ */
+export const deployTargetKindSchema = z.enum(['application', 'compose']);
+export type DeployTargetKind = z.infer<typeof deployTargetKindSchema>;
+
+/** La cible de déploiement liée au projet chez le fournisseur. */
 export const projectDeployTargetSchema = z.object({
     projectId: z.number().int().positive(),
     provider: projectProviderSchema,
-    /** Identifiant de l'application chez le fournisseur. */
+    kind: deployTargetKindSchema,
+    /** Identifiant de la cible chez le fournisseur. */
     externalId: z.string(),
     name: z.string(),
     credentialId: z.number().int().positive().nullable()
 });
 export type ProjectDeployTarget = z.infer<typeof projectDeployTargetSchema>;
 
-/** Une application proposée au choix, telle que le fournisseur la liste. */
+/** Une cible proposée au choix, telle que le fournisseur la déclare. */
 export const deployCandidateSchema = z.object({
+    kind: deployTargetKindSchema,
     externalId: z.string(),
     name: z.string(),
     /** Chemin lisible chez le fournisseur (projet / environnement), s'il en donne un. */
@@ -66,6 +82,8 @@ export interface ProjectDeployTargetRow {
     workspace_id: number;
     credential_id: number | null;
     provider: string;
+    /** 'application' | 'compose' — ajouté par la migration 062. */
+    target_kind: string;
     external_id: string;
     created: number;
     content: string;

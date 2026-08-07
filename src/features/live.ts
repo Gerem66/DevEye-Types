@@ -43,6 +43,39 @@ export const LIVE_CURSOR_COMMAND = 'live.cursor' as const;
 export const liveCursorFrameSchema = z.object({ cursor: liveCursorSchema.nullable() });
 export type LiveCursorFrame = z.infer<typeof liveCursorFrameSchema>;
 
+/**
+ * « Untel est en train d'écrire… », sur la même voie rapide que les curseurs.
+ *
+ * Hors du registre des commandes, pour exactement la même raison : c'est une
+ * trame sans réponse, émise par `ws.post`, qu'il serait absurde de faire passer
+ * par une promesse en attente, un journal d'audit et une validation d'accès.
+ *
+ * Volontairement **générique** : la trame ne dit pas *quoi* est en train d'être
+ * écrit. Le lieu vient du dernier `live.here`, comme pour les curseurs, donc
+ * n'importe quelle feature peut s'en servir sans toucher au moteur — un fil de
+ * discussion de projet aujourd'hui, une note à plusieurs demain.
+ *
+ * Le serveur applique une péremption : sans rafraîchissement, un pair cesse
+ * d'être « en train d'écrire » tout seul. C'est ce qui empêche un onglet fermé
+ * brutalement de laisser un fantôme à l'écran.
+ */
+export const LIVE_TYPING_COMMAND = 'live.typing' as const;
+export const liveTypingFrameSchema = z.object({ typing: z.boolean() });
+export type LiveTypingFrame = z.infer<typeof liveTypingFrameSchema>;
+
+/** Qui écrit, parmi les pairs situés au **même chemin exactement**. */
+export const LIVE_TYPERS_EVENT = 'live.typers' as const;
+export const liveTypersPushSchema = z.object({
+    workspaceId: z.number().int().positive(),
+    typers: z.array(
+        z.object({
+            connId: z.string().min(1),
+            userId: z.number().int().positive()
+        })
+    )
+});
+export type LiveTypersPush = z.infer<typeof liveTypersPushSchema>;
+
 /** Roster de la salle. Projeté par destinataire : les chemins y sont tronqués. */
 export const LIVE_PEERS_EVENT = 'live.peers' as const;
 export const livePeersPushSchema = z.object({

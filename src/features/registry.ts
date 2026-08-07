@@ -11,6 +11,7 @@ import { mailCommands } from './mail';
 import { metricsCommands } from './metrics';
 import { noteCommands } from './note';
 import { passwordCommands } from './password';
+import { projectCommands } from './project';
 import { secrecyCommands } from './secrecy';
 import { twoFactorCommands } from './twoFactor';
 import { uptimeCommands } from './uptime';
@@ -31,6 +32,7 @@ export const featureCommands = [
     ...userCommands,
     ...passwordCommands,
     ...noteCommands,
+    ...projectCommands,
     ...deviceCommands,
     ...deviceLogCommands,
     ...deviceTerminalCommands,

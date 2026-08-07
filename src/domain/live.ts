@@ -135,6 +135,16 @@ export type LivePeer = z.infer<typeof livePeerSchema>;
  */
 export const liveTopicSchema = z.enum([
     ...workspaceFeatureIdSchema.options,
+    /**
+     * Les messages des projets, séparés de `projects` exprès.
+     *
+     * Une feature vaut normalement un sujet, mais un fil de discussion bat à une
+     * toute autre cadence que la structure qui le porte : sans cette coupure,
+     * chaque message ferait re-solliciter le tableau, la frise et le portefeuille
+     * entiers. `TOPIC_FEATURE` le rattache au même droit — c'est bien la même
+     * feature, vue à deux vitesses.
+     */
+    'projectsChat',
     /** Membres, rôles, nom, logo de l'espace. */
     'workspace',
     /** Disposition de l'accueil. */
@@ -162,6 +172,8 @@ export const TOPIC_FEATURE: Record<LiveTopic, WorkspaceFeatureId | null> = {
     cloudsync: 'cloudsync',
     uptime: 'uptime',
     mail: 'mail',
+    projects: 'projects',
+    projectsChat: 'projects',
     workspace: null,
     home: null,
     account: null

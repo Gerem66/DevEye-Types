@@ -350,6 +350,136 @@ export type {
     NoteTextBlock
 } from './domain/note';
 export {
+    PROJECT_DESCRIPTION_MAX_LENGTH,
+    PROJECT_MAX_TAGS,
+    PROJECT_TAG_LABEL_MAX_LENGTH,
+    PROJECT_TITLE_MAX_LENGTH,
+    PROJECT_VERSION_MAX_LENGTH,
+    projectDraftSchema,
+    projectSchema,
+    projectSecurityTierSchema,
+    projectStatusSchema,
+    projectSummarySchema,
+    projectTagKindSchema,
+    projectTagSchema,
+    projectVersionSourceSchema
+} from './domain/project';
+export type {
+    Project,
+    ProjectDraft,
+    ProjectRow,
+    ProjectSecurityTier,
+    ProjectStatus,
+    ProjectSummary,
+    ProjectTag,
+    ProjectTagKind,
+    ProjectVersionSource
+} from './domain/project';
+export {
+    PROJECT_CARD_DESCRIPTION_MAX_LENGTH,
+    PROJECT_CARD_TITLE_MAX_LENGTH,
+    PROJECT_CHECKLIST_LABEL_MAX_LENGTH,
+    PROJECT_COLUMN_NAME_MAX_LENGTH,
+    PROJECT_MAX_CHECKLIST_ITEMS,
+    PROJECT_MAX_COLUMNS,
+    PROJECT_PRIORITIES,
+    projectCardDraftSchema,
+    projectCardSchema,
+    projectChecklistItemSchema,
+    projectColumnSchema,
+    projectPrioritySchema
+} from './domain/projectBoard';
+export type {
+    ProjectCard,
+    ProjectCardDraft,
+    ProjectCardRow,
+    ProjectChecklistItem,
+    ProjectColumn,
+    ProjectColumnRow,
+    ProjectPriority
+} from './domain/projectBoard';
+export {
+    PROJECT_MESSAGE_MAX_LENGTH,
+    PROJECT_MESSAGE_PAGE_SIZE,
+    projectMessageSchema
+} from './domain/projectChat';
+export type { ProjectMessage, ProjectMessageRow } from './domain/projectChat';
+export {
+    PROJECT_MILESTONE_DESCRIPTION_MAX_LENGTH,
+    PROJECT_MILESTONE_NAME_MAX_LENGTH,
+    projectCardDepSchema,
+    projectMilestoneDraftSchema,
+    projectMilestoneSchema
+} from './domain/projectPlan';
+export type {
+    ProjectCardDep,
+    ProjectCardDepRow,
+    ProjectMilestone,
+    ProjectMilestoneDraft,
+    ProjectMilestoneRow
+} from './domain/projectPlan';
+export {
+    PROJECT_EVENT_LABEL_MAX_LENGTH,
+    PROJECT_EVENT_PAGE_SIZE,
+    projectEventKindSchema,
+    projectEventRefSchema,
+    projectEventSchema
+} from './domain/projectHistory';
+export {
+    PROJECT_CREDENTIAL_LABEL_MAX_LENGTH,
+    PROJECT_CREDENTIAL_SECRET_MAX_LENGTH,
+    PROJECT_REPO_NAME_MAX_LENGTH,
+    PROJECT_REPO_OWNER_MAX_LENGTH,
+    projectBranchSchema,
+    projectCommitAuthorSchema,
+    projectCommitPointSchema,
+    projectCommitSchema,
+    projectCredentialSchema,
+    projectProviderSchema,
+    projectReleaseSchema,
+    projectRepoSchema
+} from './domain/projectGit';
+export {
+    PROJECT_DEPLOY_DESCRIPTION_MAX_LENGTH,
+    PROJECT_DEPLOY_TITLE_MAX_LENGTH,
+    deployCandidateSchema,
+    deployStatusSchema,
+    projectDeployTargetSchema,
+    projectDeploymentSchema
+} from './domain/projectDeploy';
+export { myTaskSchema, projectLinkKindSchema, projectLinkSchema } from './domain/projectLink';
+export type { MyTask, ProjectLink, ProjectLinkKind, ProjectLinkRow } from './domain/projectLink';
+export type {
+    DeployCandidate,
+    DeployStatus,
+    ProjectDeployTarget,
+    ProjectDeployTargetRow,
+    ProjectDeployment,
+    ProjectDeploymentRow
+} from './domain/projectDeploy';
+export type {
+    ProjectBranch,
+    ProjectBranchRow,
+    ProjectCommit,
+    ProjectCommitAuthor,
+    ProjectCommitAuthorRow,
+    ProjectCommitPoint,
+    ProjectCommitRow,
+    ProjectCredential,
+    ProjectCredentialRow,
+    ProjectProvider,
+    ProjectRelease,
+    ProjectReleaseRow,
+    ProjectRepo,
+    ProjectRepoRow
+} from './domain/projectGit';
+export type {
+    ProjectEvent,
+    ProjectEventKind,
+    ProjectEventRef,
+    ProjectEventRow
+} from './domain/projectHistory';
+export {
     UPTIME_INTERVAL_MAX,
     UPTIME_INTERVAL_MIN,
     UPTIME_KEYWORD_MAX_LENGTH,
@@ -494,18 +624,24 @@ export {
     LIVE_CURSOR_COMMAND,
     LIVE_CURSORS_EVENT,
     LIVE_PEERS_EVENT,
+    LIVE_TYPERS_EVENT,
+    LIVE_TYPING_COMMAND,
     liveChangedPushSchema,
     liveCommands,
     liveCursorFrameSchema,
     liveCursorsPushSchema,
     liveHere,
-    livePeersPushSchema
+    livePeersPushSchema,
+    liveTypersPushSchema,
+    liveTypingFrameSchema
 } from './features/live';
 export type {
     LiveChangedPush,
     LiveCursorFrame,
     LiveCursorsPush,
-    LivePeersPush
+    LivePeersPush,
+    LiveTypersPush,
+    LiveTypingFrame
 } from './features/live';
 export {
     defaultUserColor,
@@ -662,6 +798,67 @@ export {
     noteReorder,
     noteRestore
 } from './features/note';
+export {
+    projectAdd,
+    projectArchive,
+    projectBoard,
+    projectCardAdd,
+    projectCardArchive,
+    projectCardMove,
+    projectCardRestore,
+    projectCardUpdate,
+    projectColumnAdd,
+    projectColumnRemove,
+    projectColumnReorder,
+    projectColumnUpdate,
+    projectCommands,
+    projectCardSetMilestone,
+    projectDepAdd,
+    projectDepRemove,
+    projectAuthorMap,
+    projectBranchList,
+    projectCommitGraph,
+    projectCommitList,
+    projectCredentialAdd,
+    projectCredentialList,
+    projectCredentialRemove,
+    projectCredentialUpdate,
+    projectDeployCandidates,
+    projectDeployGet,
+    projectDeployLink,
+    projectDeployList,
+    projectDeployTrigger,
+    projectDeployUnlink,
+    projectLinkAdd,
+    projectLinkList,
+    projectLinkRemove,
+    projectMyTasks,
+    projectEventList,
+    projectMarkRead,
+    projectMessageEdit,
+    projectMessageList,
+    projectMessageSend,
+    projectMilestoneAdd,
+    projectMilestoneRemove,
+    projectMilestoneSetReached,
+    projectMilestoneUpdate,
+    projectPlan,
+    projectReleaseList,
+    projectRepoGet,
+    projectRepoLink,
+    projectRepoSetEnabled,
+    projectRepoSyncNow,
+    projectRepoUnlink,
+    projectCount,
+    projectGet,
+    projectList,
+    projectReorder,
+    projectRestore,
+    projectSetSecurityTier,
+    projectSetStatus,
+    projectSetVersion,
+    projectUpdate
+} from './features/project';
 export { homeCommands, homeSetLayout, homeShortcutPreview } from './features/home';
 export { featureCommandRegistry, featureCommands } from './features/registry';
 export type {

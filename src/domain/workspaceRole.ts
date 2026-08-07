@@ -42,7 +42,8 @@ export const workspaceFeatureIdSchema = z.enum([
     'notes',
     'cloudsync',
     'uptime',
-    'mail'
+    'mail',
+    'projects'
 ]);
 
 export type WorkspaceFeatureId = z.infer<typeof workspaceFeatureIdSchema>;

@@ -964,6 +964,7 @@ export {
     databaseTableList,
     databaseTableRows,
     databaseTest,
+    databaseTestDraft,
     databaseUpdate
 } from './features/database';
 

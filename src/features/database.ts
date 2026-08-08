@@ -98,7 +98,8 @@ export const databaseAdd = {
         password: z.string().max(DATABASE_SECRET_MAX_LENGTH),
         access: accessInput,
         monitorEnabled: z.boolean(),
-        intervalSeconds: z.number().int().min(60).max(86400)
+        intervalSeconds: z.number().int().min(60).max(86400),
+        autoLoadTables: z.boolean()
     }),
     output: z.object({ database: databaseSchema })
 };
@@ -120,7 +121,8 @@ export const databaseUpdate = {
         password: z.string().max(DATABASE_SECRET_MAX_LENGTH).optional(),
         access: accessInput,
         monitorEnabled: z.boolean(),
-        intervalSeconds: z.number().int().min(60).max(86400)
+        intervalSeconds: z.number().int().min(60).max(86400),
+        autoLoadTables: z.boolean()
     }),
     output: z.object({ database: databaseSchema })
 };
@@ -159,6 +161,33 @@ export const databaseReorder = {
 export const databaseTest = {
     command: 'database.test' as const,
     input: z.object({ databaseId }),
+    output: z.object({ probe: databaseProbeSchema })
+};
+
+/**
+ * Essaie une connexion **avant** de l'enregistrer.
+ *
+ * Le formulaire d'ajout décrit une base qui n'existe pas encore : `test` ne peut
+ * rien pour lui, il part d'un identifiant. Celui-ci prend les réglages tels
+ * qu'ils sont saisis, et n'écrit rien — ni ligne, ni état.
+ *
+ * `databaseId` sert à la modification : les secrets ne redescendant jamais au
+ * client, un champ laissé intact n'a rien à renvoyer, et le serveur reprend
+ * alors celui qu'il détient déjà. Sans cela, « Tester » échouerait sur une base
+ * qui fonctionne, faute de mot de passe.
+ */
+export const databaseTestDraft = {
+    command: 'database.testDraft' as const,
+    input: z.object({
+        databaseId: databaseId.optional(),
+        engine: databaseEngineSchema,
+        host: z.string().min(1).max(DATABASE_HOST_MAX_LENGTH),
+        port: z.number().int().min(1).max(65535),
+        database: z.string().min(1).max(DATABASE_NAME_MAX_LENGTH),
+        username: z.string().max(DATABASE_USER_MAX_LENGTH),
+        password: z.string().max(DATABASE_SECRET_MAX_LENGTH).optional(),
+        access: accessInput
+    }),
     output: z.object({ probe: databaseProbeSchema })
 };
 
@@ -280,6 +309,7 @@ export const databaseCommands = [
     databaseRemove,
     databaseReorder,
     databaseTest,
+    databaseTestDraft,
     databaseInspect,
     databaseTableList,
     databaseTableRows,

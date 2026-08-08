@@ -94,6 +94,14 @@ export const databaseSchema = z.object({
     monitorEnabled: z.boolean(),
     /** Cadence du relevé, en secondes. Sans effet si le relevé est éteint. */
     intervalSeconds: z.number().int().positive(),
+    /**
+     * Charger l'inventaire des tables dès l'ouverture de la fiche.
+     *
+     * Éteint par défaut, comme tout ce qui joint un serveur dans cette feature.
+     * Allumé, c'est le **seul** endroit où une connexion part sans qu'on ait
+     * cliqué — d'où le réglage par base plutôt qu'un comportement global.
+     */
+    autoLoadTables: z.boolean(),
     lastCheckAt: z.number().int().nullable(),
     status: databaseStatusSchema,
     /** Message du dernier échec, ou `null` après un succès. */

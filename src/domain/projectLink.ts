@@ -11,25 +11,18 @@ import { projectCardSchema } from './projectBoard';
  */
 
 /**
- * Un lien vers une autre feature de DevEye.
+ * Ce qui relie un projet à un service surveillé.
  *
- * On ne stocke que le **type et l'identifiant** : la cible garde ses propres
- * droits, et rien d'identifiant n'a besoin d'être chiffré. Un membre qui n'a pas
- * accès à Uptime verra le lien sans pouvoir l'ouvrir — c'est la feature cible
- * qui décide, pas nous.
+ * On ne stocke que l'identifiant : la cible garde ses propres droits, et rien
+ * d'identifiant n'a besoin d'être chiffré. Un membre sans accès à Uptime voit
+ * qu'il y a des services rattachés sans pouvoir les nommer — c'est la feature
+ * visée qui tranche, pas celle-ci.
+ *
+ * La liaison est **non exclusive dans les deux sens** : un projet suit plusieurs
+ * services, et un même service peut être suivi par plusieurs projets. Même forme
+ * que la liaison au dépôt git, et pour la même raison — ce sont deux objets
+ * d'espace, pas des propriétés d'un projet.
  */
-export const projectLinkKindSchema = z.enum(['uptime', 'device', 'note']);
-export type ProjectLinkKind = z.infer<typeof projectLinkKindSchema>;
-
-export const projectLinkSchema = z.object({
-    id: z.number().int().positive(),
-    projectId: z.number().int().positive(),
-    kind: projectLinkKindSchema,
-    /** Identifiant chez la feature cible : entier pour Uptime/Notes, UUID pour un appareil. */
-    targetId: z.string().max(64),
-    created: z.number().int()
-});
-export type ProjectLink = z.infer<typeof projectLinkSchema>;
 
 /**
  * Une tâche qui m'est attribuée, vue depuis l'extérieur de son projet.
@@ -48,11 +41,9 @@ export const myTaskSchema = z.object({
 export type MyTask = z.infer<typeof myTaskSchema>;
 
 /** Ligne SQL (serveur uniquement). */
-export interface ProjectLinkRow {
-    id: number;
+export interface ProjectUptimeLinkRow {
     project_id: number;
+    service_id: number;
     workspace_id: number;
-    kind: string;
-    target_id: string;
     created: number;
 }

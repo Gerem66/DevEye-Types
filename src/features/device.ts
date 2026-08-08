@@ -35,6 +35,21 @@ export const deviceRevoke = {
     output: z.object({ device: deviceSchema })
 };
 
+/**
+ * Lay out the workspace's devices: `ids` is the **complete** list in its final
+ * order (lower index first). New devices are appended, so the order is entirely
+ * the user's — as it is for monitored services, repositories and notes.
+ *
+ * Scoped to the active workspace, and gated on `devices: write` rather than on
+ * `admin: true` like the rest of this module: arranging a list one's own
+ * workspace displays is not fleet management. Touches no agent state.
+ */
+export const deviceReorder = {
+    command: 'device.reorder' as const,
+    input: z.object({ ids: z.array(deviceId).min(1) }),
+    output: z.object({ ids: z.array(deviceId) })
+};
+
 export const deviceRename = {
     command: 'device.rename' as const,
     input: z.object({ deviceId, name: z.string().min(1).max(128) }),
@@ -215,6 +230,7 @@ export const deviceCommands = [
     deviceRevoke,
     deviceReactivate,
     deviceRename,
+    deviceReorder,
     deviceSetConfig,
     deviceUpdateAgent,
     deviceSetAutostart,

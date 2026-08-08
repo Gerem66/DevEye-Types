@@ -33,7 +33,7 @@ import {
     projectDeployTargetSchema,
     projectDeploymentSchema
 } from '../domain/projectDeploy';
-import { myTaskSchema, projectLinkKindSchema, projectLinkSchema } from '../domain/projectLink';
+import { myTaskSchema } from '../domain/projectLink';
 
 /**
  * Commandes des projets.
@@ -418,27 +418,37 @@ export const projectMyTasks = {
     output: z.object({ tasks: z.array(myTaskSchema) })
 };
 
-export const projectLinkList = {
-    command: 'project.linkList' as const,
+/**
+ * Les services surveillés rattachés au projet, dans l'ordre d'Uptime.
+ *
+ * Ne rend que des identifiants : les nommer supposerait de lire Uptime au nom
+ * de l'appelant, alors que ce droit-là s'y vérifie déjà. Le client résout les
+ * noms et les états par `uptime.list`, et affiche des identifiants nus si son
+ * rôle ne lui ouvre pas cette feature — plutôt que de faire disparaître des
+ * liaisons qui existent.
+ */
+export const projectUptimeList = {
+    command: 'project.uptimeList' as const,
     input: z.object({ projectId }),
-    output: z.object({ links: z.array(projectLinkSchema) })
+    output: z.object({ serviceIds: z.array(z.number().int().positive()) })
 };
 
-/** Rattache un service Uptime, un appareil ou une note au projet. */
-export const projectLinkAdd = {
-    command: 'project.linkAdd' as const,
-    input: z.object({
-        projectId,
-        kind: projectLinkKindSchema,
-        targetId: z.string().min(1).max(64)
-    }),
-    output: z.object({ link: projectLinkSchema })
+/**
+ * Rattache un service surveillé au projet. **Idempotente** : rattacher deux
+ * fois le même service n'est pas une erreur, c'est le même fait déclaré deux
+ * fois. Rend la liste complète, pour que l'appelant n'ait pas à la recomposer.
+ */
+export const projectUptimeLink = {
+    command: 'project.uptimeLink' as const,
+    input: z.object({ projectId, serviceId: z.number().int().positive() }),
+    output: z.object({ serviceIds: z.array(z.number().int().positive()) })
 };
 
-export const projectLinkRemove = {
-    command: 'project.linkRemove' as const,
-    input: z.object({ linkId: z.number().int().positive() }),
-    output: z.object({ linkId: z.number().int().positive() })
+/** Retire la liaison. Le service, lui, n'est pas touché. */
+export const projectUptimeUnlink = {
+    command: 'project.uptimeUnlink' as const,
+    input: z.object({ projectId, serviceId: z.number().int().positive() }),
+    output: z.object({ serviceIds: z.array(z.number().int().positive()) })
 };
 
 // ---------------------------------------------------------- déploiement
@@ -636,7 +646,7 @@ export const projectCommands = [
     projectDeployTrigger,
     projectDeployList,
     projectMyTasks,
-    projectLinkList,
-    projectLinkAdd,
-    projectLinkRemove
+    projectUptimeList,
+    projectUptimeLink,
+    projectUptimeUnlink
 ] as const;

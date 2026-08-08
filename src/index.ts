@@ -459,8 +459,8 @@ export {
     projectDeployTargetSchema,
     projectDeploymentSchema
 } from './domain/projectDeploy';
-export { myTaskSchema, projectLinkKindSchema, projectLinkSchema } from './domain/projectLink';
-export type { MyTask, ProjectLink, ProjectLinkKind, ProjectLinkRow } from './domain/projectLink';
+export { myTaskSchema } from './domain/projectLink';
+export type { MyTask, ProjectUptimeLinkRow } from './domain/projectLink';
 export type {
     DeployCandidate,
     DeployStatus,
@@ -846,10 +846,10 @@ export {
     projectDeployList,
     projectDeployTrigger,
     projectDeployUnlink,
-    projectLinkAdd,
-    projectLinkList,
-    projectLinkRemove,
     projectMyTasks,
+    projectUptimeLink,
+    projectUptimeList,
+    projectUptimeUnlink,
     projectEventList,
     projectMarkRead,
     projectMessageEdit,
@@ -965,6 +965,7 @@ export {
     devicePower,
     deviceReactivate,
     deviceRename,
+    deviceReorder,
     deviceRequestDelete,
     deviceRevoke,
     deviceSetAutostart,

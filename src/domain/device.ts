@@ -114,4 +114,6 @@ export interface DeviceRow {
     status_before_delete: string | null;
     /** Last self-destruct failure message (deletion aborted); null otherwise. */
     delete_error: string | null;
+    /** Rank in the workspace list, entirely the user's (`device.reorder`). */
+    sort_order: number;
 }

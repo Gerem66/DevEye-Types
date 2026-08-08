@@ -459,6 +459,48 @@ export {
     projectDeployTargetSchema,
     projectDeploymentSchema
 } from './domain/projectDeploy';
+export {
+    DATABASE_ALERT_MESSAGE_MAX_LENGTH,
+    DATABASE_ALERT_NAME_MAX_LENGTH,
+    DATABASE_HOST_MAX_LENGTH,
+    DATABASE_NAME_MAX_LENGTH,
+    DATABASE_SECRET_MAX_LENGTH,
+    DATABASE_SQL_MAX_LENGTH,
+    DATABASE_USER_MAX_LENGTH,
+    databaseAccessKindSchema,
+    databaseAccessSchema,
+    databaseAlertSchema,
+    databaseCombinatorSchema,
+    databaseComparatorSchema,
+    databaseConditionSchema,
+    databaseEngineSchema,
+    databaseProbeSchema,
+    databaseRowsSchema,
+    databaseSchema,
+    databaseSshAuthSchema,
+    databaseStatusSchema,
+    databaseTableSchema,
+    databaseUsageSchema
+} from './domain/database';
+export type {
+    Database,
+    DatabaseAccess,
+    DatabaseAccessKind,
+    DatabaseAlert,
+    DatabaseAlertRow,
+    DatabaseCombinator,
+    DatabaseComparator,
+    DatabaseCondition,
+    DatabaseEngine,
+    DatabaseProbe,
+    DatabaseRow,
+    DatabaseRows,
+    DatabaseSshAuth,
+    DatabaseStatus,
+    DatabaseTable,
+    DatabaseUsage,
+    ProjectDatabaseLinkRow
+} from './domain/database';
 export { myTaskSchema } from './domain/projectLink';
 export type { MyTask, ProjectUptimeLinkRow } from './domain/projectLink';
 export type {
@@ -847,6 +889,9 @@ export {
     projectDeployTrigger,
     projectDeployUnlink,
     projectMyTasks,
+    projectDatabaseLink,
+    projectDatabaseList,
+    projectDatabaseUnlink,
     projectUptimeLink,
     projectUptimeList,
     projectUptimeUnlink,
@@ -899,6 +944,27 @@ export {
     gitRepoUpdate,
     gitSyncStatuses
 } from './features/git';
+export {
+    databaseAdd,
+    databaseAlertAdd,
+    databaseAlertList,
+    databaseAlertRemove,
+    databaseAlertTest,
+    databaseAlertUpdate,
+    databaseCommands,
+    databaseCount,
+    databaseGet,
+    databaseInspect,
+    databaseList,
+    databaseQuery,
+    databaseRemove,
+    databaseReorder,
+    databaseTableList,
+    databaseTableRows,
+    databaseTest,
+    databaseUpdate
+} from './features/database';
+
 export { homeCommands, homeSetLayout, homeShortcutPreview } from './features/home';
 export { featureCommandRegistry, featureCommands } from './features/registry';
 export type {

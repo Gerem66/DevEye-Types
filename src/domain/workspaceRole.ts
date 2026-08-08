@@ -44,7 +44,8 @@ export const workspaceFeatureIdSchema = z.enum([
     'uptime',
     'mail',
     'projects',
-    'git'
+    'git',
+    'database'
 ]);
 
 export type WorkspaceFeatureId = z.infer<typeof workspaceFeatureIdSchema>;

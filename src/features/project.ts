@@ -451,6 +451,37 @@ export const projectUptimeUnlink = {
     output: z.object({ serviceIds: z.array(z.number().int().positive()) })
 };
 
+/**
+ * Les bases de données rattachées au projet, dans l'ordre de la feature Bases.
+ *
+ * Ne rend que des identifiants, pour la même raison que
+ * {@link projectUptimeList} : les nommer supposerait de lire la feature Bases au
+ * nom de l'appelant, alors que ce droit s'y vérifie déjà.
+ */
+export const projectDatabaseList = {
+    command: 'project.databaseList' as const,
+    input: z.object({ projectId }),
+    output: z.object({ databaseIds: z.array(z.number().int().positive()) })
+};
+
+/**
+ * Rattache une base au projet. **Idempotente**, et refusée sur un projet
+ * confidentiel : la liaison est une ligne en clair, et la base vit à l'étage
+ * ouvert — exactement comme pour un dépôt git.
+ */
+export const projectDatabaseLink = {
+    command: 'project.databaseLink' as const,
+    input: z.object({ projectId, databaseId: z.number().int().positive() }),
+    output: z.object({ databaseIds: z.array(z.number().int().positive()) })
+};
+
+/** Retire la liaison. La base, elle, n'est pas touchée. */
+export const projectDatabaseUnlink = {
+    command: 'project.databaseUnlink' as const,
+    input: z.object({ projectId, databaseId: z.number().int().positive() }),
+    output: z.object({ databaseIds: z.array(z.number().int().positive()) })
+};
+
 // ---------------------------------------------------------- déploiement
 
 /** L'application liée, ou `null` si le projet n'en a pas. */
@@ -648,5 +679,8 @@ export const projectCommands = [
     projectMyTasks,
     projectUptimeList,
     projectUptimeLink,
-    projectUptimeUnlink
+    projectUptimeUnlink,
+    projectDatabaseList,
+    projectDatabaseLink,
+    projectDatabaseUnlink
 ] as const;

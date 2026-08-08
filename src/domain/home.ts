@@ -96,7 +96,22 @@ const sectionBase = {
     /** Stable client-generated id: React key, drag id, and mutation target. */
     id: z.string().min(1).max(64),
     /** User-chosen heading; absent → the section renders untitled on the home. */
-    title: z.string().max(40).optional()
+    title: z.string().max(40).optional(),
+    /**
+     * The section can be folded away from the home.
+     *
+     * Absent (the default) → it always shows, and there is nothing to click:
+     * a chevron on a section nobody wants to fold is one more thing to ignore.
+     */
+    collapsible: z.boolean().optional(),
+    /**
+     * It starts folded.
+     *
+     * Only meaningful alongside `collapsible` — a section that cannot be
+     * unfolded but starts folded would simply be invisible. The home enforces
+     * that pairing rather than trusting the flag on its own.
+     */
+    collapsed: z.boolean().optional()
 };
 
 /**

@@ -369,16 +369,22 @@ export const projectDepRemove = {
  * pointeur — d'où le fait que tout y soit un `repoId` et rien d'autre.
  */
 
-/** Le dépôt lié au projet ; `repoId: null` = aucun. */
-export const projectRepoGet = {
-    command: 'project.repoGet' as const,
+/**
+ * Les dépôts liés au projet, dans l'ordre de la feature Git.
+ *
+ * **Plusieurs**, et c'est le cas normal : un projet réel se compose souvent d'un
+ * client, d'un serveur et de contrats partagés, chacun dans son dépôt.
+ */
+export const projectRepoList = {
+    command: 'project.repoList' as const,
     input: z.object({ projectId }),
-    output: z.object({ repoId: z.number().int().positive().nullable() })
+    output: z.object({ repoIds: z.array(z.number().int().positive()) })
 };
 
 /**
- * Lie (ou re-lie) un dépôt existant au projet. Un projet, un dépôt : lier
- * remplace la liaison en place.
+ * Ajoute un dépôt existant au projet. **Idempotente** : le relier deux fois
+ * n'est pas une erreur, c'est le même fait déclaré deux fois. Rend la liste
+ * complète, pour que l'appelant n'ait pas à la recomposer.
  *
  * Refusé sur un projet confidentiel : la synchronisation tourne sans session, et
  * rattacher un projet gardé à une entité d'espace en clair révélerait par la
@@ -387,19 +393,19 @@ export const projectRepoGet = {
 export const projectRepoLink = {
     command: 'project.repoLink' as const,
     input: z.object({ projectId, repoId: z.number().int().positive() }),
-    output: z.object({ repoId: z.number().int().positive() })
+    output: z.object({ repoIds: z.array(z.number().int().positive()) })
 };
 
 /**
- * Retire la liaison.
+ * Retire une liaison.
  *
  * **Le dépôt et son cache survivent** : ils appartiennent à l'espace, et
  * d'autres projets peuvent s'en servir. C'est le pointeur qui part, rien d'autre.
  */
 export const projectRepoUnlink = {
     command: 'project.repoUnlink' as const,
-    input: z.object({ projectId }),
-    output: z.object({ projectId })
+    input: z.object({ projectId, repoId: z.number().int().positive() }),
+    output: z.object({ repoIds: z.array(z.number().int().positive()) })
 };
 
 // ------------------------------------------------------------- transverse
@@ -667,7 +673,7 @@ export const projectCommands = [
     projectDepAdd,
     projectDepRemove,
     projectEventList,
-    projectRepoGet,
+    projectRepoList,
     projectRepoLink,
     projectRepoUnlink,
     projectDeployGet,

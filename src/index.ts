@@ -351,11 +351,13 @@ export type {
 } from './domain/note';
 export {
     PROJECT_DESCRIPTION_MAX_LENGTH,
+    PROJECT_ICON_MAX_LENGTH,
     PROJECT_MAX_TAGS,
     PROJECT_TAG_LABEL_MAX_LENGTH,
     PROJECT_TITLE_MAX_LENGTH,
     PROJECT_VERSION_MAX_LENGTH,
     projectDraftSchema,
+    projectIconSchema,
     projectSchema,
     projectSecurityTierSchema,
     projectStatusSchema,
@@ -905,7 +907,7 @@ export {
     projectMilestoneSetReached,
     projectMilestoneUpdate,
     projectPlan,
-    projectRepoGet,
+    projectRepoList,
     projectRepoLink,
     projectRepoUnlink,
     projectCount,

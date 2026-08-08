@@ -22,6 +22,25 @@ export const PROJECT_VERSION_MAX_LENGTH = 40;
 export const PROJECT_TAG_LABEL_MAX_LENGTH = 32;
 export const PROJECT_MAX_TAGS = 24;
 
+/**
+ * Borne de l'icône d'un projet, en caractères de son URL de données.
+ *
+ * ~400 ko : de quoi loger confortablement une vignette carrée redimensionnée
+ * par le client, sans laisser une charge utile WS grossir au gré de ce qu'on
+ * dépose. L'icône vit **dans le payload chiffré** comme le titre : elle
+ * identifie le projet autant qu'un nom, et un projet confidentiel ne doit pas
+ * la laisser lire.
+ */
+export const PROJECT_ICON_MAX_LENGTH = 400_000;
+
+/** Vide = icône par défaut. Sinon, une URL de données d'image. */
+export const projectIconSchema = z
+    .string()
+    .max(PROJECT_ICON_MAX_LENGTH)
+    .refine((v) => v === '' || /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(v), {
+        message: 'L’icône doit être une image encodée en base64.'
+    });
+
 /** Quel coffre chiffre l'arbre du projet. Voir l'en-tête de ce fichier. */
 export const projectSecurityTierSchema = z.enum(['open', 'guarded']);
 export type ProjectSecurityTier = z.infer<typeof projectSecurityTierSchema>;
@@ -65,6 +84,8 @@ export type ProjectTag = z.infer<typeof projectTagSchema>;
 export const projectSchema = z.object({
     id: z.number().int().positive(),
     title: z.string().max(PROJECT_TITLE_MAX_LENGTH),
+    /** Vignette du projet ; vide = l'icône par défaut de la feature. */
+    icon: projectIconSchema,
     description: z.string().max(PROJECT_DESCRIPTION_MAX_LENGTH),
     tags: z.array(projectTagSchema).max(PROJECT_MAX_TAGS),
     version: z.string().max(PROJECT_VERSION_MAX_LENGTH),
@@ -119,6 +140,7 @@ export type ProjectSummary = z.infer<typeof projectSummarySchema>;
  */
 export const projectDraftSchema = z.object({
     title: z.string().min(1).max(PROJECT_TITLE_MAX_LENGTH),
+    icon: projectIconSchema,
     description: z.string().max(PROJECT_DESCRIPTION_MAX_LENGTH),
     tags: z.array(projectTagSchema).max(PROJECT_MAX_TAGS),
     status: projectStatusSchema,

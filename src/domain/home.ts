@@ -20,7 +20,8 @@ export const homeFeatureIdSchema = z.enum([
     'cloudsync',
     'uptime',
     'mail',
-    'projects'
+    'projects',
+    'git'
 ]);
 export type HomeFeatureId = z.infer<typeof homeFeatureIdSchema>;
 

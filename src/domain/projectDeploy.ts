@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { projectProviderSchema } from './projectGit';
+import { gitProviderSchema } from './git';
 
 /**
  * Le déploiement d'un projet : l'application visée, et l'historique des
@@ -42,7 +42,7 @@ export type DeployTargetKind = z.infer<typeof deployTargetKindSchema>;
 /** La cible de déploiement liée au projet chez le fournisseur. */
 export const projectDeployTargetSchema = z.object({
     projectId: z.number().int().positive(),
-    provider: projectProviderSchema,
+    provider: gitProviderSchema,
     kind: deployTargetKindSchema,
     /** Identifiant de la cible chez le fournisseur. */
     externalId: z.string(),
@@ -63,7 +63,7 @@ export type DeployCandidate = z.infer<typeof deployCandidateSchema>;
 
 export const projectDeploymentSchema = z.object({
     id: z.number().int().positive(),
-    provider: projectProviderSchema,
+    provider: gitProviderSchema,
     externalId: z.string().nullable(),
     status: deployStatusSchema,
     /** Qui l'a déclenché ; `null` = tâche de fond, ou compte supprimé depuis. */

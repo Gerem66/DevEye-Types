@@ -26,23 +26,6 @@ import {
 } from '../domain/projectPlan';
 import { PROJECT_EVENT_PAGE_SIZE, projectEventSchema } from '../domain/projectHistory';
 import {
-    PROJECT_CREDENTIAL_LABEL_MAX_LENGTH,
-    PROJECT_CREDENTIAL_SECRET_MAX_LENGTH,
-    PROJECT_REPO_NAME_MAX_LENGTH,
-    PROJECT_REPO_OWNER_MAX_LENGTH,
-    projectBranchSchema,
-    projectCommitAuthorSchema,
-    projectCommitDetailSchema,
-    projectCommitPointSchema,
-    projectCommitSchema,
-    projectCredentialSchema,
-    projectProviderSchema,
-    projectPullRequestSchema,
-    projectReleaseSchema,
-    projectRepoSchema,
-    projectSyncStatusSchema
-} from '../domain/projectGit';
-import {
     PROJECT_DEPLOY_DESCRIPTION_MAX_LENGTH,
     PROJECT_DEPLOY_TITLE_MAX_LENGTH,
     deployCandidateSchema,
@@ -377,185 +360,46 @@ export const projectDepRemove = {
 
 // ----------------------------------------------------------------- git
 
-const credentialId = z.number().int().positive();
-
 /**
- * Les identifiants d'accès de l'espace. Les secrets n'en sortent jamais : la
- * sortie ne porte qu'un `hasSecret`.
+ * La liaison du projet vers un dépôt de l'espace.
+ *
+ * Trois commandes seulement : **le dépôt n'appartient pas au projet.** Il vit
+ * dans la feature Git (`features/git.ts`), qui porte son cache, sa
+ * synchronisation et ses jetons. Ce qui suit ne fait que poser et retirer un
+ * pointeur — d'où le fait que tout y soit un `repoId` et rien d'autre.
  */
-export const projectCredentialList = {
-    command: 'project.credentialList' as const,
-    input: z.object({}),
-    output: z.object({ credentials: z.array(projectCredentialSchema) })
-};
 
-export const projectCredentialAdd = {
-    command: 'project.credentialAdd' as const,
-    input: z.object({
-        provider: projectProviderSchema,
-        label: z.string().min(1).max(PROJECT_CREDENTIAL_LABEL_MAX_LENGTH),
-        baseUrl: z.string().url().max(255).nullable(),
-        secret: z.string().min(1).max(PROJECT_CREDENTIAL_SECRET_MAX_LENGTH)
-    }),
-    output: z.object({ credential: projectCredentialSchema })
-};
-
-/**
- * Modifie un identifiant. `secret` absent = on garde celui en place ; une
- * chaîne non vide le remplace. Il n'y a pas de « vider » : un accès sans secret
- * ne sert à rien, on retire l'identifiant entier.
- */
-export const projectCredentialUpdate = {
-    command: 'project.credentialUpdate' as const,
-    input: z.object({
-        credentialId,
-        label: z.string().min(1).max(PROJECT_CREDENTIAL_LABEL_MAX_LENGTH),
-        baseUrl: z.string().url().max(255).nullable(),
-        secret: z.string().min(1).max(PROJECT_CREDENTIAL_SECRET_MAX_LENGTH).optional()
-    }),
-    output: z.object({ credential: projectCredentialSchema })
-};
-
-export const projectCredentialRemove = {
-    command: 'project.credentialRemove' as const,
-    input: z.object({ credentialId }),
-    output: z.object({ credentialId })
-};
-
-/** L'état de l'intégration git d'un projet ; `repo: null` = aucun dépôt lié. */
+/** Le dépôt lié au projet ; `repoId: null` = aucun. */
 export const projectRepoGet = {
     command: 'project.repoGet' as const,
     input: z.object({ projectId }),
-    output: z.object({ repo: projectRepoSchema.nullable() })
+    output: z.object({ repoId: z.number().int().positive().nullable() })
 };
 
 /**
- * Lie (ou re-lie) un dépôt au projet.
+ * Lie (ou re-lie) un dépôt existant au projet. Un projet, un dépôt : lier
+ * remplace la liaison en place.
  *
- * Refusé sur un projet confidentiel : la synchronisation tourne sans session et
- * ne peut pas atteindre l'étage gardé. Le dire ici évite un réglage qui
- * n'aurait simplement jamais d'effet.
+ * Refusé sur un projet confidentiel : la synchronisation tourne sans session, et
+ * rattacher un projet gardé à une entité d'espace en clair révélerait par la
+ * bande ce qu'il contient. Le dire ici évite un réglage sans effet.
  */
 export const projectRepoLink = {
     command: 'project.repoLink' as const,
-    input: z.object({
-        projectId,
-        provider: projectProviderSchema,
-        owner: z.string().min(1).max(PROJECT_REPO_OWNER_MAX_LENGTH),
-        repo: z.string().min(1).max(PROJECT_REPO_NAME_MAX_LENGTH),
-        credentialId: credentialId.nullable()
-    }),
-    output: z.object({ repo: projectRepoSchema })
+    input: z.object({ projectId, repoId: z.number().int().positive() }),
+    output: z.object({ repoId: z.number().int().positive() })
 };
 
-/** Délie le dépôt. Le cache local (commits, branches) part avec lui. */
+/**
+ * Retire la liaison.
+ *
+ * **Le dépôt et son cache survivent** : ils appartiennent à l'espace, et
+ * d'autres projets peuvent s'en servir. C'est le pointeur qui part, rien d'autre.
+ */
 export const projectRepoUnlink = {
     command: 'project.repoUnlink' as const,
     input: z.object({ projectId }),
     output: z.object({ projectId })
-};
-
-export const projectRepoSetEnabled = {
-    command: 'project.repoSetEnabled' as const,
-    input: z.object({ projectId, enabled: z.boolean() }),
-    output: z.object({ repo: projectRepoSchema })
-};
-
-/**
- * Force une synchronisation immédiate, sans attendre le tour de
- * l'ordonnanceur. N'écrit rien elle-même : elle réveille le service de fond.
- */
-export const projectRepoSyncNow = {
-    command: 'project.repoSyncNow' as const,
-    input: z.object({ projectId }),
-    output: z.object({ repo: projectRepoSchema })
-};
-
-export const projectBranchList = {
-    command: 'project.branchList' as const,
-    input: z.object({ projectId }),
-    output: z.object({ branches: z.array(projectBranchSchema) })
-};
-
-/** Les derniers commits, en clair, pour la liste (pas pour le graphe). */
-export const projectCommitList = {
-    command: 'project.commitList' as const,
-    input: z.object({
-        projectId,
-        before: z.number().int().positive().optional(),
-        limit: z.number().int().positive().max(100).optional()
-    }),
-    output: z.object({ commits: z.array(projectCommitSchema), hasMore: z.boolean() })
-};
-
-/**
- * Le graphe : un point par commit, du premier au dernier, avec la liste des
- * auteurs et leur couleur.
- *
- * Les points ne portent **pas** les messages — un graphe en affiche des
- * milliers, et les déchiffrer tous pour dessiner des ronds serait absurde.
- */
-export const projectCommitGraph = {
-    command: 'project.commitGraph' as const,
-    input: z.object({ projectId }),
-    output: z.object({
-        points: z.array(projectCommitPointSchema),
-        authors: z.array(projectCommitAuthorSchema),
-        /** Bornes réelles de l'historique, même si les points sont échantillonnés. */
-        firstCommitAt: z.number().int().nullable(),
-        lastCommitAt: z.number().int().nullable(),
-        total: z.number().int().nonnegative()
-    })
-};
-
-/** Rattache un auteur git à un membre de l'espace (ou l'en détache). */
-export const projectAuthorMap = {
-    command: 'project.authorMap' as const,
-    input: z.object({
-        projectId,
-        authorRef: z.string().min(1).max(32),
-        userId: z.number().int().positive().nullable()
-    }),
-    output: z.object({ authorRef: z.string(), userId: z.number().int().positive().nullable() })
-};
-
-export const projectReleaseList = {
-    command: 'project.releaseList' as const,
-    input: z.object({ projectId }),
-    output: z.object({ releases: z.array(projectReleaseSchema) })
-};
-
-export const projectPullRequestList = {
-    command: 'project.pullRequestList' as const,
-    input: z.object({ projectId }),
-    output: z.object({ pullRequests: z.array(projectPullRequestSchema) })
-};
-
-/**
- * L'avancement de la synchronisation d'un dépôt.
- *
- * Lecture pure et **très bon marché** : elle n'interroge qu'une table en
- * mémoire du service de fond. C'est ce qui la rend sondable pendant qu'une
- * synchronisation tourne, sans passer par une diffusion `live` qui ferait
- * re-solliciter tout le tableau à chaque étape.
- */
-export const projectSyncStatus = {
-    command: 'project.syncStatus' as const,
-    input: z.object({ projectId }),
-    output: z.object({ status: projectSyncStatusSchema })
-};
-
-/**
- * Le diff d'un commit, lu **chez le fournisseur au moment de la demande**.
- *
- * La seule commande du module qui sorte du cache local : voir
- * `projectCommitDetailSchema` pour la raison. Elle est donc aussi la seule dont
- * la latence dépend d'une API tierce — l'interface doit l'annoncer.
- */
-export const projectCommitDetail = {
-    command: 'project.commitDetail' as const,
-    input: z.object({ projectId, sha: z.string().min(7).max(40) }),
-    output: z.object({ detail: projectCommitDetailSchema })
 };
 
 // ------------------------------------------------------------- transverse
@@ -782,23 +626,9 @@ export const projectCommands = [
     projectDepAdd,
     projectDepRemove,
     projectEventList,
-    projectCredentialList,
-    projectCredentialAdd,
-    projectCredentialUpdate,
-    projectCredentialRemove,
     projectRepoGet,
     projectRepoLink,
     projectRepoUnlink,
-    projectRepoSetEnabled,
-    projectRepoSyncNow,
-    projectBranchList,
-    projectCommitList,
-    projectCommitGraph,
-    projectAuthorMap,
-    projectReleaseList,
-    projectPullRequestList,
-    projectSyncStatus,
-    projectCommitDetail,
     projectDeployGet,
     projectDeployCandidates,
     projectDeployLink,

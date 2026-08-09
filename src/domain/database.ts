@@ -103,6 +103,16 @@ export const databaseSchema = z.object({
      */
     autoLoadTables: z.boolean(),
     lastCheckAt: z.number().int().nullable(),
+    /**
+     * Ce qu'a duré le dernier relevé, en millisecondes.
+     *
+     * Mesuré de l'ouverture de la connexion à la fin de l'inventaire : c'est le
+     * temps de réponse **du serveur tel qu'on l'atteint**, tunnel compris, et
+     * non celui d'une requête isolée. Renseigné même sur un échec — un relevé
+     * qui met douze secondes à échouer dit quelque chose qu'un simple
+     * « injoignable » ne dit pas.
+     */
+    lastElapsedMs: z.number().int().nonnegative().nullable(),
     status: databaseStatusSchema,
     /** Message du dernier échec, ou `null` après un succès. */
     lastError: z.string().nullable(),
@@ -313,6 +323,21 @@ export type DatabaseExecution = z.infer<typeof databaseExecutionSchema>;
 export const databaseExportFormatSchema = z.enum(['csv', 'json', 'sql']);
 export type DatabaseExportFormat = z.infer<typeof databaseExportFormatSchema>;
 
+/**
+ * Une plage d'identifiants à exporter, bornes comprises.
+ *
+ * Deux nombres et non un fragment de texte : « 1-500, 900 » est une commodité de
+ * saisie, elle est analysée dans le navigateur et ne traverse jamais le contrat.
+ * Le serveur ne reçoit donc que des bornes, qu'il lie en paramètres — un
+ * identifiant saisi ne peut pas devenir du SQL. Une valeur seule s'écrit
+ * `{ from: n, to: n }`.
+ */
+export const databaseIdRangeSchema = z.object({
+    from: z.number().int(),
+    to: z.number().int()
+});
+export type DatabaseIdRange = z.infer<typeof databaseIdRangeSchema>;
+
 /** Comment une mesure est comparée à son seuil. */
 export const databaseComparatorSchema = z.enum(['gt', 'gte', 'lt', 'lte', 'eq', 'ne']);
 export type DatabaseComparator = z.infer<typeof databaseComparatorSchema>;
@@ -390,6 +415,8 @@ export interface DatabaseRow {
     monitor_enabled: number;
     interval_seconds: number;
     last_check_at: number | null;
+    /** Durée du dernier relevé, en ms. Renseignée aussi sur un échec. */
+    last_elapsed_ms: number | null;
     status: string;
     last_error: string | null;
     server_version: string | null;

@@ -16,6 +16,7 @@ import {
     databaseExecutionSchema,
     databaseExportFormatSchema,
     databaseFilterSchema,
+    databaseIdRangeSchema,
     databaseProbeSchema,
     databaseRowsSchema,
     databaseSchema,
@@ -329,10 +330,16 @@ export const databaseExecute = {
 /**
  * Exporte une table, ou toute la base.
  *
- * **Ce n'est pas une sauvegarde**, et le serveur ne prétend pas le contraire :
- * le résultat traverse la connexion en un seul morceau, donc il est plafonné en
- * lignes et en octets. Au-delà, `truncated` le dit et l'interface le répète.
- * Pour une copie fidèle, `mysqldump` et `pg_dump` restent les bons outils.
+ * L'export est **complet** : il lit tout ce que la portée désigne, page par
+ * page. Le seul plafond qui subsiste est un garde-fou mémoire du serveur, très
+ * au-dessus de ce qu'un export normal atteint ; s'il est touché, `truncated` le
+ * dit et l'interface le répète. Pour une copie fidèle d'un serveur entier,
+ * `mysqldump` et `pg_dump` restent malgré tout les bons outils — eux savent
+ * rejouer schéma, index et contraintes.
+ *
+ * `idRanges` restreint l'export aux lignes dont la **clé primaire** tombe dans
+ * l'une des plages. Réservé à une portée d'une seule table : sur toute la base,
+ * les clés n'ont ni le même nom ni le même sens d'une table à l'autre.
  */
 export const databaseExport = {
     command: 'database.export' as const,
@@ -341,7 +348,9 @@ export const databaseExport = {
         format: databaseExportFormatSchema,
         /** Absents : toute la base. Présents : cette table seule. */
         schema: z.string().max(DATABASE_NAME_MAX_LENGTH).optional(),
-        table: z.string().min(1).max(DATABASE_NAME_MAX_LENGTH).optional()
+        table: z.string().min(1).max(DATABASE_NAME_MAX_LENGTH).optional(),
+        /** Plages d'identifiants, bornes comprises. Sans effet sans `table`. */
+        idRanges: z.array(databaseIdRangeSchema).max(64).optional()
     }),
     output: z.object({
         filename: z.string(),

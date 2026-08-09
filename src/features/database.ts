@@ -9,13 +9,19 @@ import {
     DATABASE_USER_MAX_LENGTH,
     databaseAccessKindSchema,
     databaseAlertSchema,
+    databaseCellSchema,
     databaseCombinatorSchema,
     databaseConditionSchema,
     databaseEngineSchema,
+    databaseExecutionSchema,
+    databaseExportFormatSchema,
+    databaseFilterSchema,
     databaseProbeSchema,
     databaseRowsSchema,
     databaseSchema,
+    databaseSortSchema,
     databaseSshAuthSchema,
+    databaseStructureSchema,
     databaseTableSchema,
     databaseUsageSchema
 } from '../domain/database';
@@ -212,10 +218,17 @@ export const databaseTableList = {
 /**
  * Le contenu d'une table, page par page.
  *
- * Le nom de la table n'est pas interpolé tel quel : le serveur le confronte à
- * la liste réelle des tables avant de l'utiliser comme identifiant, ce qui est
- * la seule façon sûre de nommer une table dans une requête (un identifiant ne
- * peut pas être un paramètre lié).
+ * ## Rien de ce qui vient du client n'entre tel quel dans une requête
+ *
+ * Un identifiant ne peut pas être un paramètre lié : nom de table, nom de
+ * colonne, sens du tri sont donc **confrontés au catalogue réel** avant d'être
+ * cités, et un nom qui n'y figure pas n'atteint jamais le moteur. Les valeurs,
+ * elles, sont toujours liées ; l'opérateur d'un filtre est choisi dans une
+ * énumération fermée. Aucun fragment de SQL ne traverse le contrat.
+ *
+ * `withStructure` évite un second aller-retour à la sélection d'une table : la
+ * structure et la première page arrivent alors dans la **même session**, ce qui
+ * compte quand chaque connexion rouvre un tunnel SSH.
  */
 export const databaseTableRows = {
     command: 'database.tableRows' as const,
@@ -224,9 +237,120 @@ export const databaseTableRows = {
         schema: z.string().max(DATABASE_NAME_MAX_LENGTH),
         table: z.string().min(1).max(DATABASE_NAME_MAX_LENGTH),
         offset: z.number().int().nonnegative().max(1_000_000).optional(),
-        limit: z.number().int().positive().max(200).optional()
+        limit: z.number().int().positive().max(200).optional(),
+        filters: z.array(databaseFilterSchema).max(8).optional(),
+        combinator: databaseCombinatorSchema.optional(),
+        sort: databaseSortSchema.optional(),
+        withStructure: z.boolean().optional()
     }),
-    output: z.object({ rows: databaseRowsSchema })
+    output: z.object({ rows: databaseRowsSchema, structure: databaseStructureSchema.optional() })
+};
+
+/** La structure seule : colonnes, clé primaire, clés étrangères, index. */
+export const databaseTableStructure = {
+    command: 'database.tableStructure' as const,
+    input: z.object({
+        databaseId,
+        schema: z.string().max(DATABASE_NAME_MAX_LENGTH),
+        table: z.string().min(1).max(DATABASE_NAME_MAX_LENGTH)
+    }),
+    output: z.object({ structure: databaseStructureSchema })
+};
+
+// ------------------------------------------------------- écrire des lignes
+
+/**
+ * Les trois écritures de l'explorateur.
+ *
+ * ## Ce que le serveur refuse, et pourquoi
+ *
+ * Modifier ou supprimer exige une **clé primaire**. Sans elle, aucune condition
+ * ne désigne *une* ligne : un `UPDATE` en toucherait plusieurs, un `DELETE` en
+ * emporterait autant, et rien ne permettrait de revenir en arrière. Le serveur
+ * refuse alors, avec la raison ; l'interface ne propose même pas le geste.
+ *
+ * ## Ce qui décide en dernier ressort
+ *
+ * Le compte saisi dans les réglages de la base. DevEye peut demander une
+ * écriture ; c'est le serveur distant qui l'accorde ou la refuse. Un compte en
+ * lecture seule rend donc tout ceci inoffensif, ce que dit le formulaire.
+ */
+export const databaseRowInsert = {
+    command: 'database.rowInsert' as const,
+    input: z.object({
+        databaseId,
+        schema: z.string().max(DATABASE_NAME_MAX_LENGTH),
+        table: z.string().min(1).max(DATABASE_NAME_MAX_LENGTH),
+        values: z.array(databaseCellSchema).min(1).max(200)
+    }),
+    output: z.object({ inserted: z.number().int().nonnegative() })
+};
+
+export const databaseRowUpdate = {
+    command: 'database.rowUpdate' as const,
+    input: z.object({
+        databaseId,
+        schema: z.string().max(DATABASE_NAME_MAX_LENGTH),
+        table: z.string().min(1).max(DATABASE_NAME_MAX_LENGTH),
+        /** La ligne visée, par ses colonnes de clé primaire. */
+        key: z.array(databaseCellSchema).min(1).max(16),
+        values: z.array(databaseCellSchema).min(1).max(200)
+    }),
+    output: z.object({ updated: z.number().int().nonnegative() })
+};
+
+export const databaseRowDelete = {
+    command: 'database.rowDelete' as const,
+    input: z.object({
+        databaseId,
+        schema: z.string().max(DATABASE_NAME_MAX_LENGTH),
+        table: z.string().min(1).max(DATABASE_NAME_MAX_LENGTH),
+        /** Une entrée par ligne, chacune par ses colonnes de clé primaire. */
+        keys: z.array(z.array(databaseCellSchema).min(1).max(16)).min(1).max(200)
+    }),
+    output: z.object({ deleted: z.number().int().nonnegative() })
+};
+
+/**
+ * Une instruction libre, écriture comprise — le terminal.
+ *
+ * Distincte de `query`, qui refuse tout ce qui n'est pas une lecture parce
+ * qu'elle sert à mettre au point une condition d'alerte. Ici l'intention est
+ * l'inverse : administrer. Une seule instruction à la fois malgré tout, le
+ * point-virgule interne restant refusé — c'est ce qui empêche qu'un copier-coller
+ * en exécute trois quand on en visait une.
+ */
+export const databaseExecute = {
+    command: 'database.execute' as const,
+    input: z.object({ databaseId, sql: z.string().min(1).max(DATABASE_SQL_MAX_LENGTH) }),
+    output: z.object({ result: databaseExecutionSchema })
+};
+
+/**
+ * Exporte une table, ou toute la base.
+ *
+ * **Ce n'est pas une sauvegarde**, et le serveur ne prétend pas le contraire :
+ * le résultat traverse la connexion en un seul morceau, donc il est plafonné en
+ * lignes et en octets. Au-delà, `truncated` le dit et l'interface le répète.
+ * Pour une copie fidèle, `mysqldump` et `pg_dump` restent les bons outils.
+ */
+export const databaseExport = {
+    command: 'database.export' as const,
+    input: z.object({
+        databaseId,
+        format: databaseExportFormatSchema,
+        /** Absents : toute la base. Présents : cette table seule. */
+        schema: z.string().max(DATABASE_NAME_MAX_LENGTH).optional(),
+        table: z.string().min(1).max(DATABASE_NAME_MAX_LENGTH).optional()
+    }),
+    output: z.object({
+        filename: z.string(),
+        content: z.string(),
+        rowCount: z.number().int().nonnegative(),
+        tableCount: z.number().int().nonnegative(),
+        /** Le plafond a été atteint : ce qui suit manque. */
+        truncated: z.boolean()
+    })
 };
 
 // ----------------------------------------------------------------- alertes
@@ -313,6 +437,12 @@ export const databaseCommands = [
     databaseInspect,
     databaseTableList,
     databaseTableRows,
+    databaseTableStructure,
+    databaseRowInsert,
+    databaseRowUpdate,
+    databaseRowDelete,
+    databaseExecute,
+    databaseExport,
     databaseAlertList,
     databaseAlertAdd,
     databaseAlertUpdate,

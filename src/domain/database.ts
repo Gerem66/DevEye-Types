@@ -173,6 +173,146 @@ export const databaseRowsSchema = z.object({
 });
 export type DatabaseRows = z.infer<typeof databaseRowsSchema>;
 
+// ------------------------------------------------------------- structure
+
+/** Une colonne, telle que le catalogue du moteur la décrit. */
+export const databaseColumnSchema = z.object({
+    name: z.string(),
+    /** Le type tel que le moteur le nomme : `varchar(255)`, `int unsigned`… */
+    type: z.string(),
+    nullable: z.boolean(),
+    /** L'expression par défaut, telle quelle ; `null` quand il n'y en a pas. */
+    default: z.string().nullable(),
+    primaryKey: z.boolean(),
+    /**
+     * Le moteur la remplit seul : auto-incrément, identité, colonne générée.
+     * Le formulaire d'ajout ne la propose donc pas — la renseigner à la main
+     * serait au mieux ignoré, au pire refusé.
+     */
+    generated: z.boolean(),
+    comment: z.string()
+});
+export type DatabaseColumn = z.infer<typeof databaseColumnSchema>;
+
+/**
+ * Une clé étrangère, et ce qu'elle vise.
+ *
+ * `columns` et `refColumns` sont **appariées par position** : la première de
+ * l'une pointe la première de l'autre. C'est ce qui permet de suivre une
+ * contrainte composite sans deviner.
+ */
+export const databaseForeignKeySchema = z.object({
+    name: z.string(),
+    columns: z.array(z.string()).min(1),
+    refSchema: z.string(),
+    refTable: z.string(),
+    refColumns: z.array(z.string()).min(1)
+});
+export type DatabaseForeignKey = z.infer<typeof databaseForeignKeySchema>;
+
+/** Un index, clé primaire exclue — celle-ci est portée par les colonnes. */
+export const databaseIndexSchema = z.object({
+    name: z.string(),
+    columns: z.array(z.string()),
+    unique: z.boolean()
+});
+export type DatabaseIndex = z.infer<typeof databaseIndexSchema>;
+
+/**
+ * La structure d'une table : ce qu'il faut pour la lire, l'écrire et la suivre.
+ *
+ * Un seul objet parce que ses trois usages sont indissociables : le panneau
+ * « Structure » l'affiche, le formulaire de ligne en tire ses champs, et la
+ * navigation par clé étrangère en tire ses liens. Les charger séparément
+ * multiplierait les allers-retours pour une même sélection de table.
+ */
+export const databaseStructureSchema = z.object({
+    schema: z.string(),
+    table: z.string(),
+    columns: z.array(databaseColumnSchema),
+    /**
+     * Les colonnes qui désignent une ligne, dans l'ordre de la clé.
+     *
+     * **Vide = pas de clé primaire**, et c'est décisif : sans elle, aucune
+     * modification ni suppression n'est proposée. Une table sans clé ne permet
+     * pas de nommer *une* ligne, et un `DELETE` qui en emporterait deux est un
+     * accident qu'on ne peut pas rattraper.
+     */
+    primaryKey: z.array(z.string()),
+    foreignKeys: z.array(databaseForeignKeySchema),
+    indexes: z.array(databaseIndexSchema)
+});
+export type DatabaseStructure = z.infer<typeof databaseStructureSchema>;
+
+// --------------------------------------------------------------- recherche
+
+/**
+ * Comment une colonne est confrontée à une valeur.
+ *
+ * Fermé, et c'est le point : la recherche ne transporte jamais de fragment de
+ * SQL. Le serveur choisit l'opérateur dans cette liste et lie la valeur en
+ * paramètre — une valeur ne peut donc pas devenir du code.
+ */
+export const databaseFilterOperatorSchema = z.enum([
+    'eq',
+    'ne',
+    'contains',
+    'starts',
+    'ends',
+    'gt',
+    'gte',
+    'lt',
+    'lte',
+    'isNull',
+    'notNull'
+]);
+export type DatabaseFilterOperator = z.infer<typeof databaseFilterOperatorSchema>;
+
+/** Un critère de recherche. `value` est ignorée par `isNull` / `notNull`. */
+export const databaseFilterSchema = z.object({
+    column: z.string().min(1).max(DATABASE_NAME_MAX_LENGTH),
+    operator: databaseFilterOperatorSchema,
+    value: z.string().max(1000)
+});
+export type DatabaseFilter = z.infer<typeof databaseFilterSchema>;
+
+/** L'ordre d'affichage demandé, colonne validée contre la table réelle. */
+export const databaseSortSchema = z.object({
+    column: z.string().min(1).max(DATABASE_NAME_MAX_LENGTH),
+    direction: z.enum(['asc', 'desc'])
+});
+export type DatabaseSort = z.infer<typeof databaseSortSchema>;
+
+// ------------------------------------------------------- écriture de lignes
+
+/**
+ * La valeur d'une colonne, à l'écriture.
+ *
+ * `null` est un vrai `NULL`, et non la chaîne vide : les deux se distinguent à
+ * la saisie, et les confondre viderait une colonne « non nulle » au lieu de
+ * refuser. Tout le reste voyage en chaîne, comme à la lecture — le moteur
+ * convertit, le paramètre étant lié.
+ */
+export const databaseCellSchema = z.object({
+    column: z.string().min(1).max(DATABASE_NAME_MAX_LENGTH),
+    value: z.string().max(65535).nullable()
+});
+export type DatabaseCell = z.infer<typeof databaseCellSchema>;
+
+/** Ce qu'une instruction libre a produit : des lignes, ou un décompte. */
+export const databaseExecutionSchema = z.object({
+    /** Le résultat d'une lecture ; `null` pour une écriture. */
+    rows: databaseRowsSchema.nullable(),
+    /** Le nombre de lignes touchées par une écriture ; `null` pour une lecture. */
+    affected: z.number().int().nonnegative().nullable(),
+    elapsedMs: z.number().int().nonnegative()
+});
+export type DatabaseExecution = z.infer<typeof databaseExecutionSchema>;
+
+/** Les formats d'export proposés. */
+export const databaseExportFormatSchema = z.enum(['csv', 'json', 'sql']);
+export type DatabaseExportFormat = z.infer<typeof databaseExportFormatSchema>;
+
 /** Comment une mesure est comparée à son seuil. */
 export const databaseComparatorSchema = z.enum(['gt', 'gte', 'lt', 'lte', 'eq', 'ne']);
 export type DatabaseComparator = z.infer<typeof databaseComparatorSchema>;

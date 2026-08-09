@@ -76,10 +76,16 @@ export const metricsAvailability = {
 };
 
 /**
- * Timestamps of stored process snapshots in a window, to mark them on the
- * timeline. With a single collection cadence every metric point has one, so this
- * is dense — the timeline draws continuous bands rather than individual marks
- * above a threshold.
+ * Timestamps of the stored instants in a window, to mark them on the timeline.
+ * With a single collection cadence there is one per metric point, so this is
+ * dense — the timeline draws continuous bands rather than individual marks above
+ * a threshold.
+ *
+ * `timestamps` are the *metric* instants, not the process samples: process
+ * capture is optional (`processCapture: 'off'`), and keying the marks on the
+ * process blob made the whole instant navigation — marks, ‹ › stepping, keyboard
+ * arrows — silently vanish whenever a device chose not to record processes.
+ * `withProcesses` is the subset that additionally carries a process list.
  */
 export const metricsSnapshots = {
     command: 'metrics.snapshots' as const,
@@ -92,7 +98,9 @@ export const metricsSnapshots = {
         deviceId,
         timestamps: z.array(z.number().int().positive()),
         /** Subset of `timestamps` that are pinned (kept past retention). */
-        pinned: z.array(z.number().int().positive())
+        pinned: z.array(z.number().int().positive()),
+        /** Subset of `timestamps` whose process list was recorded. */
+        withProcesses: z.array(z.number().int().positive())
     })
 };
 

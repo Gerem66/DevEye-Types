@@ -100,7 +100,13 @@ export const metricsSnapshots = {
         /** Subset of `timestamps` that are pinned (kept past retention). */
         pinned: z.array(z.number().int().positive()),
         /** Subset of `timestamps` whose process list was recorded. */
-        withProcesses: z.array(z.number().int().positive())
+        withProcesses: z.array(z.number().int().positive()),
+        /**
+         * Le relevé a buté sur son plafond : la fenêtre contenait plus d'instants
+         * que ce qui peut être rendu, et seuls les plus **récents** sont là.
+         * L'interface le dit plutôt que de laisser croire à un trou de données.
+         */
+        truncated: z.boolean().default(false)
     })
 };
 

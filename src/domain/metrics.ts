@@ -79,8 +79,12 @@ export const metricsBatchSchema = z.object({
 
 export type MetricsBatch = z.infer<typeof metricsBatchSchema>;
 
-/** Bucketing resolution for time-series queries used to feed graphs. */
-export const metricsResolutionSchema = z.enum(['raw', 'minute', 'hour', 'day']);
+/**
+ * Bucketing resolution for time-series queries used to feed graphs. The client
+ * picks it from the window span and tops out at `hour` — a coarser bucket would
+ * flatten a day into a handful of points.
+ */
+export const metricsResolutionSchema = z.enum(['raw', 'minute', 'hour']);
 export type MetricsResolution = z.infer<typeof metricsResolutionSchema>;
 
 /**
@@ -118,4 +122,6 @@ export interface MetricRow {
     disk_write_bytes: number | null;
     battery_percent: number | null;
     battery_charging: number | null;
+    /** 1 when the instant is pinned — kept past the device's retention. */
+    pinned: number;
 }

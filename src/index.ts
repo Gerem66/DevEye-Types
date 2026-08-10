@@ -789,7 +789,13 @@ export {
     deviceSchema,
     deviceStatusSchema
 } from './domain/device';
-export type { Device, DevicePlatform, DeviceRow, DeviceStatus } from './domain/device';
+export type {
+    Device,
+    DevicePlatform,
+    DeviceRow,
+    DeviceStatus,
+    DeviceWorkspaceRow
+} from './domain/device';
 export { packageManagerIdSchema, packageManagerSchema } from './domain/packages';
 export type { PackageManager, PackageManagerId } from './domain/packages';
 export {
@@ -1075,9 +1081,13 @@ export {
     deviceRevoke,
     deviceSetAutostart,
     deviceSetConfig,
+    deviceSetWorkspaces,
+    deviceShareTargetSchema,
     deviceUpdateAgent,
-    deviceUpgradePackages
+    deviceUpgradePackages,
+    deviceWorkspaceList
 } from './features/device';
+export type { DeviceShareTarget } from './features/device';
 export { deviceLogCommands, deviceLogQuery, deviceLogSources } from './features/deviceLogs';
 export {
     deviceFilesAnalyze,

@@ -70,6 +70,11 @@ export const deviceSchema = z.object({
      */
     retentionDays: z.number().int().positive().nullable().default(null),
     /**
+     * Workspaces this device is shared with. A device is reachable from every
+     * workspace listed here; its pairing workspace is always among them.
+     */
+    workspaceIds: z.array(z.number().int().positive()).default([]),
+    /**
      * Last self-destruct failure message: set when an agent failed to wipe itself
      * during deletion, so the UI can surface it and the deletion is aborted.
      * Null when there's no pending error.
@@ -85,8 +90,21 @@ export type Device = z.infer<typeof deviceSchema>;
 export interface DeviceRow {
     id: string;
     owner_id: number;
-    /** Espace où la machine est rangée — la frontière d'accès. */
-    workspace_id: number;
+    /**
+     * Espace d'**appairage** : celui que visait le code de liaison. Il porte
+     * l'unicité de l'empreinte (`uniq_workspace_fingerprint`) et sert le
+     * ré-enrôlement depuis la route publique, qui n'a pas de session pour dire
+     * autrement d'où elle vient.
+     *
+     * Ce n'est plus la frontière d'accès : celle-ci est la table de jonction
+     * `device_workspaces`, un appareil pouvant être partagé avec plusieurs
+     * espaces. L'espace d'appairage y figure toujours et ne s'en retire pas.
+     *
+     * `null` quand cet espace a été supprimé : l'appareil survit — il perd son
+     * origine, pas son existence — et reste joignable par les espaces avec
+     * lesquels il est partagé.
+     */
+    workspace_id: number | null;
     name: string;
     fingerprint: string;
     platform: string;
@@ -113,7 +131,17 @@ export interface DeviceRow {
     status_before_delete: string | null;
     /** Last self-destruct failure message (deletion aborted); null otherwise. */
     delete_error: string | null;
-    /** Rank in the workspace list, entirely the user's (`device.reorder`). */
+}
+
+/**
+ * Un appareil rangé dans un espace (`device_workspaces`). Le rang est porté par
+ * la jonction et non par l'appareil : le même appareil est rangé
+ * indépendamment dans chaque espace qui y a accès.
+ */
+export interface DeviceWorkspaceRow {
+    device_id: string;
+    workspace_id: number;
+    /** Rank in *that* workspace's list, entirely the user's (`device.reorder`). */
     sort_order: number;
 }
 

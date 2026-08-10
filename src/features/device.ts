@@ -3,6 +3,7 @@ import { deviceSchema } from '../domain/device';
 import { packageManagerIdSchema } from '../domain/packages';
 import { agentLifecycleActionSchema, agentPowerActionSchema } from '../protocol/agent';
 import { processCaptureSchema } from '../domain/report';
+import { workspaceKindSchema } from '../domain/workspace';
 
 const deviceId = z.uuid();
 
@@ -79,6 +80,49 @@ export const deviceSetConfig = {
                 v.retentionDays !== undefined,
             { message: 'No config field provided' }
         ),
+    output: z.object({ device: deviceSchema })
+};
+
+/** Un espace candidat au partage d'un appareil, tel que l'affiche la popup. */
+export const deviceShareTargetSchema = z.object({
+    id: z.number().int().positive(),
+    name: z.string(),
+    kind: workspaceKindSchema,
+    /** L'espace a-t-il accès à cet appareil ? */
+    shared: z.boolean()
+});
+export type DeviceShareTarget = z.infer<typeof deviceShareTargetSchema>;
+
+/**
+ * Les espaces avec lesquels un appareil peut être partagé, et lesquels le sont.
+ *
+ * Réservé aux administrateurs : c'est la seule commande qui énumère des espaces
+ * dont l'appelant n'est pas membre, et elle n'existe que pour la page Appareils.
+ */
+export const deviceWorkspaceList = {
+    command: 'device.workspaceList' as const,
+    input: z.object({ deviceId }),
+    output: z.object({
+        /**
+         * Espace d'appairage : toujours partagé, jamais retirable. `null` si cet
+         * espace a été supprimé depuis — l'appareil n'a alors plus d'origine et
+         * tous ses partages sont révocables.
+         */
+        originWorkspaceId: z.number().int().positive().nullable(),
+        workspaces: z.array(deviceShareTargetSchema)
+    })
+};
+
+/**
+ * Fixe l'ensemble des espaces ayant accès à un appareil. La liste est complète :
+ * un espace absent perd l'accès. L'espace d'appairage est réintégré d'office.
+ */
+export const deviceSetWorkspaces = {
+    command: 'device.setWorkspaces' as const,
+    input: z.object({
+        deviceId,
+        workspaceIds: z.array(z.number().int().positive())
+    }),
     output: z.object({ device: deviceSchema })
 };
 
@@ -231,6 +275,8 @@ export const deviceCommands = [
     deviceRename,
     deviceReorder,
     deviceSetConfig,
+    deviceWorkspaceList,
+    deviceSetWorkspaces,
     deviceUpdateAgent,
     deviceSetAutostart,
     deviceElevate,

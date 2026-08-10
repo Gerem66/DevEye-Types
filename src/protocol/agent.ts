@@ -835,6 +835,15 @@ export const PACKAGE_PROGRESS_EVENT = 'package.progress' as const;
 export const PACKAGE_DONE_EVENT = 'package.done' as const;
 /** Outcome of a system power action (shutdown/reboot/suspend…), fanned to subscribers. */
 export const DEVICE_POWER_EVENT = 'device.powerResult' as const;
+/**
+ * Outcome of a persistence/privilege change (autostart, elevate, drop), fanned to
+ * subscribers exactly like the power result.
+ *
+ * Sans lui, la seule trace de l'échec d'une installation de service était une
+ * ligne de journal d'audit : l'interface attendait quelques secondes, relisait
+ * l'appareil, et n'affichait rien — ni la réussite, ni la raison de l'échec.
+ */
+export const DEVICE_SERVICE_EVENT = 'device.serviceResult' as const;
 /** Device log sources inventory + queried log lines, fanned to subscribers. */
 export const DEVICE_LOG_SOURCES_EVENT = 'device.logSources' as const;
 export const DEVICE_LOG_LINES_EVENT = 'device.logLines' as const;
@@ -857,6 +866,7 @@ export const packageListPushSchema = agentPkgListResultPayloadSchema;
 export const packageProgressPushSchema = agentPkgProgressPayloadSchema;
 export const packageDonePushSchema = agentPkgDonePayloadSchema;
 export const devicePowerPushSchema = agentPowerResultPayloadSchema;
+export const deviceServicePushSchema = agentServiceResultPayloadSchema;
 export const deviceLogSourcesPushSchema = agentLogSourcesResultPayloadSchema;
 export const deviceLogLinesPushSchema = agentLogLinesPayloadSchema;
 export const deviceTermOutputPushSchema = agentTermOutputPayloadSchema;
@@ -886,6 +896,7 @@ export type PackageListPush = z.infer<typeof packageListPushSchema>;
 export type PackageProgressPush = z.infer<typeof packageProgressPushSchema>;
 export type PackageDonePush = z.infer<typeof packageDonePushSchema>;
 export type DevicePowerPush = z.infer<typeof devicePowerPushSchema>;
+export type DeviceServicePush = z.infer<typeof deviceServicePushSchema>;
 export type DeviceLogSourcesPush = z.infer<typeof deviceLogSourcesPushSchema>;
 export type DeviceLogLinesPush = z.infer<typeof deviceLogLinesPushSchema>;
 export type DeviceTermOutputPush = z.infer<typeof deviceTermOutputPushSchema>;

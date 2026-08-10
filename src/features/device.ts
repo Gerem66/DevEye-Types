@@ -69,15 +69,14 @@ export const deviceSetConfig = {
             /** Collection interval in seconds — metrics *and* processes (5s–1h). */
             metricIntervalSeconds: z.number().int().min(5).max(3600).nullable().optional(),
             processCapture: processCaptureSchema.nullable().optional(),
-            retentionDays: z.number().int().positive().max(3650).nullable().optional(),
-            processRetentionDays: z.number().int().positive().max(3650).nullable().optional()
+            /** Conservation de l'historique — métriques, présence et processus. */
+            retentionDays: z.number().int().positive().max(3650).nullable().optional()
         })
         .refine(
             (v) =>
                 v.metricIntervalSeconds !== undefined ||
                 v.processCapture !== undefined ||
-                v.retentionDays !== undefined ||
-                v.processRetentionDays !== undefined,
+                v.retentionDays !== undefined,
             { message: 'No config field provided' }
         ),
     output: z.object({ device: deviceSchema })

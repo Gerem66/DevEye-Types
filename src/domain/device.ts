@@ -64,10 +64,11 @@ export const deviceSchema = z.object({
     metricIntervalSeconds: z.number().int().positive().nullable().default(null),
     /** How much of the process list each tick carries; null → server default (`all`). */
     processCapture: processCaptureSchema.nullable().default(null),
-    /** Metric/presence history retention in days; null → server default. */
+    /**
+     * History retention in days — one duration for the whole instant: metrics,
+     * presence *and* processes expire together. Null → server default.
+     */
     retentionDays: z.number().int().positive().nullable().default(null),
-    /** Process-history retention in days; null → server default. */
-    processRetentionDays: z.number().int().positive().nullable().default(null),
     /**
      * Last self-destruct failure message: set when an agent failed to wipe itself
      * during deletion, so the UI can surface it and the deletion is aborted.
@@ -106,10 +107,8 @@ export interface DeviceRow {
     metric_interval_seconds: number | null;
     /** Process capture mode (`off`|`top`|`all`); null → server default. */
     process_capture: string | null;
-    /** Metric/presence history retention in days; null → server default. */
+    /** History retention in days (metrics, presence, processes); null → server default. */
     retention_days: number | null;
-    /** Process-history retention in days; null → server default. */
-    process_retention_days: number | null;
     /** Status to restore if a pending deletion is cancelled; null otherwise. */
     status_before_delete: string | null;
     /** Last self-destruct failure message (deletion aborted); null otherwise. */
@@ -117,3 +116,12 @@ export interface DeviceRow {
     /** Rank in the workspace list, entirely the user's (`device.reorder`). */
     sort_order: number;
 }
+
+/**
+ * Réglages appliqués à un appareil qui n'a rien choisi. Source unique : le
+ * serveur les applique en construisant la config poussée à l'agent, et le
+ * dialogue de configuration les affiche comme valeurs de départ.
+ */
+export const DEFAULT_METRIC_INTERVAL_SECONDS = 60;
+export const DEFAULT_PROCESS_CAPTURE = 'all' as const;
+export const DEFAULT_RETENTION_DAYS = 30;

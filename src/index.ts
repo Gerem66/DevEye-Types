@@ -781,7 +781,14 @@ export type {
     WorkspaceMemberRow,
     WorkspaceRow
 } from './domain/workspace';
-export { devicePlatformSchema, deviceSchema, deviceStatusSchema } from './domain/device';
+export {
+    DEFAULT_METRIC_INTERVAL_SECONDS,
+    DEFAULT_PROCESS_CAPTURE,
+    DEFAULT_RETENTION_DAYS,
+    devicePlatformSchema,
+    deviceSchema,
+    deviceStatusSchema
+} from './domain/device';
 export type { Device, DevicePlatform, DeviceRow, DeviceStatus } from './domain/device';
 export { packageManagerIdSchema, packageManagerSchema } from './domain/packages';
 export type { PackageManager, PackageManagerId } from './domain/packages';

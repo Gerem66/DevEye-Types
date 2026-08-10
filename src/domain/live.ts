@@ -173,7 +173,6 @@ export type LiveTopic = z.infer<typeof liveTopicSchema>;
  */
 export const TOPIC_FEATURE: Record<LiveTopic, WorkspaceFeatureId | null> = {
     devices: 'devices',
-    monitoring: 'monitoring',
     weather: 'weather',
     password: 'password',
     notes: 'notes',

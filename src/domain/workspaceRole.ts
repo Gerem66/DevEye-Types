@@ -33,10 +33,13 @@ export const WORKSPACE_CAPABILITIES = workspaceCapabilitySchema.options;
  * s'y ajoute, parce que voir la flotte d'un espace est un droit comme un autre
  * (lecture = voir les appareils et leur supervision, écriture = les appairer,
  * approuver, renommer, supprimer).
+ *
+ * `monitoring` n'y figure pas : la carte d'agrégat du même nom est réservée à
+ * l'administrateur global dans son espace personnel, donc aucun rôle d'espace
+ * ne peut l'accorder. Les vues d'appareil, elles, relèvent de `devices`.
  */
 export const workspaceFeatureIdSchema = z.enum([
     'devices',
-    'monitoring',
     'weather',
     'password',
     'notes',

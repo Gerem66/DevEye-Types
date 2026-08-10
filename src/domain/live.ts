@@ -147,7 +147,15 @@ export const liveTopicSchema = z.enum([
     'projectsChat',
     /** Membres, rôles, nom, logo de l'espace. */
     'workspace',
-    /** Disposition de l'accueil. */
+    /**
+     * L'accueil de l'espace : sa **disposition** et son **apparence**.
+     *
+     * Les deux voyagent ensemble parce qu'ils se relisent ensemble — une seule
+     * commande (`workspace.activate`) les rend tous les deux, donc les séparer
+     * en deux sujets ne ferait que doubler les allers-retours pour un même
+     * rafraîchissement. Ce sont aussi des réglages **de l'espace** : `account`
+     * ne conviendrait pas au thème, il ne sort jamais de l'espace personnel.
+     */
     'home',
     /** Réglages de compte (avatar, couleur, thème, chiffrement). */
     'account'

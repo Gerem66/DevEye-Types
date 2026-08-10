@@ -146,9 +146,11 @@ export {
     PACKAGE_DONE_EVENT,
     PACKAGE_LIST_EVENT,
     PACKAGE_PROGRESS_EVENT,
+    PACKAGE_STARTED_EVENT,
     packageDonePushSchema,
     packageListPushSchema,
     packageProgressPushSchema,
+    packageStartedPushSchema,
     syncIndexEntrySchema,
     syncShareAssignmentSchema
 } from './protocol/agent';
@@ -200,6 +202,7 @@ export type {
     PackageDonePush,
     PackageListPush,
     PackageProgressPush,
+    PackageStartedPush,
     SyncIndexEntry,
     SyncShareAssignment
 } from './protocol/agent';

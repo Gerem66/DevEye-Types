@@ -831,6 +831,15 @@ export const DEVICE_PRESENCE_EVENT = 'device.presence' as const;
 export const DEVICE_REPORT_EVENT = 'device.report' as const;
 /** Package-manager inventory, live upgrade progress, and completion (Appareils panel). */
 export const PACKAGE_LIST_EVENT = 'package.list' as const;
+/**
+ * Une mise à jour vient d'être **acceptée** pour ce gestionnaire.
+ *
+ * Émis par le serveur, qui seul sait qu'un verrou vient d'être pris — et avant
+ * la première ligne de sortie de l'outil, qui peut se faire attendre. C'est ce
+ * qui permet à tous les écrans ouverts, y compris ceux d'autres personnes, de
+ * griser le bouton au même instant.
+ */
+export const PACKAGE_STARTED_EVENT = 'package.started' as const;
 export const PACKAGE_PROGRESS_EVENT = 'package.progress' as const;
 export const PACKAGE_DONE_EVENT = 'package.done' as const;
 /** Outcome of a system power action (shutdown/reboot/suspend…), fanned to subscribers. */
@@ -862,7 +871,22 @@ export const CLOUD_SYNC_STATE_EVENT = 'cloudSync.state' as const;
 export const CLOUD_SYNC_CHUNK_EVENT = 'cloudSync.chunk' as const;
 
 /** Push payloads reuse the agent reply shapes (already carry `deviceId`). */
-export const packageListPushSchema = agentPkgListResultPayloadSchema;
+/**
+ * L'inventaire des gestionnaires, **enrichi** par le serveur de ce que l'agent
+ * ne peut pas savoir : quelles mises à jour tournent déjà.
+ *
+ * Sans ce champ, un écran ouvert pendant qu'une mise à jour est en cours —
+ * après avoir refermé la fenêtre, ou chez quelqu'un d'autre — repartait d'un
+ * bouton actif et permettait de relancer la même commande.
+ */
+export const packageListPushSchema = agentPkgListResultPayloadSchema.extend({
+    running: z.array(packageManagerIdSchema).default([])
+});
+
+export const packageStartedPushSchema = z.object({
+    deviceId: z.uuid(),
+    manager: packageManagerIdSchema
+});
 export const packageProgressPushSchema = agentPkgProgressPayloadSchema;
 export const packageDonePushSchema = agentPkgDonePayloadSchema;
 export const devicePowerPushSchema = agentPowerResultPayloadSchema;
@@ -893,6 +917,7 @@ export type CloudSyncStatePush = z.infer<typeof cloudSyncStatePushSchema>;
 export type CloudSyncChunkPush = z.infer<typeof cloudSyncChunkPushSchema>;
 
 export type PackageListPush = z.infer<typeof packageListPushSchema>;
+export type PackageStartedPush = z.infer<typeof packageStartedPushSchema>;
 export type PackageProgressPush = z.infer<typeof packageProgressPushSchema>;
 export type PackageDonePush = z.infer<typeof packageDonePushSchema>;
 export type DevicePowerPush = z.infer<typeof devicePowerPushSchema>;

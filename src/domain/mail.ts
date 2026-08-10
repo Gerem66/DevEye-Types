@@ -28,6 +28,17 @@ export const MAIL_SYNC_INTERVAL_MIN_MINUTES = 1;
 export const MAIL_SYNC_INTERVAL_MAX_MINUTES = 180;
 export const MAIL_SYNC_INTERVAL_DEFAULT_MINUTES = 10;
 
+/**
+ * Taille d'une page de messages — et, par voie de conséquence, de la fenêtre que
+ * la synchro relit à chaque passage pour y réconcilier drapeaux et disparus.
+ *
+ * Les deux sont le même nombre à dessein : la relève de fond n'avance pas
+ * seulement le haut de la boîte, elle garde honnête exactement ce que l'écran
+ * affiche sans défiler. Au-delà, la dérive existe toujours mais ne se voit
+ * qu'après un défilement, et se répare au changement de dossier.
+ */
+export const MAIL_MESSAGE_PAGE_SIZE = 50;
+
 export const mailSecurityTierSchema = z.enum(['open', 'guarded']);
 export type MailSecurityTier = z.infer<typeof mailSecurityTierSchema>;
 

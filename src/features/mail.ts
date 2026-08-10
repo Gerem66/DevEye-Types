@@ -145,11 +145,23 @@ export const mailFolderReorder = {
     output: z.object({ ids: z.array(folderId) })
 };
 
-/** Force a refresh now instead of waiting for the next background tick (or for guarded accounts, which are never background-synced). */
+/**
+ * Force a refresh now instead of waiting for the next background tick (or for
+ * guarded accounts, which are never background-synced). Incrémentale : elle
+ * rapatrie les arrivées et réconcilie la fenêtre récente, sans rien jeter —
+ * contrairement à `mail.folderReset`, qui reconstruit tout.
+ */
 export const mailFolderSync = {
     command: 'mail.folderSync' as const,
     input: z.object({ folderId }),
-    output: z.object({ ok: z.boolean(), newCount: z.number().int().nonnegative() })
+    output: z.object({
+        ok: z.boolean(),
+        newCount: z.number().int().nonnegative(),
+        /** Drapeaux corrigés par la passe de réconciliation. */
+        changedCount: z.number().int().nonnegative(),
+        /** Lignes retirées du cache parce que le serveur ne les a plus. */
+        removedCount: z.number().int().nonnegative()
+    })
 };
 
 /**

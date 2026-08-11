@@ -42,6 +42,19 @@ export const MAIL_MESSAGE_PAGE_SIZE = 50;
 export const mailSecurityTierSchema = z.enum(['open', 'guarded']);
 export type MailSecurityTier = z.infer<typeof mailSecurityTierSchema>;
 
+/**
+ * État de la dernière opération tentée sur une boîte, quelle qu'en soit
+ * l'origine — relève de fond ou commande de l'utilisateur.
+ *
+ * Trois familles d'échec plutôt qu'un booléen, parce qu'elles n'appellent pas la
+ * même chose : `auth` se répare en reconnectant le compte, `unreachable` se
+ * répare tout seul quand le réseau revient, `error` demande de lire le message.
+ * Le libellé exact reste dans `lastSyncError` — chiffré, lui, car il peut citer
+ * un hôte ou une adresse.
+ */
+export const mailAccountStatusSchema = z.enum(['ok', 'auth', 'unreachable', 'error']);
+export type MailAccountStatus = z.infer<typeof mailAccountStatusSchema>;
+
 export const mailAuthMethodSchema = z.enum(['password', 'oauth_google', 'oauth_microsoft']);
 export type MailAuthMethod = z.infer<typeof mailAuthMethodSchema>;
 
@@ -139,6 +152,14 @@ export const mailAccountSchema = z.object({
     enabled: z.boolean(),
     lastSyncAt: z.number().int().nonnegative().nullable(),
     lastSyncError: z.string().nullable(),
+    /**
+     * État de la dernière opération, persistant jusqu'à ce qu'une réussite le
+     * lève. C'est ce qui permet d'annoncer une boîte en panne dès l'ouverture,
+     * sans attendre qu'un geste de l'utilisateur reproduise l'échec.
+     */
+    status: mailAccountStatusSchema,
+    /** Quand l'échec courant a été constaté. `null` tant que tout va bien. */
+    lastErrorAt: z.number().int().nonnegative().nullable(),
     /** True when an OAuth refresh failed and the user must reconnect. */
     needsReauth: z.boolean(),
     /**
@@ -314,6 +335,14 @@ export interface MailAccountRow {
     last_sync_at: number | null;
     /** Encrypted (tier-dependent), or null after a clean sync. */
     last_sync_error_enc: string | null;
+    /**
+     * En clair, à côté de `enabled` et `security_tier` : l'état doit être
+     * lisible sans clé — par un ordonnanceur qui trie, par une requête de
+     * diagnostic, et par l'interface d'un compte dont le message d'erreur,
+     * lui, ne se déchiffre pas.
+     */
+    last_sync_status: MailAccountStatus;
+    last_error_at: number | null;
     /**
      * Encrypted (tier-dependent) JSON blob — the only place secrets live:
      * `{ imap: {host,port,username,password}, smtp: {...}, proxy? }` for

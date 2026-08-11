@@ -40,6 +40,13 @@ export const WORKSPACE_CAPABILITIES = workspaceCapabilitySchema.options;
  */
 export const workspaceFeatureIdSchema = z.enum([
     'devices',
+    /**
+     * Sentinelle. Distincte de `devices` exprès : voir la supervision d'une
+     * machine et voir ce qu'un détecteur soupçonne d'elle ne se confondent pas.
+     * `read` = consulter constats et posture, `write` = acquitter, régler les
+     * cadences, relancer un relevé.
+     */
+    'sentinel',
     'weather',
     'password',
     'notes',

@@ -25,7 +25,12 @@ import {
 } from '../domain/deviceLogs';
 import { metricsBatchSchema, metricSnapshotSchema } from '../domain/metrics';
 import { packageManagerIdSchema, packageManagerSchema } from '../domain/packages';
-import { deviceReportSchema, processCaptureSchema } from '../domain/report';
+import {
+    authWindowSchema,
+    deviceReportSchema,
+    integrityReportSchema,
+    processCaptureSchema
+} from '../domain/report';
 import { agentTargetSchema } from '../http/device';
 import { ProtocolErrorSchema } from './error';
 
@@ -329,6 +334,22 @@ export const agentReportMessagePayloadSchema = z.object({
     report: deviceReportSchema
 });
 
+/** Manifeste des surfaces de persistance (Sentinelle). */
+export const AGENT_INTEGRITY = 'agent.integrity' as const;
+
+export const agentIntegrityMessagePayloadSchema = z.object({
+    deviceId: z.uuid(),
+    integrity: integrityReportSchema
+});
+
+/** Fenêtre d'issues d'authentification (Sentinelle). */
+export const AGENT_AUTH_EVENTS = 'agent.authEvents' as const;
+
+export const agentAuthEventsMessagePayloadSchema = z.object({
+    deviceId: z.uuid(),
+    auth: authWindowSchema
+});
+
 export const agentDestroyedMessagePayloadSchema = z.object({
     deviceId: z.uuid(),
     /** True when the agent successfully wiped its local config (and binary). */
@@ -357,6 +378,14 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_REPORT),
         payload: agentReportMessagePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_INTEGRITY),
+        payload: agentIntegrityMessagePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_AUTH_EVENTS),
+        payload: agentAuthEventsMessagePayloadSchema
     }),
     z.object({
         command: z.literal(AGENT_DESTROYED),
@@ -451,6 +480,15 @@ export const AGENT_ACK = 'agent.ack' as const;
 export const AGENT_ERROR = 'agent.error' as const;
 /** Ask the agent to collect and push a fresh sample + report immediately. */
 export const AGENT_COLLECT = 'agent.collect' as const;
+/**
+ * Demande un relevé Sentinelle immédiat (persistance + authentification).
+ *
+ * Distinct d'`agent.collect` exprès : celui-ci coûte quelques millisecondes et
+ * peut être déclenché à volonté, tandis qu'un relevé de persistance empreinte
+ * des centaines de fichiers. Les confondre reviendrait à faire payer ce prix à
+ * chaque bouton « rafraîchir » de la page Monitoring.
+ */
+export const AGENT_SCAN = 'agent.scan' as const;
 /** Push the per-device collection config (cadences + capture mode) to the agent. */
 export const AGENT_CONFIG = 'agent.config' as const;
 /** Tell the agent to self-destruct (wipe its local config + binary) and exit. */
@@ -700,7 +738,21 @@ export const agentConfigPayloadSchema = z.object({
      */
     metricIntervalMs: z.number().int().positive(),
     /** How much of the process list to carry on each tick (`off`/`top`/`all`). */
-    processCapture: processCaptureSchema
+    processCapture: processCaptureSchema,
+    /**
+     * Sentinelle est-elle active sur cet appareil ? Éteinte, l'agent ne relève ni
+     * persistance ni authentification — ces deux sondes ne coûtent rien à qui ne
+     * les demande pas, et une machine qui n'est pas surveillée ne doit pas voir
+     * ses journaux lus « au cas où ».
+     *
+     * Facultatif : un serveur antérieur à Sentinelle n'envoie pas le champ, et
+     * l'agent se comporte alors comme avant.
+     */
+    sentinelEnabled: z.boolean().optional(),
+    /** Cadence du manifeste de persistance, en ms. */
+    integrityIntervalMs: z.number().int().positive().optional(),
+    /** Relever les issues d'authentification. Réglable à part : c'est la sonde la plus sensible. */
+    authEventsEnabled: z.boolean().optional()
 });
 
 export type AgentConfigPayload = z.infer<typeof agentConfigPayloadSchema>;
@@ -716,6 +768,10 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     }),
     z.object({
         command: z.literal(AGENT_COLLECT),
+        payload: z.object({})
+    }),
+    z.object({
+        command: z.literal(AGENT_SCAN),
         payload: z.object({})
     }),
     z.object({

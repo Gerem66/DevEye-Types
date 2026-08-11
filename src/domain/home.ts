@@ -14,6 +14,7 @@ import { z } from 'zod';
 /** Built-in feature widgets that can be placed on the grid. */
 export const homeFeatureIdSchema = z.enum([
     'monitoring',
+    'sentinel',
     'weather',
     'password',
     'notes',

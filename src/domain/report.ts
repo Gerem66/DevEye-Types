@@ -29,6 +29,28 @@ import { z } from 'zod';
  */
 export const reportProcessSchema = z.object({
     name: z.string().min(1).max(128),
+    /**
+     * Chemin de l'exécutable, et **seconde moitié de la clé d'agrégation**.
+     *
+     * Agréger sur le seul nom fusionnait deux binaires homonymes rangés à des
+     * endroits différents — exactement ce derrière quoi un imposteur se cache.
+     * La clé est donc `(name, execPath)`, et deux `nginx` de chemins distincts
+     * forment désormais deux entrées, ce qui est l'information utile.
+     *
+     * `null` = inconnu : agent trop ancien pour le renvoyer, ou chemin illisible
+     * faute de droits. Les règles qui en dépendent restent alors muettes plutôt
+     * que de conclure dans le vide (invariant 6 de Monitoring).
+     */
+    execPath: z.string().max(512).nullable().default(null),
+    /**
+     * L'exécutable a été effacé du disque mais le processus tourne toujours
+     * (`/proc/<pid>/exe` pointe vers un chemin suffixé « (deleted) »).
+     *
+     * Un des indicateurs les plus francs d'un implant résident en mémoire, et il
+     * ne coûte rien : le lien symbolique est déjà lu pour `execPath`. `null` là
+     * où la plateforme ne l'expose pas (macOS, Windows).
+     */
+    deleted: z.boolean().nullable().default(null),
     /** Number of PIDs aggregated under this name. */
     instances: z.number().int().positive().default(1),
     /** Summed CPU%, cumulative across cores (can exceed 100 — divide by `os.cores`). */
@@ -89,6 +111,18 @@ export const processSampleSchema = z.object({
 
 export type ProcessSample = z.infer<typeof processSampleSchema>;
 
+/**
+ * Contrôle d'accès obligatoire actif sur l'hôte. C'est ce qui borne les dégâts
+ * d'un service compromis, d'où sa place dans la posture.
+ */
+export const mandatoryAccessControlSchema = z.enum([
+    'selinux-enforcing',
+    'selinux-permissive',
+    'apparmor',
+    'none'
+]);
+export type MandatoryAccessControl = z.infer<typeof mandatoryAccessControlSchema>;
+
 /** Security posture of the monitored machine. `null` = could not be determined. */
 export const deviceSecuritySchema = z.object({
     /** Host firewall enabled (macOS ALF / Linux ufw|firewalld). */
@@ -98,7 +132,27 @@ export const deviceSecuritySchema = z.object({
     /** System Integrity Protection (macOS only; null elsewhere). */
     sip: z.boolean().nullable(),
     /** Count of pending OS updates (null when not collected, e.g. macOS). */
-    pendingUpdates: z.number().int().nonnegative().nullable()
+    pendingUpdates: z.number().int().nonnegative().nullable(),
+    /**
+     * Correctifs de **sécurité** en attente, distingués du total.
+     *
+     * La distinction porte toute la valeur du signal : quarante mises à jour
+     * dont aucune de sécurité n'est qu'un retard d'entretien, tandis qu'une
+     * seule faille non corrigée est une porte. Ces champs sont facultatifs et
+     * défaillent à `null` — un agent antérieur à Sentinelle n'en dit rien, et
+     * `posture.updates_stale` reste alors muette.
+     */
+    pendingSecurityUpdates: z.number().int().nonnegative().nullable().default(null),
+    /** Unix ms du dernier contrôle des mises à jour ; sert à mesurer l'ancienneté. */
+    updatesCheckedAt: z.number().int().positive().nullable().default(null),
+    /** `PermitRootLogin` du serveur SSH ; `null` s'il n'y en a pas, ou config illisible. */
+    sshRootLogin: z.boolean().nullable().default(null),
+    /** `PasswordAuthentication` du serveur SSH. */
+    sshPasswordAuth: z.boolean().nullable().default(null),
+    /** SELinux / AppArmor. */
+    mandatoryAccessControl: mandatoryAccessControlSchema.nullable().default(null),
+    /** Des correctifs déjà installés attendent un redémarrage pour prendre effet. */
+    rebootRequired: z.boolean().nullable().default(null)
 });
 
 export type DeviceSecurity = z.infer<typeof deviceSecuritySchema>;
@@ -170,7 +224,24 @@ export const agentInfoSchema = z.object({
      */
     serviceScope: agentServiceScopeSchema.default('none'),
     /** True when launched by a service manager (so a self-update just exits to be relaunched). */
-    managed: z.boolean().default(false)
+    managed: z.boolean().default(false),
+    /**
+     * Ce que cet agent sait relever, déclaré par lui-même.
+     *
+     * Sans cette liste, rien ne distingue « la sonde a échoué » d'« un agent
+     * trop ancien pour l'avoir ». Les deux rendent `null`, et l'interface
+     * afficherait le même vide pour deux situations qui n'appellent pas la même
+     * réaction — mettre l'agent à jour, ou aller regarder la machine.
+     *
+     * On ne peut pas s'en remettre à la version : elle est injectée à la
+     * compilation par la CI et vaut `0.0.0` sur une construction locale. Une
+     * capacité déclarée est de toute façon plus honnête qu'un numéro dont on
+     * déduirait ce qu'il contient.
+     *
+     * Vide par défaut : un agent antérieur à Sentinelle ne dit rien, et c'est
+     * exactement ce qu'il faut comprendre.
+     */
+    probes: z.array(z.string().max(32)).max(16).default([])
 });
 
 export type AgentInfo = z.infer<typeof agentInfoSchema>;
@@ -306,3 +377,116 @@ export const deviceReportSchema = z.object({
 });
 
 export type DeviceReport = z.infer<typeof deviceReportSchema>;
+
+// ─────────────────────── relevés Sentinelle (persistance, auth) ──────────────
+//
+// Deux relevés de plus, volontairement **hors** de `deviceReportSchema`.
+//
+// Le rapport est un « dernier état connu » : le serveur n'en garde qu'un par
+// appareil, écrasé à chaque envoi. Cela convient à la posture, pas à ces
+// deux-là. Le manifeste de persistance est trop gros pour être réécrit en
+// entier chaque heure dans `devices.report_json`, et la fenêtre
+// d'authentification est **additive** — l'écraser perdrait des tentatives, ce
+// qui est précisément ce qu'on cherche à compter.
+
+/**
+ * Une entrée d'une surface de persistance : l'endroit où un programme s'installe
+ * pour survivre au redémarrage.
+ *
+ * **Jamais le contenu du fichier** — seulement son empreinte et ses métadonnées.
+ * C'est ce qui rend la sonde acceptable sur une machine partagée : elle prouve
+ * qu'un fichier a changé sans jamais révéler ce qu'il contient, et un `sha256`
+ * suffit entièrement au diff que le serveur en fait.
+ */
+export const persistenceEntrySchema = z.object({
+    /** Famille d'origine : `cron`, `systemd`, `launchd`, `authorized_keys`, `sudoers`, `run_key`, `scheduled_task`… */
+    surface: z.string().min(1).max(48),
+    path: z.string().min(1).max(512),
+    sha256: z.string().length(64),
+    sizeBytes: z.number().int().nonnegative(),
+    /** Unix ms de dernière modification ; `null` si le système ne l'expose pas. */
+    mtime: z.number().int().nonnegative().nullable().default(null),
+    /** Mode POSIX en octal (`0644`) ; `null` sur Windows. */
+    mode: z.string().max(8).nullable().default(null),
+    /** Propriétaire du fichier ; `null` quand illisible. */
+    owner: z.string().max(64).nullable().default(null)
+});
+export type PersistenceEntry = z.infer<typeof persistenceEntrySchema>;
+
+/** Plafond d'entrées d'un manifeste, aligné sur la borne de l'agent. */
+export const PERSISTENCE_ENTRY_LIMIT = 2000;
+
+export const integrityReportSchema = z.object({
+    /** Unix ms de la collecte sur l'agent. */
+    collectedAt: z.number().int().positive(),
+    entries: z.array(persistenceEntrySchema).max(PERSISTENCE_ENTRY_LIMIT),
+    /**
+     * Le plafond a été atteint. Le serveur **n'émet alors aucun
+     * `persistence.removed`** : un manifeste tronqué ne prouve pas qu'une entrée
+     * a disparu, seulement qu'on a cessé de regarder.
+     */
+    truncated: z.boolean().default(false)
+});
+export type IntegrityReport = z.infer<typeof integrityReportSchema>;
+
+/**
+ * Une adresse et ce qu'elle a tenté, sur la fenêtre écoulée.
+ *
+ * `users` porte les comptes **visés**, pas les comptes d'utilisateurs suivis :
+ * savoir qu'une adresse chinoise a essayé `root`, `admin` puis `oracle` est ce
+ * qui distingue un balayage automatique d'une erreur de frappe.
+ */
+export const authSourceSchema = z.object({
+    address: z.string().min(1).max(64),
+    failed: z.number().int().nonnegative(),
+    accepted: z.number().int().nonnegative(),
+    users: z.array(z.string().max(64)).max(16).default([])
+});
+export type AuthSource = z.infer<typeof authSourceSchema>;
+
+/** Une authentification **réussie**, seul événement nominatif qu'on remonte. */
+export const authLoginSchema = z.object({
+    user: z.string().max(64),
+    address: z.string().max(64).nullable().default(null),
+    /** `publickey`, `password`, `keyboard-interactive`, `gssapi`… */
+    method: z.string().max(32).nullable().default(null),
+    at: z.number().int().positive()
+});
+export type AuthLogin = z.infer<typeof authLoginSchema>;
+
+export const AUTH_SOURCE_LIMIT = 50;
+export const AUTH_LOGIN_LIMIT = 50;
+
+/**
+ * Les issues d'authentification sur une fenêtre glissante.
+ *
+ * Des **compteurs**, pas un flux de journal : l'agent lit les journaux, en
+ * extrait des totaux et une liste bornée d'adresses, et n'envoie que cela. Ce
+ * n'est pas une optimisation de taille, c'est la frontière de la feature — un
+ * flux brut aurait remonté des lignes de commande sudo et des noms de service,
+ * c'est-à-dire l'activité des gens.
+ */
+export const authWindowSchema = z.object({
+    /** Bornes de la fenêtre, unix ms. `from` = fin de la fenêtre précédente. */
+    from: z.number().int().nonnegative(),
+    to: z.number().int().positive(),
+    failed: z.number().int().nonnegative(),
+    accepted: z.number().int().nonnegative(),
+    /** Tentatives visant un compte inexistant : signature d'un balayage. */
+    invalidUser: z.number().int().nonnegative(),
+    /** Nombre d'élévations sudo, sans les commandes exécutées. */
+    sudo: z.number().int().nonnegative(),
+    /** Comptes système créés pendant la fenêtre. */
+    newAccounts: z.array(z.string().max(64)).max(16).default([]),
+    /** Sessions root ouvertes directement. */
+    rootLogins: z.number().int().nonnegative().default(0),
+    topSources: z.array(authSourceSchema).max(AUTH_SOURCE_LIMIT).default([]),
+    logins: z.array(authLoginSchema).max(AUTH_LOGIN_LIMIT).default([]),
+    /**
+     * La source n'a pas pu être lue (pas de journal, pas les droits). Distinguer
+     * « zéro tentative » de « je n'ai pas pu regarder » : sans ce drapeau, une
+     * machine aveugle passerait pour une machine tranquille.
+     */
+    unavailable: z.boolean().default(false)
+});
+export type AuthWindow = z.infer<typeof authWindowSchema>;

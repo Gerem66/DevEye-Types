@@ -131,6 +131,23 @@ export interface DeviceRow {
     status_before_delete: string | null;
     /** Last self-destruct failure message (deletion aborted); null otherwise. */
     delete_error: string | null;
+    /**
+     * Sentinelle est-elle active sur cet appareil ? Éteinte par défaut : activer
+     * la feature ne doit lire les journaux d'authentification de personne, c'est
+     * un geste explicite appareil par appareil.
+     */
+    sentinel_enabled: number;
+    /**
+     * Fin de la fenêtre d'apprentissage, unix ms. `null` tant que Sentinelle n'a
+     * jamais été activée ; une date passée signifie « apprentissage terminé ».
+     */
+    sentinel_learning_until: number | null;
+    /** Cadence du manifeste de persistance, en minutes. */
+    sentinel_integrity_minutes: number;
+    /** Relever les issues d'authentification (interrupteur propre). */
+    sentinel_auth_events: number;
+    /** Unix ms du dernier manifeste reçu ; `null` = jamais mesuré. */
+    sentinel_last_integrity_at: number | null;
 }
 
 /**

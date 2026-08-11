@@ -15,6 +15,7 @@ import { noteCommands } from './note';
 import { passwordCommands } from './password';
 import { projectCommands } from './project';
 import { secrecyCommands } from './secrecy';
+import { sentinelCommands } from './sentinel';
 import { twoFactorCommands } from './twoFactor';
 import { uptimeCommands } from './uptime';
 import { userCommands } from './user';
@@ -43,6 +44,7 @@ export const featureCommands = [
     ...deviceFilesCommands,
     ...cloudSyncCommands,
     ...metricsCommands,
+    ...sentinelCommands,
     ...weatherCommands,
     ...uptimeCommands,
     ...twoFactorCommands,

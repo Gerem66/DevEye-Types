@@ -78,13 +78,6 @@ export const sentinelFindings = {
     })
 };
 
-/** Un constat et tout son détail. */
-export const sentinelFinding = {
-    command: 'sentinel.finding' as const,
-    input: z.object({ findingId }),
-    output: z.object({ finding: findingSchema })
-};
-
 /** L'inventaire appris d'une machine, par nature. */
 export const sentinelBaseline = {
     command: 'sentinel.baseline' as const,
@@ -207,7 +200,6 @@ export const sentinelCommands = [
     sentinelOverview,
     sentinelCount,
     sentinelFindings,
-    sentinelFinding,
     sentinelBaseline,
     sentinelPosture,
     sentinelAcknowledge,

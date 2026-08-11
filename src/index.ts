@@ -1245,7 +1245,6 @@ export {
     sentinelBaseline,
     sentinelCommands,
     sentinelCount,
-    sentinelFinding,
     sentinelFindings,
     sentinelOverview,
     sentinelPosture,

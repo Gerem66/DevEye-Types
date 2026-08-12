@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { userColorSchema } from '../domain/user';
+import { userColorSchema, userSettingFlagSchema } from '../domain/user';
 
 /**
  * Upper bound on the avatar data URL length (characters ≈ bytes for base64
@@ -73,4 +73,19 @@ export const userSetColor = {
     output: z.object({ color: userColorSchema })
 };
 
-export const userCommands = [userSetAvatar, userSetTheme, userSetColor] as const;
+/**
+ * Pose ou retire un drapeau de compte. Une commande unique pour tous les
+ * drapeaux plutôt qu'une par réglage : le serveur n'a alors qu'un seul chemin de
+ * lecture-modification-écriture sur `users.settings`, et un nouveau drapeau ne
+ * coûte qu'une entrée dans `userSettingFlagSchema`.
+ *
+ * La sortie renvoie le sac **complet** tel qu'il vient d'être écrit : le client
+ * peut s'aligner dessus au lieu de rejouer sa propre arithmétique.
+ */
+export const userSetSetting = {
+    command: 'user.setSetting' as const,
+    input: z.object({ flag: userSettingFlagSchema, enabled: z.boolean() }),
+    output: z.object({ settings: z.array(z.string()) })
+};
+
+export const userCommands = [userSetAvatar, userSetTheme, userSetColor, userSetSetting] as const;

@@ -755,6 +755,7 @@ export {
     userColorSchema,
     userSchema,
     userSecuritySchema,
+    userSettingFlagSchema,
     userStatusSchema
 } from './domain/user';
 export type {
@@ -763,6 +764,7 @@ export type {
     UserColor,
     UserRow,
     UserSecurity,
+    UserSettingFlag,
     UserStatus
 } from './domain/user';
 export { secrecyStatusSchema, secrecyWrapModeSchema } from './domain/secrecy';
@@ -1178,6 +1180,7 @@ export {
     userCommands,
     userSetAvatar,
     userSetColor,
+    userSetSetting,
     userSetTheme
 } from './features/user';
 export type { ThemeStateDTO } from './features/user';

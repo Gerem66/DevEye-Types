@@ -75,6 +75,22 @@ export const userSecuritySchema = z.object({
 
 export type UserSecurity = z.infer<typeof userSecuritySchema>;
 
+/**
+ * Drapeaux de compte, rangés dans `users.settings` — un simple sac de chaînes.
+ *
+ * L'**absence** d'un drapeau est sa valeur par défaut : un compte créé avant
+ * qu'un drapeau existe se comporte donc comme le reste, sans migration ni
+ * rattrapage. C'est ce qui fait de cette colonne le bon endroit pour un réglage
+ * booléen privé, là où une colonne dédiée (le modèle de `color`) se justifie
+ * quand la valeur n'est pas binaire ou qu'elle intéresse d'autres comptes.
+ *
+ * - `hideLiveCursors` : ne pas afficher les curseurs des autres membres. La
+ *   coupure est **réciproque** — le client cesse aussi d'émettre le sien (voir
+ *   `live/LiveProvider.tsx`), si bien qu'on ne peut pas regarder sans être vu.
+ */
+export const userSettingFlagSchema = z.enum(['hideLiveCursors']);
+export type UserSettingFlag = z.infer<typeof userSettingFlagSchema>;
+
 export const userSchema = z.object({
     id: z.number().int().nonnegative(),
     email: z.string().email(),
@@ -82,6 +98,9 @@ export const userSchema = z.object({
     avatar: z.string(),
     color: userColorSchema,
     role: userRoleSchema,
+    /** Les drapeaux posés — voir `userSettingFlagSchema`. Un drapeau inconnu du
+     *  client (compte revenu d'une version plus récente) est simplement ignoré,
+     *  d'où le tableau de chaînes plutôt qu'un tableau d'énumérés. */
     settings: z.array(z.string()),
     security: userSecuritySchema,
     /** Espace personnel du compte : créé avec lui, toujours présent. */

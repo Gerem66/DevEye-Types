@@ -953,6 +953,12 @@ export type {
     OsintTargetKind,
     OsintTone
 } from './domain/osint';
+export { notificationFeatureSchema, notificationSettingsSchema } from './domain/notifications';
+export type {
+    NotificationFeature,
+    NotificationSettings,
+    NotificationSettingsRow
+} from './domain/notifications';
 export { presenceEventSchema } from './domain/presence';
 export type { PresenceEvent, PresenceRow } from './domain/presence';
 export {
@@ -1299,13 +1305,16 @@ export {
     sentinelCommands,
     sentinelCount,
     sentinelFindings,
+    sentinelGetSettings,
     sentinelOverview,
     sentinelPosture,
     sentinelRemoveAllow,
     sentinelReopen,
     sentinelResetBaseline,
     sentinelScanNow,
-    sentinelSetConfig
+    sentinelSetConfig,
+    sentinelSetSettings,
+    sentinelTestNotification
 } from './features/sentinel';
 export {
     uptimeAdd,

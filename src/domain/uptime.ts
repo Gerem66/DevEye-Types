@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { notificationSettingsSchema, type NotificationSettings } from './notifications';
+
 /**
  * Uptime monitoring: user-defined HTTP services the server pings on a schedule,
  * with long-term history, incidents and notifications.
@@ -151,19 +153,15 @@ export const uptimeIncidentSchema = z.object({
 export type UptimeIncident = z.infer<typeof uptimeIncidentSchema>;
 
 /** Where down/recovery alerts are delivered. One row per user. */
-export const uptimeSettingsSchema = z.object({
-    emailEnabled: z.boolean(),
-    /** Recipient, or `null` to use the sending mail account's own address. */
-    email: z.string().nullable(),
-    /** Which configured Mail account (see `domain/mail.ts`) sends the alert; `null` = none picked. */
-    mailAccountId: z.number().int().positive().nullable(),
-    /** False when `mailAccountId` is unset, or points at a missing/non-"open" account — the UI warns instead of lying. */
-    mailAccountReady: z.boolean(),
-    webhookEnabled: z.boolean(),
-    /** POSTed a JSON body on every transition; `null` when unset. */
-    webhookUrl: z.string().nullable()
-});
-export type UptimeSettings = z.infer<typeof uptimeSettingsSchema>;
+/**
+ * Les canaux d'Uptime — **la forme commune**, définie une seule fois dans
+ * `domain/notifications.ts`. Uptime et Sentinelle règlent les mêmes champs ; ce
+ * qui les distingue est la ligne de `notification_settings` qu'ils lisent, pas
+ * la structure. Deux définitions jumelles auraient dérivé à la première
+ * évolution.
+ */
+export const uptimeSettingsSchema = notificationSettingsSchema;
+export type UptimeSettings = NotificationSettings;
 
 /** Database row shapes (server-only). Mirror the columns exactly. */
 export interface UptimeServiceRow {

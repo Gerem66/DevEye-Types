@@ -259,10 +259,11 @@ export const SENTINEL_RULES: Record<SentinelRuleId, SentinelRuleMeta> = {
     },
     'exec.deleted_binary': {
         severity: 'critical',
-        label: 'Binaire supprimé du disque',
-        description: 'Un programme tourne alors que son exécutable a été effacé du disque.',
+        label: 'Binaire disparu du disque',
+        description:
+            "Un programme tourne alors que plus rien n'existe à l'emplacement de son exécutable.",
         remediation:
-            "Un des indicateurs les plus francs d'un implant résident. Copiez /proc/<pid>/exe avant tout redémarrage.",
+            "Un des indicateurs les plus francs d'un implant résident. Copiez /proc/<pid>/exe avant tout redémarrage. À ne pas confondre avec un binaire simplement remplacé par une mise à jour, que l'agent ne signale pas.",
         probe: 'execPath',
         needsBaseline: false
     },

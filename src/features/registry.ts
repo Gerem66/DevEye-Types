@@ -12,6 +12,7 @@ import { logsCommands } from './logs';
 import { mailCommands } from './mail';
 import { metricsCommands } from './metrics';
 import { noteCommands } from './note';
+import { osintCommands } from './osint';
 import { passwordCommands } from './password';
 import { projectCommands } from './project';
 import { secrecyCommands } from './secrecy';
@@ -46,6 +47,7 @@ export const featureCommands = [
     ...metricsCommands,
     ...sentinelCommands,
     ...weatherCommands,
+    ...osintCommands,
     ...uptimeCommands,
     ...twoFactorCommands,
     ...secrecyCommands,

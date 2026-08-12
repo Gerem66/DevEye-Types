@@ -911,6 +911,46 @@ export type {
     SentinelRuleMeta,
     SeverityCounts
 } from './domain/sentinel';
+export {
+    detectTarget,
+    OSINT_HISTORY_PAGE_MAX,
+    OSINT_PROBE_LABELS,
+    OSINT_PROBES_BY_KIND,
+    OSINT_PROVIDER_META,
+    OSINT_QUERY_MAX_LENGTH,
+    OSINT_RAW_MAX_LENGTH,
+    OSINT_SLOW_PROBES,
+    osintFieldSchema,
+    osintHistoryEntrySchema,
+    osintLinkSchema,
+    osintProbeIdSchema,
+    osintProbeResultSchema,
+    osintProbeStatusSchema,
+    osintProviderSchema,
+    osintProviderStatusSchema,
+    osintScoreSchema,
+    osintTagSchema,
+    osintTargetKindSchema,
+    osintTargetSchema,
+    osintToneSchema
+} from './domain/osint';
+export type {
+    OsintField,
+    OsintHistoryEntry,
+    OsintLink,
+    OsintLookupRow,
+    OsintProbeId,
+    OsintProbeResult,
+    OsintProbeStatus,
+    OsintProvider,
+    OsintProviderKeyRow,
+    OsintProviderStatus,
+    OsintScore,
+    OsintTag,
+    OsintTarget,
+    OsintTargetKind,
+    OsintTone
+} from './domain/osint';
 export { presenceEventSchema } from './domain/presence';
 export type { PresenceEvent, PresenceRow } from './domain/presence';
 export {
@@ -1238,6 +1278,16 @@ export {
     weatherSetPrimary,
     weatherUpdate
 } from './features/weather';
+export {
+    osintCommands,
+    osintHistory,
+    osintHistoryClear,
+    osintHistoryRemove,
+    osintKeyList,
+    osintLookup,
+    osintProbe,
+    osintSetKey
+} from './features/osint';
 export {
     SENTINEL_PAGE_MAX,
     sentinelAcknowledge,

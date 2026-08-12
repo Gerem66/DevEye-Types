@@ -23,7 +23,8 @@ export const homeFeatureIdSchema = z.enum([
     'mail',
     'projects',
     'git',
-    'database'
+    'database',
+    'osint'
 ]);
 export type HomeFeatureId = z.infer<typeof homeFeatureIdSchema>;
 

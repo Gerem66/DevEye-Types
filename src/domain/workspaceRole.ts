@@ -55,7 +55,12 @@ export const workspaceFeatureIdSchema = z.enum([
     'mail',
     'projects',
     'git',
-    'database'
+    'database',
+    /**
+     * OSINT. `read` = chercher et consulter l'historique de l'espace, `write` =
+     * effacer l'historique et poser les clés d'API des fournisseurs.
+     */
+    'osint'
 ]);
 
 export type WorkspaceFeatureId = z.infer<typeof workspaceFeatureIdSchema>;

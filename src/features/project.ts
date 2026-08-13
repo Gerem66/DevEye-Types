@@ -33,7 +33,7 @@ import {
     projectDeployTargetSchema,
     projectDeploymentSchema
 } from '../domain/projectDeploy';
-import { myTaskSchema } from '../domain/projectLink';
+import { myTaskSchema, projectLinkCountsSchema } from '../domain/projectLink';
 
 /**
  * Commandes des projets.
@@ -425,6 +425,24 @@ export const projectMyTasks = {
 };
 
 /**
+ * Combien d'éléments chaque intégration du projet a à montrer.
+ *
+ * Une seule commande pour les quatre, parce qu'elle sert une seule décision :
+ * quels onglets la fiche du projet doit ouvrir. Les demander une par une ferait
+ * quatre allers-retours pour dessiner une barre d'onglets, et la ferait
+ * apparaître par morceaux.
+ *
+ * Ne déchiffre rien et ne demande aucune session : ce sont des liaisons en
+ * clair. Un projet confidentiel n'en a aucune par construction (voir
+ * {@link projectRepoLink}), et répond donc quatre zéros.
+ */
+export const projectLinkCounts = {
+    command: 'project.linkCounts' as const,
+    input: z.object({ projectId }),
+    output: z.object({ counts: projectLinkCountsSchema })
+};
+
+/**
  * Les services surveillés rattachés au projet, dans l'ordre d'Uptime.
  *
  * Ne rend que des identifiants : les nommer supposerait de lire Uptime au nom
@@ -714,6 +732,7 @@ export const projectCommands = [
     projectDeployTrigger,
     projectDeployList,
     projectMyTasks,
+    projectLinkCounts,
     projectUptimeList,
     projectUptimeLink,
     projectUptimeUnlink,

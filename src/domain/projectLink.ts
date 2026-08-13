@@ -40,6 +40,44 @@ export const myTaskSchema = z.object({
 });
 export type MyTask = z.infer<typeof myTaskSchema>;
 
+/**
+ * Combien d'éléments chaque intégration d'un projet a à montrer.
+ *
+ * Des **compteurs seulement** : ils décident si l'écran a quelque chose à
+ * ouvrir, pas ce qu'il montrera. Un projet neuf n'a ni dépôt, ni base, ni site,
+ * ni déploiement — lui présenter quatre onglets vides revient à lui demander de
+ * fouiller pour trouver le vide. Zéro fait donc disparaître l'onglet, et le
+ * geste d'ajout se replie dans un menu unique.
+ *
+ * Les clés portent le nom de la **feature d'espace** pointée (`git`,
+ * `database`, `audience`), pas celui de l'onglet qui les affiche : ce sont les
+ * mêmes identifiants que les droits (`workspaceFeatureIdSchema`), et c'est ce
+ * qui permet à l'appelant de demander « ai-je le droit d'y ajouter ? » sans
+ * table de correspondance.
+ *
+ * Un compte ne dit rien de ce que l'appelant a le droit de **lire** : les
+ * liaisons relèvent de `projects`, leur contenu de la feature visée. Un membre
+ * sans accès à Git voit donc l'onglet Git et, dedans, la phrase qui explique ce
+ * qui lui manque — plutôt qu'un onglet escamoté qui lui cacherait l'existence
+ * même du lien.
+ */
+export const projectLinkCountsSchema = z.object({
+    /** Dépôts reliés. */
+    git: z.number().int().nonnegative(),
+    /** Bases de données reliées. */
+    database: z.number().int().nonnegative(),
+    /** Sites suivis reliés. */
+    audience: z.number().int().nonnegative(),
+    /**
+     * La cible de déploiement (0 ou 1) **plus** les services surveillés
+     * rattachés. Les deux vivent dans le même onglet : compter la seule cible
+     * ferait disparaître un onglet qui a encore de quoi répondre à « est-ce en
+     * ligne ? ».
+     */
+    deploy: z.number().int().nonnegative()
+});
+export type ProjectLinkCounts = z.infer<typeof projectLinkCountsSchema>;
+
 /** Ligne SQL (serveur uniquement). */
 export interface ProjectUptimeLinkRow {
     project_id: number;

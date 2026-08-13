@@ -605,8 +605,8 @@ export type {
     AudienceVisitorMode,
     ProjectAudienceLinkRow
 } from './domain/audience';
-export { myTaskSchema } from './domain/projectLink';
-export type { MyTask, ProjectUptimeLinkRow } from './domain/projectLink';
+export { myTaskSchema, projectLinkCountsSchema } from './domain/projectLink';
+export type { MyTask, ProjectLinkCounts, ProjectUptimeLinkRow } from './domain/projectLink';
 export type {
     DeployCandidate,
     DeployStatus,
@@ -1123,6 +1123,7 @@ export {
     projectDeployTrigger,
     projectDeployUnlink,
     projectMyTasks,
+    projectLinkCounts,
     projectAudienceLink,
     projectAudienceList,
     projectAudienceUnlink,

@@ -116,6 +116,26 @@ export const deploymentSchema = z.object({
 });
 export type Deployment = z.infer<typeof deploymentSchema>;
 
+/**
+ * Une ligne d'historique telle que le fournisseur la connaît — pas seulement
+ * ce que DevEye a déclenché.
+ *
+ * `deploymentSchema` porte l'identité DevEye d'un déclenchement (`id`, `targetId`,
+ * `triggeredByUserId`) ; celui-ci n'a que ce que Dokploy rend, y compris pour ce
+ * qui est parti de sa propre interface ou d'une CI. Aucun `id` DevEye n'existe
+ * pour ces lignes-là, d'où un schéma distinct plutôt qu'un `Deployment` aux
+ * champs devinés.
+ */
+export const deployHistoryEntrySchema = z.object({
+    externalId: z.string().nullable(),
+    status: deployStatusSchema,
+    title: z.string(),
+    description: z.string(),
+    startedAt: z.number().int(),
+    finishedAt: z.number().int().nullable()
+});
+export type DeployHistoryEntry = z.infer<typeof deployHistoryEntrySchema>;
+
 /** Ligne SQL (serveur uniquement). */
 export interface DeployTargetRow {
     id: number;

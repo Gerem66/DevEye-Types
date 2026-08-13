@@ -73,7 +73,18 @@ export const osintHistoryClear = {
 export const osintKeyList = {
     command: 'osint.keyList' as const,
     input: z.object({}),
-    output: z.object({ providers: z.array(osintProviderStatusSchema) })
+    output: z.object({
+        providers: z.array(osintProviderStatusSchema),
+        /**
+         * Combien de sondes peuvent rendre quelque chose aujourd'hui, sur le
+         * total du registre — la plupart n'exigent aucune clé, seules
+         * quelques-unes en dépendent (`skipped` sans elle). Rendu ici plutôt
+         * que par une commande à part : le calcul part du même ensemble de
+         * fournisseurs posés que `providers`, pas la peine de le relire deux fois.
+         */
+        probesAvailable: z.number().int().nonnegative(),
+        probesTotal: z.number().int().positive()
+    })
 };
 
 /** Pose ou efface la clé d'un fournisseur ; `key` vide efface. */

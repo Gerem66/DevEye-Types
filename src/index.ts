@@ -473,6 +473,7 @@ export {
     DEPLOY_TARGET_NAME_MAX_LENGTH,
     DEPLOY_TITLE_MAX_LENGTH,
     deployCandidateSchema,
+    deployHistoryEntrySchema,
     deployProviderSchema,
     deployStatusSchema,
     deployTargetKindSchema,
@@ -616,6 +617,7 @@ export { myTaskSchema, projectLinkCountsSchema } from './domain/projectLink';
 export type { MyTask, ProjectLinkCounts, ProjectUptimeLinkRow } from './domain/projectLink';
 export type {
     DeployCandidate,
+    DeployHistoryEntry,
     DeployProvider,
     DeployStatus,
     DeployTarget,
@@ -1171,7 +1173,9 @@ export {
     deployCredentialRemove,
     deployCredentialUpdate,
     deployGet,
+    deployHistory,
     deployList,
+    deployLog,
     deployRemove,
     deployReorder,
     deployTrigger,

@@ -10,6 +10,7 @@ import {
     DEPLOY_TARGET_NAME_MAX_LENGTH,
     DEPLOY_TITLE_MAX_LENGTH,
     deployCandidateSchema,
+    deployHistoryEntrySchema,
     deployTargetKindSchema,
     deployTargetSchema,
     deploymentSchema
@@ -143,6 +144,39 @@ export const deployTrigger = {
     output: z.object({ deployment: deploymentSchema })
 };
 
+/**
+ * L'historique complet d'une cible, **tel que Dokploy le rend** — pas
+ * seulement ce que DevEye a déclenché : un déploiement lancé depuis
+ * l'interface de Dokploy ou une CI y apparaît aussi.
+ *
+ * Distincte de `deployGet`, qui reste le suivi local (léger, toujours
+ * disponible sans réseau vers le fournisseur) : celle-ci interroge Dokploy en
+ * direct à chaque appel, coûte une requête externe, et n'a donc de sens que
+ * là où on la demande explicitement — la fiche d'une cible dans la feature,
+ * pas l'onglet d'un projet qui en reliste plusieurs.
+ */
+export const deployHistory = {
+    command: 'deploy.history' as const,
+    input: z.object({ targetId }),
+    output: z.object({ entries: z.array(deployHistoryEntrySchema) })
+};
+
+/**
+ * Le journal complet d'un déploiement, tel que Dokploy l'a produit.
+ *
+ * `externalId` vient d'une ligne de `deployHistory` : c'est la seule façon dont
+ * le client connaît un déploiement dont DevEye n'a pas forcément la ligne
+ * locale. Repose sur un point d'entrée de Dokploy sans procédure tRPC dédiée
+ * (voir l'adaptateur `dokploy.ts`) : peut échouer sur une instance qui
+ * l'authentifie autrement, ou pas du tout — l'appelant le traite alors comme
+ * n'importe quelle autre panne réseau.
+ */
+export const deployLog = {
+    command: 'deploy.log' as const,
+    input: z.object({ targetId, externalId: z.string().min(1) }),
+    output: z.object({ log: z.string() })
+};
+
 // ------------------------------------------------------------------ jetons
 
 /**
@@ -202,6 +236,8 @@ export const deployCommands = [
     deployReorder,
     deployCandidates,
     deployTrigger,
+    deployHistory,
+    deployLog,
     deployCredentialList,
     deployCredentialAdd,
     deployCredentialUpdate,

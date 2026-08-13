@@ -57,6 +57,19 @@ export const workspaceFeatureIdSchema = z.enum([
     'git',
     'database',
     /**
+     * Audience. Le suivi d'usage des sites livrés — dernier maillon de la même
+     * famille que `projects`, `git` et `database` : un objet de l'**espace**
+     * qu'un projet ne fait que pointer.
+     *
+     * `read` = consulter les statistiques, `write` = déclarer un site, changer
+     * ses origines autorisées, sa rétention, le supprimer.
+     *
+     * ⚠️ Distinct de `projects` exprès, comme `git` l'est déjà : voir les
+     * chiffres d'un site livré et piloter le travail qui le produit ne se
+     * confondent pas, et tout le monde n'a pas à voir les deux.
+     */
+    'audience',
+    /**
      * OSINT. `read` = chercher et consulter l'historique de l'espace, `write` =
      * effacer l'historique et poser les clés d'API des fournisseurs.
      */

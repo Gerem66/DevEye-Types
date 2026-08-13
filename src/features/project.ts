@@ -488,6 +488,37 @@ export const projectDatabaseUnlink = {
     output: z.object({ databaseIds: z.array(z.number().int().positive()) })
 };
 
+/**
+ * Les sites suivis rattachés au projet, dans l'ordre de la feature Audience.
+ *
+ * Ne rend que des identifiants, pour la même raison que
+ * {@link projectDatabaseList} : les nommer supposerait de lire la feature
+ * Audience au nom de l'appelant, alors que ce droit s'y vérifie déjà.
+ */
+export const projectAudienceList = {
+    command: 'project.audienceList' as const,
+    input: z.object({ projectId }),
+    output: z.object({ siteIds: z.array(z.number().int().positive()) })
+};
+
+/**
+ * Rattache un site au projet. **Idempotente**, et refusée sur un projet
+ * confidentiel : la liaison est une ligne en clair, et le site vit à l'étage
+ * ouvert — exactement comme un dépôt git ou une base.
+ */
+export const projectAudienceLink = {
+    command: 'project.audienceLink' as const,
+    input: z.object({ projectId, siteId: z.number().int().positive() }),
+    output: z.object({ siteIds: z.array(z.number().int().positive()) })
+};
+
+/** Retire la liaison. Le site, lui, n'est pas touché. */
+export const projectAudienceUnlink = {
+    command: 'project.audienceUnlink' as const,
+    input: z.object({ projectId, siteId: z.number().int().positive() }),
+    output: z.object({ siteIds: z.array(z.number().int().positive()) })
+};
+
 // ---------------------------------------------------------- déploiement
 
 /** L'application liée, ou `null` si le projet n'en a pas. */
@@ -688,5 +719,8 @@ export const projectCommands = [
     projectUptimeUnlink,
     projectDatabaseList,
     projectDatabaseLink,
-    projectDatabaseUnlink
+    projectDatabaseUnlink,
+    projectAudienceList,
+    projectAudienceLink,
+    projectAudienceUnlink
 ] as const;

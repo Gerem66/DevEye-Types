@@ -536,6 +536,75 @@ export type {
     DatabaseUsage,
     ProjectDatabaseLinkRow
 } from './domain/database';
+export {
+    AUDIENCE_BATCH_MAX,
+    AUDIENCE_BREAKDOWN_MAX,
+    AUDIENCE_DIMENSIONS,
+    AUDIENCE_FUNNEL_MAX_STEPS,
+    AUDIENCE_FUNNEL_NAME_MAX_LENGTH,
+    AUDIENCE_LABEL_MAX_LENGTH,
+    AUDIENCE_MAX_FUNNELS,
+    AUDIENCE_MAX_ORIGINS,
+    AUDIENCE_ORIGIN_MAX_LENGTH,
+    AUDIENCE_PUBLIC_KEY_LENGTH,
+    AUDIENCE_RETENTION_DEFAULT_DAYS,
+    AUDIENCE_RETENTION_MAX_DAYS,
+    AUDIENCE_RETENTION_MIN_DAYS,
+    AUDIENCE_SESSION_GAP_SECONDS,
+    AUDIENCE_SITE_DESCRIPTION_MAX_LENGTH,
+    AUDIENCE_SITE_NAME_MAX_LENGTH,
+    AUDIENCE_VISITOR_ID_MAX_LENGTH,
+    audienceActivityCellSchema,
+    audienceActivitySchema,
+    audienceBreakdownItemSchema,
+    audienceDimensionSchema,
+    audienceEventInputSchema,
+    audienceFunnelSchema,
+    audienceFunnelStepDraftSchema,
+    audienceFunnelStepKindSchema,
+    audienceFunnelStepSchema,
+    audienceIngestSchema,
+    audienceLiveSchema,
+    audienceMetricsSchema,
+    audienceOverviewSchema,
+    audiencePlatformSchema,
+    audiencePointSchema,
+    audienceRangeSchema,
+    audienceResolutionSchema,
+    audienceSiteSchema,
+    audienceUsageSchema,
+    audienceVisitorModeSchema
+} from './domain/audience';
+export type {
+    AudienceActivity,
+    AudienceActivityCell,
+    AudienceBreakdownItem,
+    AudienceDailyRow,
+    AudienceDimension,
+    AudienceEventInput,
+    AudienceEventRow,
+    AudienceFunnel,
+    AudienceFunnelRow,
+    AudienceFunnelStep,
+    AudienceFunnelStepDraft,
+    AudienceFunnelStepKind,
+    AudienceFunnelStepRow,
+    AudienceIngestBody,
+    AudienceLabelRow,
+    AudienceLive,
+    AudienceMetrics,
+    AudienceOverview,
+    AudiencePlatform,
+    AudiencePoint,
+    AudienceRange,
+    AudienceResolution,
+    AudienceSessionRow,
+    AudienceSite,
+    AudienceSiteRow,
+    AudienceUsage,
+    AudienceVisitorMode,
+    ProjectAudienceLinkRow
+} from './domain/audience';
 export { myTaskSchema } from './domain/projectLink';
 export type { MyTask, ProjectUptimeLinkRow } from './domain/projectLink';
 export type {
@@ -1054,6 +1123,9 @@ export {
     projectDeployTrigger,
     projectDeployUnlink,
     projectMyTasks,
+    projectAudienceLink,
+    projectAudienceList,
+    projectAudienceUnlink,
     projectDatabaseLink,
     projectDatabaseList,
     projectDatabaseUnlink,
@@ -1136,6 +1208,25 @@ export {
     databaseTestDraft,
     databaseUpdate
 } from './features/database';
+export {
+    audienceActivity,
+    audienceBreakdown,
+    audienceCommands,
+    audienceCount,
+    audienceFunnelAdd,
+    audienceFunnelList,
+    audienceFunnelRemove,
+    audienceFunnelUpdate,
+    audienceGet,
+    audienceList,
+    audienceLive,
+    audienceOverview,
+    audienceReorder,
+    audienceSiteAdd,
+    audienceSiteRemove,
+    audienceSiteRotateKey,
+    audienceSiteUpdate
+} from './features/audience';
 
 export { homeCommands, homeSetLayout, homeShortcutPreview } from './features/home';
 export { featureCommandRegistry, featureCommands } from './features/registry';

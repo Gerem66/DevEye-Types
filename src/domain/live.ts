@@ -184,6 +184,7 @@ export const TOPIC_FEATURE: Record<LiveTopic, WorkspaceFeatureId | null> = {
     projectsChat: 'projects',
     git: 'git',
     database: 'database',
+    audience: 'audience',
     osint: 'osint',
     workspace: null,
     home: null,

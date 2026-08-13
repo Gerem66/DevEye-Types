@@ -23,6 +23,7 @@ export const homeFeatureIdSchema = z.enum([
     'mail',
     'projects',
     'git',
+    'deploy',
     'database',
     'audience',
     'osint'

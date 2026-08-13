@@ -27,34 +27,18 @@ import { projectStatusSchema } from './project';
 
 export const GIT_REPO_OWNER_MAX_LENGTH = 100;
 export const GIT_REPO_NAME_MAX_LENGTH = 100;
-export const GIT_CREDENTIAL_LABEL_MAX_LENGTH = 64;
-export const GIT_CREDENTIAL_SECRET_MAX_LENGTH = 512;
-
-/** Fournisseurs adressés par le module. */
-export const gitProviderSchema = z.enum(['github', 'dokploy']);
-export type GitProvider = z.infer<typeof gitProviderSchema>;
 
 /**
- * Un identifiant d'accès, tel que le client le voit.
+ * Fournisseurs de dépôts.
  *
- * Le secret n'y figure **jamais** : seule sa présence est annoncée. Même parti
- * pris que la clé d'API météo (`hasApiKey`) — un secret qu'on ne renvoie pas
- * est un secret qui ne peut pas fuiter par une capture d'écran ou un journal.
- *
- * Porté par l'espace et non par un dépôt : un même jeton GitHub sert en général
- * à plusieurs dépôts, et une clé Dokploy ne relève d'aucun dépôt.
+ * Un seul, et l'énumération est là pour que le second n'ait pas à réécrire le
+ * contrat. Elle couvrait aussi `dokploy` du temps où les jetons des deux
+ * intégrations vivaient dans ce module : un dépôt Dokploy n'a jamais existé,
+ * c'était le fournisseur d'un **jeton**, notion qui a désormais son propre
+ * domaine (`domain/credential.ts`).
  */
-export const gitCredentialSchema = z.object({
-    id: z.number().int().positive(),
-    provider: gitProviderSchema,
-    label: z.string().max(GIT_CREDENTIAL_LABEL_MAX_LENGTH),
-    baseUrl: z.string().nullable(),
-    hasSecret: z.boolean(),
-    created: z.number().int(),
-    /** Combien de dépôts et de cibles de déploiement s'en servent. */
-    useCount: z.number().int().nonnegative()
-});
-export type GitCredential = z.infer<typeof gitCredentialSchema>;
+export const gitProviderSchema = z.enum(['github']);
+export type GitProvider = z.infer<typeof gitProviderSchema>;
 
 /** Un dépôt de l'espace, et l'état de sa dernière synchronisation. */
 export const gitRepoSchema = z.object({
@@ -332,17 +316,6 @@ export const gitReleaseSchema = z.object({
     isPrerelease: z.boolean()
 });
 export type GitRelease = z.infer<typeof gitReleaseSchema>;
-
-/** Ligne SQL (serveur uniquement). */
-export interface GitCredentialRow {
-    id: number;
-    workspace_id: number;
-    provider: string;
-    label: string;
-    base_url: string | null;
-    secret_enc: string;
-    created: number;
-}
 
 /** Ligne SQL (serveur uniquement). */
 export interface GitRepoRow {

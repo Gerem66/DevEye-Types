@@ -55,6 +55,17 @@ export const workspaceFeatureIdSchema = z.enum([
     'mail',
     'projects',
     'git',
+    /**
+     * Déploiement. `read` = voir les cibles de l'espace et leur historique,
+     * `write` = déclarer une cible, poser la clé d'API de l'instance, et
+     * **déclencher une mise en production**.
+     *
+     * ⚠️ Le droit le plus lourd de conséquences hors de DevEye : c'est le seul
+     * qui pousse quelque chose chez un tiers. Distinct de `projects` exprès —
+     * piloter le travail et livrer ne se confondent pas, et tout le monde n'a
+     * pas à pouvoir faire les deux.
+     */
+    'deploy',
     'database',
     /**
      * Audience. Le suivi d'usage des sites livrés — dernier maillon de la même

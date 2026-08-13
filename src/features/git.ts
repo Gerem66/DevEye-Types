@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import {
-    GIT_CREDENTIAL_LABEL_MAX_LENGTH,
-    GIT_CREDENTIAL_SECRET_MAX_LENGTH,
+    CREDENTIAL_LABEL_MAX_LENGTH,
+    CREDENTIAL_SECRET_MAX_LENGTH,
+    credentialSchema
+} from '../domain/credential';
+import {
     GIT_REPO_NAME_MAX_LENGTH,
     GIT_REPO_OWNER_MAX_LENGTH,
     gitBranchSchema,
@@ -11,7 +14,6 @@ import {
     gitCommitPointsSchema,
     gitCommitSchema,
     gitRepoCandidateSchema,
-    gitCredentialSchema,
     gitProviderSchema,
     gitPullRequestSchema,
     gitReleaseSchema,
@@ -41,51 +43,59 @@ const credentialId = z.number().int().positive();
 // ------------------------------------------------------------- identifiants
 
 /**
- * Les identifiants d'accès de l'espace, tous fournisseurs confondus.
+ * Les jetons **GitHub** de l'espace.
  *
- * Ils vivent ici et non dans les projets : un jeton GitHub sert à plusieurs
- * dépôts, et une clé Dokploy ne relève d'aucun dépôt. Les secrets n'en sortent
- * jamais — la sortie ne porte qu'un `hasSecret`.
+ * Ils vivent ici et non dans les projets : un même jeton ouvre en général
+ * plusieurs dépôts. Les secrets n'en sortent jamais — la sortie ne porte qu'un
+ * `hasSecret`.
+ *
+ * Les clés **Dokploy** ne sont plus ici : elles ont leur propre feature
+ * (`deploy.credential*`). Elles n'avaient atterri dans cet écran que faute d'un
+ * module de déploiement pour les accueillir, et poser la clé qui met en
+ * production ne relève pas du droit de lire des dépôts. La table est restée
+ * commune ; c'est la porte, et le droit, qui se sont séparés.
  */
 export const gitCredentialList = {
     command: 'git.credentialList' as const,
     input: z.object({}),
-    output: z.object({ credentials: z.array(gitCredentialSchema) })
-};
-
-export const gitCredentialAdd = {
-    command: 'git.credentialAdd' as const,
-    input: z.object({
-        provider: gitProviderSchema,
-        label: z.string().min(1).max(GIT_CREDENTIAL_LABEL_MAX_LENGTH),
-        baseUrl: z.string().url().max(255).nullable(),
-        secret: z.string().min(1).max(GIT_CREDENTIAL_SECRET_MAX_LENGTH)
-    }),
-    output: z.object({ credential: gitCredentialSchema })
+    output: z.object({ credentials: z.array(credentialSchema) })
 };
 
 /**
- * Modifie un identifiant. `secret` absent = on garde celui en place ; une
- * chaîne non vide le remplace. Il n'y a pas de « vider » : un accès sans secret
- * ne sert à rien, on retire l'identifiant entier.
+ * Aucun `provider` ni `baseUrl` en entrée : GitHub, et son API publique. Le
+ * fournisseur se choisissait autrefois dans un sélecteur, parce que le même
+ * écran servait les deux — il n'y a plus rien à choisir ici.
+ */
+export const gitCredentialAdd = {
+    command: 'git.credentialAdd' as const,
+    input: z.object({
+        label: z.string().min(1).max(CREDENTIAL_LABEL_MAX_LENGTH),
+        secret: z.string().min(1).max(CREDENTIAL_SECRET_MAX_LENGTH)
+    }),
+    output: z.object({ credential: credentialSchema })
+};
+
+/**
+ * Modifie un jeton. `secret` absent = on garde celui en place ; une chaîne non
+ * vide le remplace. Il n'y a pas de « vider » : un accès sans secret ne sert à
+ * rien, on retire le jeton entier.
  */
 export const gitCredentialUpdate = {
     command: 'git.credentialUpdate' as const,
     input: z.object({
         credentialId,
-        label: z.string().min(1).max(GIT_CREDENTIAL_LABEL_MAX_LENGTH),
-        baseUrl: z.string().url().max(255).nullable(),
-        secret: z.string().min(1).max(GIT_CREDENTIAL_SECRET_MAX_LENGTH).optional()
+        label: z.string().min(1).max(CREDENTIAL_LABEL_MAX_LENGTH),
+        secret: z.string().min(1).max(CREDENTIAL_SECRET_MAX_LENGTH).optional()
     }),
-    output: z.object({ credential: gitCredentialSchema })
+    output: z.object({ credential: credentialSchema })
 };
 
 /**
- * Retire un identifiant.
+ * Retire un jeton.
  *
- * Les dépôts et les cibles de déploiement qui s'en servaient gardent leur lien
- * mais perdent leur accès (`ON DELETE SET NULL`) : la synchronisation s'arrête
- * proprement et le dit, au lieu de disparaître avec le jeton.
+ * Les dépôts qui s'en servaient gardent leur lien mais perdent leur accès
+ * (`ON DELETE SET NULL`) : la synchronisation s'arrête proprement et le dit, au
+ * lieu de disparaître avec le jeton.
  */
 export const gitCredentialRemove = {
     command: 'git.credentialRemove' as const,

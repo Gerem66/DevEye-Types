@@ -25,14 +25,6 @@ import {
     projectMilestoneSchema
 } from '../domain/projectPlan';
 import { PROJECT_EVENT_PAGE_SIZE, projectEventSchema } from '../domain/projectHistory';
-import {
-    PROJECT_DEPLOY_DESCRIPTION_MAX_LENGTH,
-    PROJECT_DEPLOY_TITLE_MAX_LENGTH,
-    deployCandidateSchema,
-    deployTargetKindSchema,
-    projectDeployTargetSchema,
-    projectDeploymentSchema
-} from '../domain/projectDeploy';
 import { myTaskSchema, projectLinkCountsSchema } from '../domain/projectLink';
 
 /**
@@ -539,65 +531,40 @@ export const projectAudienceUnlink = {
 
 // ---------------------------------------------------------- déploiement
 
-/** L'application liée, ou `null` si le projet n'en a pas. */
-export const projectDeployGet = {
-    command: 'project.deployGet' as const,
-    input: z.object({ projectId }),
-    output: z.object({ target: projectDeployTargetSchema.nullable() })
-};
-
 /**
- * Les applications proposées par l'instance, pour en choisir une.
+ * La liaison du projet vers les cibles de déploiement de l'espace.
  *
- * Seule commande du module qui appelle un service externe en direct : elle sert
- * à remplir un sélecteur, et attendre le prochain tour d'un ordonnanceur pour
- * voir apparaître la liste n'aurait aucun sens.
- */
-export const projectDeployCandidates = {
-    command: 'project.deployCandidates' as const,
-    input: z.object({ credentialId: z.number().int().positive() }),
-    output: z.object({ candidates: z.array(deployCandidateSchema) })
-};
-
-export const projectDeployLink = {
-    command: 'project.deployLink' as const,
-    input: z.object({
-        projectId,
-        credentialId: z.number().int().positive(),
-        kind: deployTargetKindSchema,
-        externalId: z.string().min(1).max(128),
-        name: z.string().min(1).max(120)
-    }),
-    output: z.object({ target: projectDeployTargetSchema })
-};
-
-export const projectDeployUnlink = {
-    command: 'project.deployUnlink' as const,
-    input: z.object({ projectId }),
-    output: z.object({ projectId })
-};
-
-/**
- * Déclenche un déploiement.
+ * Trois commandes, exactement comme pour un dépôt : **la cible n'appartient pas
+ * au projet.** Elle vit dans la feature Déploiement, avec son jeton, son
+ * historique et son suivi d'état, et plusieurs projets peuvent viser la même —
+ * le cas normal quand un client et un serveur partent dans la même pile compose.
+ * Ce qui suit ne fait que poser et retirer un pointeur.
  *
- * Toujours audité en `warn` : c'est la seule action du module qui produise un
- * effet **hors** de DevEye, et savoir qui a poussé quoi en production compte
- * plus que le reste.
+ * Déclencher ne se fait pas ici : c'est `deploy.trigger`, qui accepte un
+ * `projectId` facultatif pour inscrire le fait dans la frise du projet.
  */
-export const projectDeployTrigger = {
-    command: 'project.deployTrigger' as const,
-    input: z.object({
-        projectId,
-        title: z.string().max(PROJECT_DEPLOY_TITLE_MAX_LENGTH),
-        description: z.string().max(PROJECT_DEPLOY_DESCRIPTION_MAX_LENGTH)
-    }),
-    output: z.object({ deployment: projectDeploymentSchema })
-};
-
 export const projectDeployList = {
     command: 'project.deployList' as const,
-    input: z.object({ projectId, limit: z.number().int().positive().max(50).optional() }),
-    output: z.object({ deployments: z.array(projectDeploymentSchema) })
+    input: z.object({ projectId }),
+    output: z.object({ targetIds: z.array(z.number().int().positive()) })
+};
+
+/**
+ * Rattache une cible au projet. **Idempotente**, et refusée sur un projet
+ * confidentiel : la liaison est une ligne en clair, la cible vit à l'étage
+ * ouvert et son suivi tourne sans session — exactement comme pour un dépôt.
+ */
+export const projectDeployLink = {
+    command: 'project.deployLink' as const,
+    input: z.object({ projectId, targetId: z.number().int().positive() }),
+    output: z.object({ targetIds: z.array(z.number().int().positive()) })
+};
+
+/** Retire la liaison. La cible, son historique et les autres projets survivent. */
+export const projectDeployUnlink = {
+    command: 'project.deployUnlink' as const,
+    input: z.object({ projectId, targetId: z.number().int().positive() }),
+    output: z.object({ targetIds: z.array(z.number().int().positive()) })
 };
 
 // -------------------------------------------------------------- historique
@@ -725,12 +692,9 @@ export const projectCommands = [
     projectRepoList,
     projectRepoLink,
     projectRepoUnlink,
-    projectDeployGet,
-    projectDeployCandidates,
+    projectDeployList,
     projectDeployLink,
     projectDeployUnlink,
-    projectDeployTrigger,
-    projectDeployList,
     projectMyTasks,
     projectLinkCounts,
     projectUptimeList,

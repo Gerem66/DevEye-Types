@@ -439,9 +439,7 @@ export {
     projectEventSchema
 } from './domain/projectHistory';
 export {
-    GIT_CREDENTIAL_LABEL_MAX_LENGTH,
     GIT_GRAPH_SHA_LEN,
-    GIT_CREDENTIAL_SECRET_MAX_LENGTH,
     GIT_REPO_NAME_MAX_LENGTH,
     GIT_REPO_OWNER_MAX_LENGTH,
     gitBranchSchema,
@@ -450,7 +448,6 @@ export {
     gitCommitCursorSchema,
     gitCommitPointsSchema,
     gitCommitSchema,
-    gitCredentialSchema,
     gitDiffFileSchema,
     gitDiffStatusSchema,
     gitProviderSchema,
@@ -464,14 +461,24 @@ export {
     gitSyncStatusSchema
 } from './domain/git';
 export {
-    PROJECT_DEPLOY_DESCRIPTION_MAX_LENGTH,
-    PROJECT_DEPLOY_TITLE_MAX_LENGTH,
+    CREDENTIAL_LABEL_MAX_LENGTH,
+    CREDENTIAL_SECRET_MAX_LENGTH,
+    credentialProviderSchema,
+    credentialSchema
+} from './domain/credential';
+export type { Credential, CredentialProvider, CredentialRow } from './domain/credential';
+export {
+    DEPLOY_DESCRIPTION_MAX_LENGTH,
+    DEPLOY_EXTERNAL_ID_MAX_LENGTH,
+    DEPLOY_TARGET_NAME_MAX_LENGTH,
+    DEPLOY_TITLE_MAX_LENGTH,
     deployCandidateSchema,
+    deployProviderSchema,
     deployStatusSchema,
     deployTargetKindSchema,
-    projectDeployTargetSchema,
-    projectDeploymentSchema
-} from './domain/projectDeploy';
+    deployTargetSchema,
+    deploymentSchema
+} from './domain/deploy';
 export {
     DATABASE_ALERT_MESSAGE_MAX_LENGTH,
     DATABASE_ALERT_NAME_MAX_LENGTH,
@@ -609,13 +616,16 @@ export { myTaskSchema, projectLinkCountsSchema } from './domain/projectLink';
 export type { MyTask, ProjectLinkCounts, ProjectUptimeLinkRow } from './domain/projectLink';
 export type {
     DeployCandidate,
+    DeployProvider,
     DeployStatus,
+    DeployTarget,
     DeployTargetKind,
-    ProjectDeployTarget,
-    ProjectDeployTargetRow,
-    ProjectDeployment,
-    ProjectDeploymentRow
-} from './domain/projectDeploy';
+    DeployTargetRow,
+    DeployTargetWithUsageRow,
+    Deployment,
+    DeploymentRow,
+    ProjectDeployLinkRow
+} from './domain/deploy';
 export type {
     GitBranch,
     GitBranchRow,
@@ -626,8 +636,6 @@ export type {
     GitCommitCursor,
     GitCommitPoints,
     GitCommitRow,
-    GitCredential,
-    GitCredentialRow,
     GitDiffFile,
     GitDiffStatus,
     GitProvider,
@@ -1116,11 +1124,8 @@ export {
     projectCardSetMilestone,
     projectDepAdd,
     projectDepRemove,
-    projectDeployCandidates,
-    projectDeployGet,
     projectDeployLink,
     projectDeployList,
-    projectDeployTrigger,
     projectDeployUnlink,
     projectMyTasks,
     projectLinkCounts,
@@ -1156,6 +1161,22 @@ export {
     projectSetVersion,
     projectUpdate
 } from './features/project';
+export {
+    deployAdd,
+    deployCandidates,
+    deployCommands,
+    deployCount,
+    deployCredentialAdd,
+    deployCredentialList,
+    deployCredentialRemove,
+    deployCredentialUpdate,
+    deployGet,
+    deployList,
+    deployRemove,
+    deployReorder,
+    deployTrigger,
+    deployUpdate
+} from './features/deploy';
 export {
     gitAuthorMap,
     gitBranchList,

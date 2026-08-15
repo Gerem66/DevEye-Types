@@ -764,10 +764,15 @@ export { userRoleSchema } from './domain/role';
 export type { UserRole } from './domain/role';
 export {
     homeFeatureIdSchema,
+    homeFeatureTileSchema,
+    homeFolderSchema,
     homeLayoutSchema,
     homeSectionKindSchema,
     homeSectionSchema,
     homeTopbarWidgetIdSchema,
+    HOME_FOLDER_MAX_ITEMS,
+    HOME_SECTION_MAX_TILES,
+    isHomeFolder,
     shortcutItemSchema,
     shortcutPreviewSchema,
     shortcutTemplateSchema,
@@ -775,6 +780,8 @@ export {
 } from './domain/home';
 export type {
     HomeFeatureId,
+    HomeFeatureTile,
+    HomeFolder,
     HomeLayout,
     HomeSection,
     HomeSectionKind,

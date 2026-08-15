@@ -62,7 +62,12 @@ export const cloudSyncUpdateShare = {
         backupPruneEnabled: z.boolean().optional(),
         backupLimitBytes: z.number().int().positive().nullable().optional(),
         snapshotEnabled: z.boolean().optional(),
-        snapshotIntervalHours: z.number().int().positive().max(24 * 7).optional(),
+        snapshotIntervalHours: z
+            .number()
+            .int()
+            .positive()
+            .max(24 * 7)
+            .optional(),
         snapshotKeepDays: z.number().int().positive().max(3650).optional(),
         integrityScanEnabled: z.boolean().optional(),
         rateUpBps: z.number().int().positive().nullable().optional(),
@@ -236,7 +241,11 @@ export const cloudSyncClearVersions = {
  */
 export const cloudSyncListSnapshots = {
     command: 'cloudSync.listSnapshots' as const,
-    input: z.object({ shareId, limit: z.number().int().positive().max(500), offset: z.number().int().nonnegative() }),
+    input: z.object({
+        shareId,
+        limit: z.number().int().positive().max(500),
+        offset: z.number().int().nonnegative()
+    }),
     output: z.object({
         snapshots: z.array(cloudSyncSnapshotSchema),
         total: z.number().int().nonnegative()

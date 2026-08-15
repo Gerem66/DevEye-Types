@@ -139,7 +139,11 @@ export const cloudSyncShareSchema = z.object({
     backupLimitBytes: z.number().int().positive().nullable(),
     /** Points de restauration automatiques du partage entier. */
     snapshotEnabled: z.boolean(),
-    snapshotIntervalHours: z.number().int().positive().max(24 * 7),
+    snapshotIntervalHours: z
+        .number()
+        .int()
+        .positive()
+        .max(24 * 7),
     snapshotKeepDays: z.number().int().positive().max(3650),
     /** Balayage d'intégrité de fond (relecture + vérification des blobs). */
     integrityScanEnabled: z.boolean(),

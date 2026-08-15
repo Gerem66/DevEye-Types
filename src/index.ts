@@ -1428,6 +1428,7 @@ export {
     sentinelRemoveAllow,
     sentinelReopen,
     sentinelResetBaseline,
+    sentinelResolve,
     sentinelScanNow,
     sentinelSetConfig,
     sentinelSetSettings,

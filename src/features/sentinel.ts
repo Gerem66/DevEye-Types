@@ -122,7 +122,27 @@ export const sentinelAcknowledge = {
     })
 };
 
-/** Annule un acquittement : retire l'autorisation et rouvre le constat. */
+/**
+ * « C'est réglé. »
+ *
+ * Ferme le constat **sans** écrire d'autorisation : la situation a cessé, elle
+ * n'a pas été jugée normale. La distinction n'est pas cosmétique — un constat
+ * acquitté ne rouvrira plus jamais, un constat réglé rouvre au premier relevé
+ * qui le revoit, et c'est précisément ce qu'on veut d'une correction.
+ *
+ * Le moteur résout tout seul ce qu'il sait rejouer (les règles d'instant). Restent
+ * les constats d'**événement** — une authentification, une entrée de persistance :
+ * ils décrivent quelque chose qui a eu lieu, donc rien ne cessera de les
+ * déclencher, et sans cette commande la seule sortie était de les déclarer
+ * légitimes. C'est-à-dire de mentir pour faire le ménage.
+ */
+export const sentinelResolve = {
+    command: 'sentinel.resolve' as const,
+    input: z.object({ findingId }),
+    output: z.object({ finding: findingSchema })
+};
+
+/** Annule un acquittement ou une résolution : retire l'autorisation et rouvre le constat. */
 export const sentinelReopen = {
     command: 'sentinel.reopen' as const,
     input: z.object({ findingId }),
@@ -239,6 +259,7 @@ export const sentinelCommands = [
     sentinelBaseline,
     sentinelPosture,
     sentinelAcknowledge,
+    sentinelResolve,
     sentinelReopen,
     sentinelAllowlist,
     sentinelRemoveAllow,

@@ -6,6 +6,8 @@ import {
     cloudSyncProgressSchema,
     cloudSyncShareSchema,
     cloudSyncShareStateSchema,
+    cloudSyncSnapshotDiffSchema,
+    cloudSyncSnapshotSchema,
     cloudSyncVersionSchema,
     SYNC_NAME_MAX,
     SYNC_PATTERN_MAX,
@@ -59,6 +61,13 @@ export const cloudSyncUpdateShare = {
         name: z.string().min(1).max(SYNC_NAME_MAX).optional(),
         backupPruneEnabled: z.boolean().optional(),
         backupLimitBytes: z.number().int().positive().nullable().optional(),
+        snapshotEnabled: z.boolean().optional(),
+        snapshotIntervalHours: z.number().int().positive().max(24 * 7).optional(),
+        snapshotKeepDays: z.number().int().positive().max(3650).optional(),
+        integrityScanEnabled: z.boolean().optional(),
+        rateUpBps: z.number().int().positive().nullable().optional(),
+        rateDownBps: z.number().int().positive().nullable().optional(),
+        trashKeepDays: z.number().int().positive().max(3650).optional(),
         conflictPolicy: syncConflictPolicySchema.optional()
     }),
     output: z.object({ share: cloudSyncShareSchema })
@@ -221,6 +230,78 @@ export const cloudSyncClearVersions = {
     output: z.object({ deleted: z.number().int().nonnegative() })
 };
 
+/**
+ * Points de restauration du partage entier. Complètent les versions (corbeille
+ * par fichier) : ils répondent à « remets le dossier comme il était mardi ».
+ */
+export const cloudSyncListSnapshots = {
+    command: 'cloudSync.listSnapshots' as const,
+    input: z.object({ shareId, limit: z.number().int().positive().max(500), offset: z.number().int().nonnegative() }),
+    output: z.object({
+        snapshots: z.array(cloudSyncSnapshotSchema),
+        total: z.number().int().nonnegative()
+    })
+};
+
+/** Prend un point de restauration maintenant (aucun octet copié). */
+export const cloudSyncCreateSnapshot = {
+    command: 'cloudSync.createSnapshot' as const,
+    input: z.object({ shareId, label: z.string().min(1).max(SYNC_NAME_MAX).optional() }),
+    output: z.object({ snapshot: cloudSyncSnapshotSchema })
+};
+
+/**
+ * Ce que changerait une restauration, SANS rien appliquer. C'est ce qui permet
+ * à l'interface de demander confirmation en chiffres plutôt qu'à l'aveugle.
+ */
+export const cloudSyncDiffSnapshot = {
+    command: 'cloudSync.diffSnapshot' as const,
+    input: z.object({ snapshotId: z.number().int().positive() }),
+    output: z.object({ diff: cloudSyncSnapshotDiffSchema })
+};
+
+/**
+ * Remet le partage dans l'état du snapshot : contenus restaurés, et fichiers
+ * apparus depuis retirés. RÉVERSIBLE — un snapshot `preRestore` de l'état
+ * courant est pris juste avant, et il suffit de le restaurer pour annuler.
+ * Refusée en bloc si un seul contenu manque au stockage.
+ */
+export const cloudSyncRestoreSnapshot = {
+    command: 'cloudSync.restoreSnapshot' as const,
+    input: z.object({ snapshotId: z.number().int().positive() }),
+    output: z.object({
+        restored: z.number().int().nonnegative(),
+        removed: z.number().int().nonnegative(),
+        /** Le point de retour créé avant l'opération. */
+        undoSnapshotId: z.number().int().positive()
+    })
+};
+
+export const cloudSyncDeleteSnapshot = {
+    command: 'cloudSync.deleteSnapshot' as const,
+    input: z.object({ snapshotId: z.number().int().positive() }),
+    output: z.object({ ok: z.boolean() })
+};
+
+/**
+ * Vérifie l'intégrité de TOUS les blobs d'un partage : relecture, tag GCM et
+ * SHA-256. Long par nature (c'est de la relecture disque), donc lancé à la
+ * demande depuis l'interface ; le balayage de fond fait la même chose par
+ * petits budgets horaires.
+ */
+export const cloudSyncVerifyIntegrity = {
+    command: 'cloudSync.verifyIntegrity' as const,
+    input: z.object({ shareId }),
+    output: z.object({
+        checked: z.number().int().nonnegative(),
+        bytes: z.number().int().nonnegative(),
+        /** Blobs illisibles ou dont le contenu ne correspond plus à leur hash. */
+        corrupted: z.number().int().nonnegative(),
+        /** Parmi eux, ceux qu'un appareil en ligne a permis de reconstruire. */
+        repaired: z.number().int().nonnegative()
+    })
+};
+
 /** Télécharge une version : les octets arrivent en pushes `cloudSync.chunk` (base64). */
 export const cloudSyncDownloadVersion = {
     command: 'cloudSync.downloadVersion' as const,
@@ -260,5 +341,11 @@ export const cloudSyncCommands = [
     cloudSyncDeleteVersions,
     cloudSyncClearVersions,
     cloudSyncDownloadVersion,
-    cloudSyncDownloadFile
+    cloudSyncDownloadFile,
+    cloudSyncListSnapshots,
+    cloudSyncCreateSnapshot,
+    cloudSyncDiffSnapshot,
+    cloudSyncRestoreSnapshot,
+    cloudSyncDeleteSnapshot,
+    cloudSyncVerifyIntegrity
 ] as const;

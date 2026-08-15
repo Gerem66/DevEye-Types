@@ -8,6 +8,7 @@ import {
     SYNC_PATTERN_MAX,
     SYNC_REL_PATH_MAX,
     SYNC_STORAGE_PATH_MAX,
+    syncEntryKindSchema,
     syncExclusionKindSchema,
     syncShareStatusSchema
 } from '../domain/cloudSync';
@@ -271,13 +272,20 @@ export const agentSyncChangedPayloadSchema = z.object({
     shareId: z.number().int().positive()
 });
 
-/** Une entrée du scan local (fichiers réguliers uniquement, exclusions déjà appliquées). */
+/**
+ * Une entrée du scan local (exclusions déjà appliquées). Fichiers réguliers,
+ * plus les dossiers VIDES : un dossier non vide est implicite (ses fichiers le
+ * recréent), et l'indexer coûterait une ligne par dossier pour rien.
+ */
 export const syncIndexEntrySchema = z.object({
     relPath: syncRelPath,
+    kind: syncEntryKindSchema.default('file'),
     hash: sha256HexSchema,
     size: z.number().int().nonnegative(),
     /** Millisecondes unix. */
-    mtime: z.number().int().nonnegative()
+    mtime: z.number().int().nonnegative(),
+    /** Bits de permission Unix (`& 0o777`) ; `null` depuis un agent Windows. */
+    mode: z.number().int().min(0).max(0o777).nullable().default(null)
 });
 export type SyncIndexEntry = z.infer<typeof syncIndexEntrySchema>;
 
@@ -319,13 +327,20 @@ export const agentSyncAckPayloadSchema = z.object({
     seq: z.number().int().nonnegative()
 });
 
-/** Issue d'une op locale : install atomique (`apply`), corbeille (`delete`), upload (`push`). */
+/**
+ * Issue d'une op locale : install atomique (`apply`), création de dossier vide
+ * (`applyDir`), copie locale d'un contenu déjà présent (`applyLocal`), amorce
+ * de download avec offset de reprise (`applyReady`), corbeille (`delete`),
+ * upload (`push`).
+ */
 export const AGENT_SYNC_OP_RESULT = 'sync.opResult' as const;
 export const agentSyncOpResultPayloadSchema = z.object({
     deviceId: z.uuid(),
     opId: syncOpId,
-    op: z.enum(['apply', 'delete', 'push']),
+    op: z.enum(['apply', 'applyDir', 'applyLocal', 'applyReady', 'delete', 'push']),
     ok: z.boolean(),
+    /** `applyReady` seulement : octets de clair déjà détenus pour ce hash. */
+    resumeFrom: z.number().int().nonnegative().optional(),
     error: z.string().max(500).optional()
 });
 
@@ -667,7 +682,16 @@ export const syncShareAssignmentSchema = z.object({
             kind: syncExclusionKindSchema,
             pattern: z.string().min(1).max(SYNC_PATTERN_MAX)
         })
-    )
+    ),
+    /**
+     * Plafond de débit des MONTÉES, en octets/s ; `null` = illimité. Le
+     * limiteur vit chez l'émetteur : l'agent pour les montées, le serveur pour
+     * les descentes. C'est la seule façon de brider sans laisser gonfler des
+     * tampons intermédiaires.
+     */
+    rateUpBps: z.number().int().positive().nullable().default(null),
+    /** Rétention de `.deveye-trash/`, en jours. */
+    trashKeepDays: z.number().int().positive().max(3650).default(30)
 });
 export type SyncShareAssignment = z.infer<typeof syncShareAssignmentSchema>;
 
@@ -686,12 +710,19 @@ export const agentSyncScanPayloadSchema = z.object({
 });
 export type AgentSyncScanPayload = z.infer<typeof agentSyncScanPayloadSchema>;
 
-/** Demande l'upload d'un fichier local (répond en chunks `sync.chunk`). */
+/**
+ * Demande l'upload d'un fichier local (répond en chunks `sync.chunk`).
+ *
+ * `startOffset` reprend un transfert interrompu : le serveur a conservé un
+ * partiel vérifiable et ne redemande que ce qui manque. Le hash final reste le
+ * juge de paix — une reprise incohérente est jetée, jamais installée.
+ */
 export const AGENT_SYNC_PUSH = 'sync.push' as const;
 export const agentSyncPushPayloadSchema = z.object({
     opId: syncOpId,
     shareId: z.number().int().positive(),
-    relPath: syncRelPath
+    relPath: syncRelPath,
+    startOffset: z.number().int().nonnegative().default(0)
 });
 export type AgentSyncPushPayload = z.infer<typeof agentSyncPushPayloadSchema>;
 
@@ -713,9 +744,82 @@ export const agentSyncApplyChunkPayloadSchema = z.object({
     hash: sha256HexSchema,
     size: z.number().int().nonnegative(),
     /** Millisecondes unix, appliqué au fichier installé. */
-    mtime: z.number().int().nonnegative()
+    mtime: z.number().int().nonnegative(),
+    /** Permissions Unix à réappliquer ; ignoré sous Windows, `null` = ne pas toucher. */
+    mode: z.number().int().min(0).max(0o777).nullable().default(null),
+    /**
+     * Offset de clair à partir duquel CE transfert reprend. Décidé par le
+     * serveur (à partir du `resumeFrom` annoncé par l'agent) et répété sur
+     * chaque frame : l'agent tronque son temporaire à cette valeur avant
+     * d'écrire. C'est ce qui empêche les deux côtés de diverger — l'agent ne
+     * doit jamais présumer de son propre point de reprise.
+     */
+    resumeFrom: z.number().int().nonnegative().default(0)
 });
 export type AgentSyncApplyChunkPayload = z.infer<typeof agentSyncApplyChunkPayloadSchema>;
+
+/**
+ * Amorce un download. L'agent répond `sync.opResult` avec `op: 'applyReady'` et
+ * un `resumeFrom` : le nombre d'octets de clair qu'il détient DÉJÀ dans son
+ * temporaire pour ce hash exact. Le serveur ne renvoie alors que ce qui manque.
+ *
+ * Le temporaire est nommé par hash et non par `opId`, ce qui rend la reprise
+ * auto-corrective : un fichier modifié entre-temps a un autre hash, donc un
+ * autre temporaire, donc aucune reprise possible sur des octets périmés.
+ */
+export const AGENT_SYNC_APPLY_START = 'sync.applyStart' as const;
+export const agentSyncApplyStartPayloadSchema = z.object({
+    opId: syncOpId,
+    shareId: z.number().int().positive(),
+    relPath: syncRelPath,
+    hash: sha256HexSchema,
+    size: z.number().int().nonnegative(),
+    mtime: z.number().int().nonnegative(),
+    mode: z.number().int().min(0).max(0o777).nullable().default(null)
+});
+export type AgentSyncApplyStartPayload = z.infer<typeof agentSyncApplyStartPayloadSchema>;
+
+/**
+ * Pose les métadonnées d'un chemin, sans qu'un octet ne transite. Deux usages :
+ * créer un dossier VIDE de l'index, et appliquer un `chmod` seul sur un chemin
+ * déjà en place (fichier comme dossier). L'agent ne crée le chemin que s'il
+ * manque ; sinon il ne touche QUE le mode.
+ */
+export const AGENT_SYNC_APPLY_DIR = 'sync.applyDir' as const;
+export const agentSyncApplyDirPayloadSchema = z.object({
+    opId: syncOpId,
+    shareId: z.number().int().positive(),
+    relPath: syncRelPath,
+    /**
+     * `dir` autorise la CRÉATION du chemin ; `file` interdit de le créer et se
+     * contente d'ajuster le mode s'il existe. Sans cette distinction, un `chmod`
+     * sur un fichier momentanément absent ferait naître un DOSSIER à sa place —
+     * que le planner écarterait ensuite pour toujours en « conflit de nature ».
+     */
+    kind: syncEntryKindSchema.default('dir'),
+    mode: z.number().int().min(0).max(0o777).nullable().default(null)
+});
+export type AgentSyncApplyDirPayload = z.infer<typeof agentSyncApplyDirPayloadSchema>;
+
+/**
+ * Installe un contenu que l'appareil possède DÉJÀ ailleurs dans le partage
+ * (renommage, déplacement, copie) : l'agent vérifie le hash de `sourceRelPath`
+ * puis copie en local, sans qu'un octet ne transite par le réseau. En cas
+ * d'échec il répond `opResult !ok` et le serveur retombe sur `sync.applyChunk`.
+ */
+export const AGENT_SYNC_APPLY_LOCAL = 'sync.applyLocal' as const;
+export const agentSyncApplyLocalPayloadSchema = z.object({
+    opId: syncOpId,
+    shareId: z.number().int().positive(),
+    relPath: syncRelPath,
+    /** Chemin, dans le même partage, dont le contenu est déjà le bon. */
+    sourceRelPath: syncRelPath,
+    hash: sha256HexSchema,
+    size: z.number().int().nonnegative(),
+    mtime: z.number().int().nonnegative(),
+    mode: z.number().int().min(0).max(0o777).nullable().default(null)
+});
+export type AgentSyncApplyLocalPayload = z.infer<typeof agentSyncApplyLocalPayloadSchema>;
 
 /**
  * Propage une suppression : l'agent déplace le fichier vers sa corbeille locale

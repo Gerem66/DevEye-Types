@@ -88,6 +88,18 @@ export type SyncSessionState = z.infer<typeof syncSessionStateSchema>;
 export const syncFileStateSchema = z.enum(['present', 'deleted']);
 export type SyncFileState = z.infer<typeof syncFileStateSchema>;
 
+/**
+ * Nature d'une entrée d'index. Seuls les dossiers VIDES sont indexés comme
+ * `dir` : un dossier peuplé est implicite (ses fichiers le recréent partout).
+ * Sans ça, un dossier vide créé sur une machine n'existerait sur aucune autre,
+ * et un dossier vidé resterait en coquille chez les pairs.
+ */
+export const syncEntryKindSchema = z.enum(['file', 'dir']);
+export type SyncEntryKind = z.infer<typeof syncEntryKindSchema>;
+
+/** SHA-256 du contenu vide : le hash conventionnel porté par une entrée `dir`. */
+export const SYNC_DIR_HASH = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+
 export const cloudSyncExclusionSchema = z.object({
     id: z.number().int().positive(),
     kind: syncExclusionKindSchema,
@@ -125,6 +137,17 @@ export const cloudSyncShareSchema = z.object({
     backupPruneEnabled: z.boolean(),
     /** Budget de versions en octets ; null = illimité. */
     backupLimitBytes: z.number().int().positive().nullable(),
+    /** Points de restauration automatiques du partage entier. */
+    snapshotEnabled: z.boolean(),
+    snapshotIntervalHours: z.number().int().positive().max(24 * 7),
+    snapshotKeepDays: z.number().int().positive().max(3650),
+    /** Balayage d'intégrité de fond (relecture + vérification des blobs). */
+    integrityScanEnabled: z.boolean(),
+    /** Limites de bande passante en octets/s ; `null` = illimité (défaut). */
+    rateUpBps: z.number().int().positive().nullable(),
+    rateDownBps: z.number().int().positive().nullable(),
+    /** Rétention de la corbeille locale des appareils, en jours. */
+    trashKeepDays: z.number().int().positive().max(3650),
     conflictPolicy: syncConflictPolicySchema,
     stats: cloudSyncShareStatsSchema,
     devices: z.array(cloudSyncShareDeviceSchema),
@@ -135,15 +158,80 @@ export type CloudSyncShare = z.infer<typeof cloudSyncShareSchema>;
 /** Une entrée de l'index canonique, telle que naviguée depuis le client. */
 export const cloudSyncFileSchema = z.object({
     relPath: z.string().max(SYNC_REL_PATH_MAX),
+    kind: syncEntryKindSchema,
     hash: sha256HexSchema,
     size: z.number().int().nonnegative(),
     /** Millisecondes unix. */
     mtime: z.number().int().nonnegative(),
+    mode: z.number().int().nullable(),
     state: syncFileStateSchema,
     /** Secondes unix. */
     updated: z.number().int().nonnegative()
 });
 export type CloudSyncFile = z.infer<typeof cloudSyncFileSchema>;
+
+/**
+ * Origine d'un point de restauration :
+ *  - `auto`       — pris par l'entretien horaire quand l'index a bougé ;
+ *  - `manual`     — demandé depuis l'interface ;
+ *  - `preRestore` — pris juste AVANT une restauration, ce qui la rend annulable.
+ */
+export const syncSnapshotKindSchema = z.enum(['auto', 'manual', 'preRestore']);
+export type SyncSnapshotKind = z.infer<typeof syncSnapshotKindSchema>;
+
+/**
+ * Un point de restauration du partage ENTIER. Contrairement à une version
+ * (corbeille par fichier), il permet de revenir à « l'état du dossier tel qu'il
+ * était mardi à 14 h ». Il ne copie aucun octet : c'est une photo de l'index,
+ * les contenus étant déjà dédupliqués par hash dans le blob store.
+ */
+export const cloudSyncSnapshotSchema = z.object({
+    id: z.number().int().positive(),
+    kind: syncSnapshotKindSchema,
+    label: z.string().max(SYNC_NAME_MAX).nullable(),
+    fileCount: z.number().int().nonnegative(),
+    totalBytes: z.number().int().nonnegative(),
+    /** Secondes unix. */
+    created: z.number().int().nonnegative()
+});
+export type CloudSyncSnapshot = z.infer<typeof cloudSyncSnapshotSchema>;
+
+/** Ce que changerait une restauration, calculé avant de l'appliquer. */
+export const cloudSyncSnapshotDiffSchema = z.object({
+    /** Chemins que la restauration ferait revenir (contenu différent ou absent). */
+    restored: z.number().int().nonnegative(),
+    /** Chemins créés APRÈS le snapshot, que la restauration retirerait. */
+    removed: z.number().int().nonnegative(),
+    /** Chemins déjà identiques : rien à faire. */
+    unchanged: z.number().int().nonnegative(),
+    /**
+     * Contenus dont le blob a disparu du stockage. Tant que ce n'est pas 0, la
+     * restauration est REFUSÉE — mieux vaut ne rien faire qu'à moitié.
+     */
+    missingBlobs: z.number().int().nonnegative()
+});
+export type CloudSyncSnapshotDiff = z.infer<typeof cloudSyncSnapshotDiffSchema>;
+
+export interface SyncSnapshotRow {
+    id: number;
+    share_id: number;
+    kind: SyncSnapshotKind;
+    label: string | null;
+    file_count: number;
+    total_bytes: number;
+    created: number;
+}
+
+export interface SyncSnapshotFileRow {
+    snapshot_id: number;
+    rel_path: string;
+    rel_path_hash: string;
+    kind: SyncEntryKind;
+    hash: string;
+    size: number;
+    mtime: number;
+    mode: number | null;
+}
 
 /** Une version archivée (corbeille/backup), restaurable et téléchargeable. */
 export const cloudSyncVersionSchema = z.object({
@@ -177,6 +265,13 @@ export const cloudSyncProgressSchema = z.object({
     bytesDone: z.number().int().nonnegative(),
     /** Fichier en cours de transfert, pour la ligne discrète de l'UI. */
     currentPath: z.string().max(SYNC_REL_PATH_MAX).nullable(),
+    /**
+     * Avancement DANS le fichier en cours. Sans ça, un fichier de plusieurs Go
+     * laissait la barre parfaitement figée du début à la fin de son transfert :
+     * les octets n'étaient comptés qu'une fois le fichier terminé.
+     */
+    currentBytes: z.number().int().nonnegative(),
+    currentTotal: z.number().int().nonnegative(),
     direction: syncDirectionSchema.nullable(),
     error: z.string().max(500).nullable()
 });
@@ -216,6 +311,13 @@ export interface SyncShareRow {
     status: SyncShareStatus;
     backup_prune_enabled: number;
     backup_limit_bytes: number | null;
+    snapshot_enabled: number;
+    snapshot_interval_hours: number;
+    snapshot_keep_days: number;
+    integrity_scan_enabled: number;
+    rate_up_bps: number | null;
+    rate_down_bps: number | null;
+    trash_keep_days: number;
     conflict_policy: SyncConflictPolicy;
     created: number;
     updated: number;
@@ -255,10 +357,14 @@ export interface SyncFileRow {
     rel_path: string;
     /** SHA-256 du chemin relatif NFC-normalisé (support d'unicité MySQL). */
     rel_path_hash: string;
+    /** `dir` uniquement pour les dossiers VIDES (voir {@link syncEntryKindSchema}). */
+    kind: SyncEntryKind;
     hash: string;
     size: number;
     /** Millisecondes unix. */
     mtime: number;
+    /** Permissions Unix (`& 0o777`) ; `null` quand aucun agent Unix ne l'a vu. */
+    mode: number | null;
     source_device_id: string | null;
     state: SyncFileState;
     created: number;
@@ -276,10 +382,12 @@ export interface SyncDeviceFileRow {
     device_id: string;
     rel_path: string;
     rel_path_hash: string;
+    kind: SyncEntryKind;
     hash: string;
     size: number;
     /** Millisecondes unix. */
     mtime: number;
+    mode: number | null;
     synced_at: number;
 }
 

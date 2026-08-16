@@ -337,7 +337,7 @@ export const AGENT_SYNC_OP_RESULT = 'sync.opResult' as const;
 export const agentSyncOpResultPayloadSchema = z.object({
     deviceId: z.uuid(),
     opId: syncOpId,
-    op: z.enum(['apply', 'applyDir', 'applyLocal', 'applyReady', 'delete', 'push']),
+    op: z.enum(['apply', 'applyDir', 'applyLocal', 'applyReady', 'delete', 'move', 'push']),
     ok: z.boolean(),
     /** `applyReady` seulement : octets de clair déjà détenus pour ce hash. */
     resumeFrom: z.number().int().nonnegative().optional(),
@@ -820,6 +820,31 @@ export const agentSyncApplyLocalPayloadSchema = z.object({
     mode: z.number().int().min(0).max(0o777).nullable().default(null)
 });
 export type AgentSyncApplyLocalPayload = z.infer<typeof agentSyncApplyLocalPayloadSchema>;
+
+/**
+ * Propage un DÉPLACEMENT : l'agent renomme sur place, sans transfert ni
+ * corbeille. Le contenu ne bouge pas d'un octet, seul son chemin change — le
+ * traiter comme « supprime ici, télécharge là » coûtait une copie intégrale en
+ * corbeille, pour une opération qui ne détruit rien.
+ *
+ * L'agent vérifie que la source porte bien le contenu attendu avant de bouger.
+ * En cas d'échec il répond `opResult !ok`, et le serveur retombe sur le chemin
+ * ordinaire (téléchargement puis suppression), qui reste sûr.
+ */
+export const AGENT_SYNC_MOVE = 'sync.move' as const;
+export const agentSyncMovePayloadSchema = z.object({
+    opId: syncOpId,
+    shareId: z.number().int().positive(),
+    /** Chemin actuel sur l'appareil. */
+    fromRelPath: syncRelPath,
+    /** Chemin cible. */
+    relPath: syncRelPath,
+    hash: sha256HexSchema,
+    size: z.number().int().nonnegative(),
+    mtime: z.number().int().nonnegative(),
+    mode: z.number().int().min(0).max(0o777).nullable().default(null)
+});
+export type AgentSyncMovePayload = z.infer<typeof agentSyncMovePayloadSchema>;
 
 /**
  * Propage une suppression : l'agent déplace le fichier vers sa corbeille locale

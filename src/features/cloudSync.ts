@@ -69,6 +69,19 @@ export const cloudSyncUpdateShare = {
     output: z.object({ share: cloudSyncShareSchema })
 };
 
+/**
+ * Range les partages de l'espace : `ids` est la liste **complète**, dans son
+ * ordre final (indice le plus petit en premier). Rien d'autre ne positionne un
+ * partage — les nouveaux sont ajoutés à la fin — donc l'ordre appartient
+ * entièrement à l'utilisateur, comme pour les notes et les services surveillés.
+ * Ne touche à aucun état de synchro : ranger n'est pas configurer.
+ */
+export const cloudSyncReorderShares = {
+    command: 'cloudSync.reorderShares' as const,
+    input: z.object({ ids: z.array(shareId).min(1) }),
+    output: z.object({ ids: z.array(shareId) })
+};
+
 /** Supprime un partage ; `deleteData` détruit aussi le blob store sur disque. */
 export const cloudSyncDeleteShare = {
     command: 'cloudSync.deleteShare' as const,
@@ -320,6 +333,7 @@ export const cloudSyncCommands = [
     cloudSyncListShares,
     cloudSyncCreateShare,
     cloudSyncUpdateShare,
+    cloudSyncReorderShares,
     cloudSyncDeleteShare,
     cloudSyncAttachDevice,
     cloudSyncDetachDevice,

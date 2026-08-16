@@ -313,6 +313,8 @@ export interface SyncShareRow {
     name: string;
     storage_path: string;
     status: SyncShareStatus;
+    /** Rang d'affichage dans l'espace ; seul `cloudSync.reorderShares` le change. */
+    sort_order: number;
     backup_prune_enabled: number;
     backup_limit_bytes: number | null;
     snapshot_enabled: number;

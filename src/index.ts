@@ -1396,6 +1396,7 @@ export {
     cloudSyncPauseDevice,
     cloudSyncPauseShare,
     cloudSyncRemoveExclusion,
+    cloudSyncReorderShares,
     cloudSyncRestoreSnapshot,
     cloudSyncRestoreVersion,
     cloudSyncResumeDevice,

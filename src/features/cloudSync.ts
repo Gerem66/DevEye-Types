@@ -33,23 +33,14 @@ export const cloudSyncListShares = {
 };
 
 /**
- * Valide un chemin de stockage serveur avant création : absolu, inscriptible,
- * non imbriqué avec un autre partage. Renvoie l'espace disque libre.
+ * Crée un partage. Le chemin de stockage n'est PAS demandé : il est dérivé du
+ * nom, sous la racine persistante du serveur. Faire saisir un chemin serveur
+ * revenait à demander de deviner l'arborescence d'un conteneur — et menait à
+ * créer le partage sur une couche éphémère, effacée au redéploiement.
  */
-export const cloudSyncValidatePath = {
-    command: 'cloudSync.validatePath' as const,
-    input: z.object({ path: storagePath }),
-    output: z.object({
-        ok: z.boolean(),
-        freeBytes: z.number().int().nonnegative().nullable(),
-        /** Raison du refus (français), quand `!ok`. */
-        problem: z.string().nullable()
-    })
-};
-
 export const cloudSyncCreateShare = {
     command: 'cloudSync.createShare' as const,
-    input: z.object({ name: z.string().min(1).max(SYNC_NAME_MAX), storagePath }),
+    input: z.object({ name: z.string().min(1).max(SYNC_NAME_MAX) }),
     output: z.object({ share: cloudSyncShareSchema })
 };
 
@@ -327,7 +318,6 @@ export const cloudSyncDownloadFile = {
 
 export const cloudSyncCommands = [
     cloudSyncListShares,
-    cloudSyncValidatePath,
     cloudSyncCreateShare,
     cloudSyncUpdateShare,
     cloudSyncDeleteShare,

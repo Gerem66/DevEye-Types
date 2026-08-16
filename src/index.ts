@@ -1401,7 +1401,6 @@ export {
     cloudSyncSyncNow,
     cloudSyncUnsubscribe,
     cloudSyncUpdateShare,
-    cloudSyncValidatePath,
     cloudSyncVerifyIntegrity
 } from './features/cloudSync';
 export {

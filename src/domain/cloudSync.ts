@@ -30,6 +30,34 @@ export const SYNC_INDEX_BATCH_MAX = 500;
 export const SYNC_MTIME_SKEW_MS = 5_000;
 
 /**
+ * Séparateur des champs d'une ligne d'empreinte d'index (voir
+ * `src/cloudSync/fingerprint.ts` côté serveur et `sync::fingerprint` côté
+ * agent). U+0001 est sûr : les caractères de contrôle sont déjà refusés dans un
+ * chemin par `relPathProblem` / `rel_path_problem`, des deux côtés.
+ */
+export const SYNC_FINGERPRINT_SEP = '\u0001';
+
+/**
+ * Mode de scan demandé à l'agent.
+ *  - `auto` → l'agent a le droit de répondre « rien n'a bougé » sans parcourir
+ *    le disque, en se contentant d'annoncer l'empreinte de ce qu'il détient ;
+ *  - `full` → parcours complet obligatoire (filet de sécurité horaire).
+ */
+export const syncScanModeSchema = z.enum(['auto', 'full']);
+export type SyncScanMode = z.infer<typeof syncScanModeSchema>;
+
+/**
+ * Empreinte d'un index : `{nombre}.{octets}.{sha256hex}`.
+ *
+ * Le pli est un XOR des hachages par ligne, donc INDÉPENDANT DE L'ORDRE, et
+ * c'est délibéré : un tri obligerait Rust (ordre octet UTF-8) et TypeScript
+ * (ordre unité UTF-16) à s'accorder sur les caractères hors BMP, ce qu'ils ne
+ * font pas. Un seul emoji dans un nom de fichier aurait alors désactivé le
+ * chemin rapide pour toujours, sans que rien ne le signale.
+ */
+export const syncIndexFingerprintSchema = z.string().regex(/^\d+\.\d+\.[0-9a-f]{64}$/);
+
+/**
  * Déchets d'OS jamais synchronisés (comportement Synology/Syncthing). Le
  * serveur les ajoute comme exclusions `name` implicites (merge, cleanup ET
  * config poussée aux agents) — une seule source de vérité, ici.

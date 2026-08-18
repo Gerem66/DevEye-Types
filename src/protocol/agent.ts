@@ -10,6 +10,8 @@ import {
     SYNC_STORAGE_PATH_MAX,
     syncEntryKindSchema,
     syncExclusionKindSchema,
+    syncIndexFingerprintSchema,
+    syncScanModeSchema,
     syncShareStatusSchema
 } from '../domain/cloudSync';
 import {
@@ -297,6 +299,22 @@ export const agentSyncIndexPayloadSchema = z.object({
     shareId: z.number().int().positive(),
     entries: z.array(syncIndexEntrySchema).max(SYNC_INDEX_BATCH_MAX),
     done: z.boolean(),
+    /**
+     * L'agent a-t-il RÉELLEMENT parcouru le disque ?
+     *
+     * `false` répond à un `sync.scan` en mode `auto` sur un partage que le
+     * watcher sait intact depuis le dernier scan : aucune entrée n'est envoyée,
+     * seule `fingerprint` est renseignée, et c'est au serveur de vérifier qu'elle
+     * correspond à la baseline qu'il détient. Il ne SUPPOSE donc jamais que
+     * l'appareil est à jour, il le VÉRIFIE — une vérification fausse coûte un
+     * scan complet, jamais une divergence.
+     *
+     * Le défaut `true` est ce qui rend un vieil agent inoffensif : sans le champ,
+     * le serveur retombe sur le chemin d'aujourd'hui.
+     */
+    scanned: z.boolean().default(true),
+    /** Empreinte de l'index détenu par l'agent, quand il sait la calculer. */
+    fingerprint: syncIndexFingerprintSchema.nullable().default(null),
     /** Posé sur le lot final quand le scan a échoué (la session est abandonnée). */
     error: z.string().max(500).optional()
 });
@@ -702,11 +720,19 @@ export const agentSyncConfigPayloadSchema = z.object({
 });
 export type AgentSyncConfigPayload = z.infer<typeof agentSyncConfigPayloadSchema>;
 
-/** Demande un scan complet du dossier local (répond en lots `sync.index`). */
+/** Demande un scan du dossier local (répond en lots `sync.index`). */
 export const AGENT_SYNC_SCAN = 'sync.scan' as const;
 export const agentSyncScanPayloadSchema = z.object({
     sessionId: syncOpId,
-    shareId: z.number().int().positive()
+    shareId: z.number().int().positive(),
+    /**
+     * Le défaut `full` est ce qui rend un vieux SERVEUR inoffensif : sans le
+     * champ, un agent récent parcourt le disque comme il l'a toujours fait. Les
+     * deux sens de la dissymétrie de version dégradent donc vers « scan
+     * complet », jamais vers « saut » — sauter exige une empreinte que seul un
+     * agent récent produit et que seul un serveur récent exploite.
+     */
+    mode: syncScanModeSchema.default('full')
 });
 export type AgentSyncScanPayload = z.infer<typeof agentSyncScanPayloadSchema>;
 

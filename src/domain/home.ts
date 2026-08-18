@@ -1,14 +1,15 @@
 import { z } from 'zod';
 
 /**
- * Home dashboard layout (per-user). The grid is composed from ordered
- * **sections**, each holding ordered tiles of a single kind. Sections are fully
- * modular: none by default, the user adds/removes/reorders them freely and may
- * have several of the same kind. A section's title is optional — without one it
- * renders as a bare, lightly-spaced group (no heading) on the home.
+ * Disposition de l'accueil (par espace). La grille est composée de **sections**
+ * ordonnées, chacune tenant des **tuiles** ordonnées de n'importe quels genres —
+ * appareil, fonctionnalité, raccourci, dossier. Les sections sont entièrement
+ * modulaires : aucune par défaut, ajoutées / retirées / réordonnées librement.
+ * Leur intitulé est facultatif — sans lui, la section se rend comme un simple
+ * groupe légèrement espacé, sans titre.
  *
- * Stored in clear as non-sensitive personalization metadata (like the theme),
- * never zero-knowledge payload.
+ * Stockée en clair : métadonnée de personnalisation non sensible (comme le
+ * thème), jamais de charge zero-knowledge.
  */
 
 /** Built-in feature widgets that can be placed on the grid. */
@@ -77,7 +78,7 @@ export type ShortcutTemplate = z.infer<typeof shortcutTemplateSchema>;
 /** Max length of a shortcut URL kept in the layout. */
 export const SHORTCUT_URL_MAX_LENGTH = 2048;
 
-/** A user-pinned link tile (shortcut sections carry these objects). */
+/** Un lien épinglé par l'utilisateur : une tuile qui porte son propre objet. */
 export const shortcutItemSchema = z.object({
     /** Stable client-generated id, used as the React / drag key. */
     id: z.string().min(1).max(64),
@@ -93,8 +94,8 @@ export const shortcutItemSchema = z.object({
 export type ShortcutItem = z.infer<typeof shortcutItemSchema>;
 
 /**
- * Combien de tuiles tient une section de fonctionnalités, et combien de
- * fonctionnalités tient un dossier.
+ * Combien de tuiles tient une section, et combien de fonctionnalités tient un
+ * dossier.
  *
  * Exporté, et pas seulement écrit dans le schéma : le client doit refuser
  * **avant** d'écrire. Une disposition qui dépasse le plafond ne passe plus la
@@ -104,16 +105,22 @@ export type ShortcutItem = z.infer<typeof shortcutItemSchema>;
  * fonctionnalités que ça, et aucune ne peut être rangée deux fois), celui des
  * tuiles l'est en créant des dossiers à la chaîne.
  */
-export const HOME_SECTION_MAX_TILES = 20;
+export const HOME_SECTION_MAX_TILES = 60;
 export const HOME_FOLDER_MAX_ITEMS = 20;
 
 /**
  * Un dossier de la grille : plusieurs fonctionnalités derrière une seule tuile.
  *
- * Il vit dans une section « fonctionnalités », au milieu des tuiles ordinaires,
- * parce que c'en est une : même carte, même place dans la grille, même
- * glisser-déposer. Ce qui change est ce qui se passe au clic (côté client, les
- * cartes qu'il tient se déploient par-dessus l'accueil).
+ * Il vit dans une section au milieu des tuiles ordinaires, parce que c'en est
+ * une : même carte, même place dans la grille, même glisser-déposer. Ce qui
+ * change est ce qui se passe au clic (côté client, les cartes qu'il tient se
+ * déploient par-dessus l'accueil).
+ *
+ * Il ne range que des **fonctionnalités**, là où une section range tout : une
+ * carte d'appareil et un raccourci sont déjà des tuiles courtes, les empiler
+ * derrière une tuile de pleine hauteur coûterait plus de place qu'il n'en
+ * gagnerait. C'est la seule asymétrie qui reste après l'unification, et elle
+ * est de mise en page, pas de modèle.
  *
  * Les fonctionnalités qu'il tient comptent comme **posées sur l'accueil** : le
  * sélecteur d'ajout les exclut, exactement comme celles qui ont leur propre
@@ -121,7 +128,7 @@ export const HOME_FOLDER_MAX_ITEMS = 20;
  * règle « pas deux fois la même » reste une seule règle.
  */
 export const homeFolderSchema = z.object({
-    /** Discriminant de l'union : c'est lui qui distingue un dossier d'un identifiant. */
+    /** Discriminant : c'est lui qui distingue un dossier d'un raccourci. */
     kind: z.literal('folder'),
     /** Id stable généré par le client : clé React, id de glissé, cible des mutations. */
     id: z.string().min(1).max(64),
@@ -132,31 +139,80 @@ export const homeFolderSchema = z.object({
 export type HomeFolder = z.infer<typeof homeFolderSchema>;
 
 /**
- * Une tuile de section « fonctionnalités » : un identifiant de fonctionnalité,
- * ou un dossier qui en tient plusieurs.
+ * Une tuile de l'accueil — appareil, fonctionnalité, raccourci ou dossier.
  *
- * Une union avec la chaîne nue, et non un objet unique : les dispositions déjà
- * enregistrées ne portent que des chaînes, et elles restent valides telles
- * quelles. Rien à migrer côté base, rien à rattraper au chargement.
+ * ## Un seul genre de section, donc un seul genre de tuile
+ *
+ * Les sections étaient auparavant typées (« appareils », « fonctionnalités »,
+ * « raccourcis ») et ne tenaient qu'une sorte de tuile. Ça obligeait à choisir
+ * le genre **avant** d'avoir quelque chose à poser, à ouvrir une popup pour
+ * ajouter une section, et à trois sélecteurs d'ajout différents. Une section
+ * n'est plus qu'une rangée de tuiles ; c'est la tuile qui sait ce qu'elle est.
+ *
+ * ## Chaque tuile garde l'écriture qu'elle avait
+ *
+ * Un appareil et une fonctionnalité **sont** leur identifiant (l'entité vit
+ * ailleurs) ; un raccourci et un dossier portent l'objet lui-même, parce que
+ * rien d'autre ne les décrit. Les deux familles d'identifiants ne peuvent pas
+ * se confondre — les fonctionnalités forment un enum fermé, les appareils sont
+ * des UUID — et c'est {@link homeTileKind} qui tranche, en un seul endroit.
+ *
+ * Conséquence utile : les dispositions écrites avant l'unification restent
+ * valides telles quelles. Leurs sections portent encore un champ `kind`, qui
+ * tombe à la lecture comme n'importe quelle clé inconnue, et la première
+ * écriture le fait disparaître. Rien à migrer, rien à rattraper au chargement.
  */
-export const homeFeatureTileSchema = z.union([homeFeatureIdSchema, homeFolderSchema]);
-export type HomeFeatureTile = z.infer<typeof homeFeatureTileSchema>;
+export const homeTileSchema = z.union([
+    homeFolderSchema,
+    shortcutItemSchema,
+    homeFeatureIdSchema,
+    z.uuid()
+]);
+export type HomeTile = z.infer<typeof homeTileSchema>;
+
+/** Ce que porte une tuile. Une seule lecture de la forme, partagée par tous. */
+export type HomeTileKind = 'device' | 'feature' | 'shortcut' | 'folder';
+
+/** Toutes les fonctionnalités, pour distinguer leur identifiant d'un id d'appareil. */
+export const HOME_FEATURE_IDS = homeFeatureIdSchema.options;
 
 /**
- * Cette tuile est-elle un dossier ?
+ * Le genre d'une tuile.
  *
- * Le seul endroit qui connaisse la forme de l'union : tout le reste passe par
- * cette garde, donc changer la représentation ne se paye qu'ici.
+ * **Le seul endroit qui connaisse la forme de l'union** : tout le reste passe
+ * par lui ou par les gardes ci-dessous, donc changer la représentation ne se
+ * paye qu'ici.
  */
-export function isHomeFolder(tile: HomeFeatureTile): tile is HomeFolder {
-    return typeof tile !== 'string';
+export function homeTileKind(tile: HomeTile): HomeTileKind {
+    if (typeof tile !== 'string') return 'kind' in tile ? 'folder' : 'shortcut';
+    return (HOME_FEATURE_IDS as readonly string[]).includes(tile) ? 'feature' : 'device';
 }
 
-/** Section discriminator; also the kind of tiles a section holds. */
-export const homeSectionKindSchema = z.enum(['device', 'feature', 'shortcut']);
-export type HomeSectionKind = z.infer<typeof homeSectionKindSchema>;
+/** Cette tuile est-elle un dossier ? */
+export function isHomeFolder(tile: HomeTile): tile is HomeFolder {
+    return homeTileKind(tile) === 'folder';
+}
 
-/** Fields every section carries, whatever its kind. */
+/** Cette tuile est-elle un raccourci ? */
+export function isShortcutTile(tile: HomeTile): tile is ShortcutItem {
+    return homeTileKind(tile) === 'shortcut';
+}
+
+/** Cette tuile est-elle une fonctionnalité ? */
+export function isFeatureTile(tile: HomeTile): tile is HomeFeatureId {
+    return homeTileKind(tile) === 'feature';
+}
+
+/**
+ * L'identité d'une tuile : sa clé React, son id de glissé, la cible des
+ * mutations. Un raccourci et un dossier portent leur `id`, un appareil et une
+ * fonctionnalité **sont** le leur.
+ */
+export function homeTileId(tile: HomeTile): string {
+    return typeof tile === 'string' ? tile : tile.id;
+}
+
+/** Fields every section carries. */
 const sectionBase = {
     /** Stable client-generated id: React key, drag id, and mutation target. */
     id: z.string().min(1).max(64),
@@ -180,25 +236,18 @@ const sectionBase = {
 };
 
 /**
- * One section: an ordered set of tiles of a single kind. Device sections store
- * plain ids (the entity lives elsewhere); a feature section stores ids too, or a
- * folder object holding several of them; shortcut sections store the link
- * objects themselves. Several sections may share a kind — the `id` is what
- * identifies them.
+ * Une section : une rangée ordonnée de tuiles, de n'importe quels genres.
+ *
+ * Elle ne se distingue plus par ce qu'elle tient — un appareil, une
+ * fonctionnalité et un raccourci cohabitent dans la même — mais par son seul
+ * `id`. Une ligne peut donc mêler une carte de pleine hauteur et des cartes
+ * courtes : c'est assumé, la grille aligne les hauts et laisse les cartes
+ * courtes à leur taille.
  */
-export const homeSectionSchema = z.discriminatedUnion('kind', [
-    z.object({ ...sectionBase, kind: z.literal('device'), items: z.array(z.uuid()).max(60) }),
-    z.object({
-        ...sectionBase,
-        kind: z.literal('feature'),
-        items: z.array(homeFeatureTileSchema).max(HOME_SECTION_MAX_TILES)
-    }),
-    z.object({
-        ...sectionBase,
-        kind: z.literal('shortcut'),
-        items: z.array(shortcutItemSchema).max(60)
-    })
-]);
+export const homeSectionSchema = z.object({
+    ...sectionBase,
+    items: z.array(homeTileSchema).max(HOME_SECTION_MAX_TILES)
+});
 export type HomeSection = z.infer<typeof homeSectionSchema>;
 
 export const homeLayoutSchema = z.object({

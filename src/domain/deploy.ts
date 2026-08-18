@@ -148,6 +148,16 @@ export interface DeployTargetRow {
     /** Rang dans la liste, entièrement défini par l'utilisateur (`deploy.reorder`). */
     sort_order: number;
     content: string;
+    /**
+     * Dernier rapprochement réussi avec le fournisseur ; `null` = jamais.
+     *
+     * Porte deux rôles à la fois, et c'est voulu : il ordonne les cibles à
+     * réinterroger (la plus ancienne d'abord), **et** il distingue le premier
+     * rapprochement des suivants. Cette seconde lecture est ce qui empêche
+     * l'import initial de notifier : la première fois, tout l'historique de la
+     * cible est « nouveau » sans que rien ne vienne de se produire.
+     */
+    synced_at: number | null;
     created: number;
 }
 
@@ -173,7 +183,34 @@ export interface DeploymentRow {
     triggered_by_user_id: number | null;
     started_at: number;
     finished_at: number | null;
+    /**
+     * Un avis est-il déjà parti pour ce déploiement ?
+     *
+     * Même rôle que `uptime_incidents.notified`, et pour la même raison : un avis
+     * appartient au **déploiement**, pas au tour de sondage qui l'a vu. Sans
+     * cette colonne, chaque tour renotifierait le même échec — et l'import
+     * initial d'une cible en enverrait un par ligne d'historique.
+     */
+    notified: number;
     content: string;
+}
+
+/**
+ * Une cible à réinterroger, avec l'adresse de son instance et de quoi choisir
+ * son tour.
+ *
+ * `base_url` vient du jeton par jointure : la boucle de fond n'a pas de session
+ * pour repasser par la feature, et faire un second aller-retour par cible pour
+ * lire son jeton coûterait une requête de plus pour une donnée déjà jointe.
+ *
+ * `in_flight` compte les déploiements non terminés que DevEye connaît. Il ne
+ * sert qu'à trier : une cible qui a quelque chose en vol passe à chaque tour,
+ * les autres attendent leur cadence. C'est ce qui permet de suivre un
+ * déploiement à la minute sans sonder toutes les cibles aussi souvent.
+ */
+export interface DeployTargetSyncRow extends DeployTargetRow {
+    base_url: string | null;
+    in_flight: number;
 }
 
 /** Ligne SQL (serveur uniquement) : la liaison projet → cible. */

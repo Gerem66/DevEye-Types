@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { notificationSettingsSchema } from '../domain/notifications';
+import {
+    notificationSettingsInputSchema,
+    notificationSettingsSchema,
+    notificationTestSchema
+} from '../domain/notifications';
 import {
     allowEntrySchema,
     allowScopeSchema,
@@ -234,14 +238,7 @@ export const sentinelGetSettings = {
 
 export const sentinelSetSettings = {
     command: 'sentinel.setSettings' as const,
-    input: z.object({
-        emailEnabled: z.boolean(),
-        /** Vide = l'adresse du compte expéditeur lui-même. */
-        email: z.string().max(320),
-        mailAccountId: z.number().int().positive().nullable(),
-        webhookEnabled: z.boolean(),
-        webhookUrl: z.string().max(2048)
-    }),
+    input: notificationSettingsInputSchema,
     output: z.object({ settings: notificationSettingsSchema })
 };
 
@@ -249,7 +246,7 @@ export const sentinelSetSettings = {
 export const sentinelTestNotification = {
     command: 'sentinel.testNotification' as const,
     input: z.object({}),
-    output: z.object({ sent: z.boolean(), error: z.string().nullable() })
+    output: notificationTestSchema
 };
 
 export const sentinelCommands = [

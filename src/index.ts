@@ -708,6 +708,7 @@ export type {
     DeployTarget,
     DeployTargetKind,
     DeployTargetRow,
+    DeployTargetSyncRow,
     DeployTargetWithUsageRow,
     Deployment,
     DeploymentRow,
@@ -1124,11 +1125,18 @@ export type {
     OsintTargetKind,
     OsintTone
 } from './domain/osint';
-export { notificationFeatureSchema, notificationSettingsSchema } from './domain/notifications';
+export {
+    notificationFeatureSchema,
+    notificationSettingsInputSchema,
+    notificationSettingsSchema,
+    notificationTestSchema
+} from './domain/notifications';
 export type {
     NotificationFeature,
     NotificationSettings,
-    NotificationSettingsRow
+    NotificationSettingsInput,
+    NotificationSettingsRow,
+    NotificationTest
 } from './domain/notifications';
 export { presenceEventSchema } from './domain/presence';
 export type { PresenceEvent, PresenceRow } from './domain/presence';
@@ -1265,11 +1273,14 @@ export {
     deployCredentialRemove,
     deployCredentialUpdate,
     deployGet,
+    deployGetSettings,
     deployHistory,
     deployList,
     deployLog,
     deployRemove,
     deployReorder,
+    deploySetSettings,
+    deployTestNotification,
     deployTrigger,
     deployUpdate
 } from './features/deploy';
@@ -1309,6 +1320,7 @@ export {
     databaseCommands,
     databaseCount,
     databaseGet,
+    databaseGetSettings,
     databaseInspect,
     databaseList,
     databaseQuery,
@@ -1316,6 +1328,7 @@ export {
     databaseReorder,
     databaseExecute,
     databaseExport,
+    databaseSetSettings,
     databaseRowDelete,
     databaseRowInsert,
     databaseRowUpdate,
@@ -1324,6 +1337,7 @@ export {
     databaseTableStructure,
     databaseTest,
     databaseTestDraft,
+    databaseTestNotification,
     databaseUpdate
 } from './features/database';
 export {

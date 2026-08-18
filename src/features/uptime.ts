@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { notificationSettingsInputSchema, notificationTestSchema } from '../domain/notifications';
 import {
     UPTIME_INTERVAL_MAX,
     UPTIME_INTERVAL_MIN,
@@ -178,18 +179,14 @@ export const uptimeGetSettings = {
     output: z.object({ settings: uptimeSettingsSchema })
 };
 
+/**
+ * L'entrée est `notificationSettingsInputSchema` — **la forme commune**, comme
+ * la sortie l'est déjà. Elle était recopiée ici champ par champ ; ajouter un
+ * canal aurait demandé de retrouver les quatre copies.
+ */
 export const uptimeSetSettings = {
     command: 'uptime.setSettings' as const,
-    input: z.object({
-        emailEnabled: z.boolean(),
-        /** Empty string clears it back to the sending mail account's own address. */
-        email: z.string().max(320),
-        /** One of the caller's configured Mail accounts (`mail.accountList`); must be "open" tier. `null` clears it. */
-        mailAccountId: z.number().int().positive().nullable(),
-        webhookEnabled: z.boolean(),
-        /** Empty string clears the webhook. */
-        webhookUrl: z.string().max(UPTIME_URL_MAX_LENGTH)
-    }),
+    input: notificationSettingsInputSchema,
     output: z.object({ settings: uptimeSettingsSchema })
 };
 
@@ -201,7 +198,7 @@ export const uptimeSetSettings = {
 export const uptimeTestNotification = {
     command: 'uptime.testNotification' as const,
     input: z.object({}),
-    output: z.object({ sent: z.boolean(), error: z.string().nullable() })
+    output: notificationTestSchema
 };
 
 export const uptimeCommands = [

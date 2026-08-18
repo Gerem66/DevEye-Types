@@ -25,6 +25,7 @@ export const homeFeatureIdSchema = z.enum([
     'git',
     'deploy',
     'database',
+    'finance',
     'audience',
     'osint'
 ]);

@@ -7,6 +7,7 @@ import { deviceLogCommands } from './deviceLogs';
 import { deviceTerminalCommands } from './deviceTerminal';
 import { databaseCommands } from './database';
 import { deployCommands } from './deploy';
+import { financeCommands } from './finance';
 import { gitCommands } from './git';
 import { homeCommands } from './home';
 import { liveCommands } from './live';
@@ -42,6 +43,7 @@ export const featureCommands = [
     ...gitCommands,
     ...deployCommands,
     ...databaseCommands,
+    ...financeCommands,
     ...audienceCommands,
     ...deviceCommands,
     ...deviceLogCommands,

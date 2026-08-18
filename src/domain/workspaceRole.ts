@@ -68,6 +68,19 @@ export const workspaceFeatureIdSchema = z.enum([
     'deploy',
     'database',
     /**
+     * Finances. Le grand livre de l'espace: comptes, opérations, budgets,
+     * échéances.
+     *
+     * `read` = consulter soldes, journal et tableau de bord, `write` = saisir et
+     * corriger des opérations, tenir comptes, catégories, budgets et échéances.
+     *
+     * ⚠️ Le droit dont la lecture seule est déjà lourde: un livre de comptes dit
+     * ce qu'une structure gagne, ce qu'elle doit et à qui elle paie quoi. Le
+     * distinguer de `projects` n'est donc pas une commodité de rangement, c'est
+     * la raison d'être de la séparation.
+     */
+    'finance',
+    /**
      * Audience. Le suivi d'usage des sites livrés — dernier maillon de la même
      * famille que `projects`, `git` et `database` : un objet de l'**espace**
      * qu'un projet ne fait que pointer.

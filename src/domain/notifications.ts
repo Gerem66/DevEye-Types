@@ -26,7 +26,13 @@ import { z } from 'zod';
  * Les features qui savent notifier. Une entrée ici, pas une table de plus :
  * ajouter un émetteur ne doit rien coûter au schéma.
  */
-export const notificationFeatureSchema = z.enum(['uptime', 'sentinel', 'database', 'deploy']);
+export const notificationFeatureSchema = z.enum([
+    'uptime',
+    'sentinel',
+    'database',
+    'deploy',
+    'backup'
+]);
 export type NotificationFeature = z.infer<typeof notificationFeatureSchema>;
 
 export const notificationSettingsSchema = z.object({

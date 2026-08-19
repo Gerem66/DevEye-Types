@@ -68,6 +68,21 @@ export const workspaceFeatureIdSchema = z.enum([
     'deploy',
     'database',
     /**
+     * Sauvegardes. Les destinations de l'espace (dossier serveur, dossier d'une
+     * machine enrôlée, bucket S3) et les travaux qui y écrivent.
+     *
+     * `read` = voir les destinations, les travaux et leur historique, `write` =
+     * déclarer une destination, poser sa clé secrète, créer un travail et le
+     * déclencher.
+     *
+     * ⚠️ Le droit le plus lourd en lecture après `finance`, et pour une raison
+     * différente: la liste des destinations dit **où sont les copies de tout**.
+     * Qui la lit sait quel bucket viser pour obtenir la base entière sans jamais
+     * toucher à DevEye. Distinct de `database` exprès — superviser une base et
+     * savoir où en dorment les vidages ne se confondent pas.
+     */
+    'backup',
+    /**
      * Finances. Le grand livre de l'espace: comptes, opérations, budgets,
      * échéances.
      *

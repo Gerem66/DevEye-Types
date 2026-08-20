@@ -88,6 +88,15 @@ export const databaseSchema = z.object({
     database: z.string().max(DATABASE_NAME_MAX_LENGTH),
     username: z.string().max(DATABASE_USER_MAX_LENGTH),
     /** Un mot de passe est enregistré — jamais lequel. */
+    /**
+     * Cet élément vient d'un **autre espace**, qui le projette ici.
+     *
+     * L'écran le signale d'une pastille : sans elle, rien ne distingue une
+     * ligne locale d'une fenêtre sur l'espace voisin — et les gestes réservés
+     * au domicile (supprimer, re-partager) sembleraient cassés au lieu de
+     * s'expliquer.
+     */
+    foreign: z.boolean(),
     hasPassword: z.boolean(),
     access: databaseAccessSchema,
     /** Le relevé périodique tourne-t-il ? Désactivé par défaut. */

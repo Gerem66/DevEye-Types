@@ -205,6 +205,15 @@ export const audienceSiteSchema = z.object({
     visitors24h: z.number().int().nonnegative(),
     /** Combien de projets s'en servent — l'interconnexion, comme pour un dépôt. */
     projectCount: z.number().int().nonnegative(),
+    /**
+     * Cet élément vient d'un **autre espace**, qui le projette ici.
+     *
+     * L'écran le signale d'une pastille : sans elle, rien ne distingue une
+     * ligne locale d'une fenêtre sur l'espace voisin — et les gestes réservés
+     * au domicile (supprimer, re-partager) sembleraient cassés au lieu de
+     * s'expliquer.
+     */
+    foreign: z.boolean(),
     created: z.number().int()
 });
 export type AudienceSite = z.infer<typeof audienceSiteSchema>;

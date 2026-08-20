@@ -173,6 +173,15 @@ export const backupJobSchema = z.object({
     /** Somme des tailles des archives encore présentes. */
     totalBytes: z.number().int().nonnegative(),
     runCount: z.number().int().nonnegative(),
+    /**
+     * Cet élément vient d'un **autre espace**, qui le projette ici.
+     *
+     * L'écran le signale d'une pastille : sans elle, rien ne distingue une
+     * ligne locale d'une fenêtre sur l'espace voisin — et les gestes réservés
+     * au domicile (supprimer, re-partager) sembleraient cassés au lieu de
+     * s'expliquer.
+     */
+    foreign: z.boolean(),
     created: z.number().int()
 });
 export type BackupJob = z.infer<typeof backupJobSchema>;

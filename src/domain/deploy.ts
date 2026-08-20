@@ -83,6 +83,15 @@ export const deployTargetSchema = z.object({
     /** L'état du dernier déploiement, ou `null` si rien n'est jamais parti d'ici. */
     lastStatus: deployStatusSchema.nullable(),
     lastDeployAt: z.number().int().nullable(),
+    /**
+     * Cet élément vient d'un **autre espace**, qui le projette ici.
+     *
+     * L'écran le signale d'une pastille : sans elle, rien ne distingue une
+     * ligne locale d'une fenêtre sur l'espace voisin — et les gestes réservés
+     * au domicile (supprimer, re-partager) sembleraient cassés au lieu de
+     * s'expliquer.
+     */
+    foreign: z.boolean(),
     /** Combien de projets la déploient. */
     projectCount: z.number().int().nonnegative(),
     created: z.number().int()

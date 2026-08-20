@@ -274,7 +274,14 @@ export const SHAREABLE_FEATURES: readonly WorkspaceFeatureId[] = FEATURE_REGISTR
  * Brancher une fonctionnalité de plus : `listVisible` / `findVisible` dans son
  * dépôt, le codec par ligne dans son listage, une entrée ici.
  */
-export const SHARE_WIRED_FEATURES: readonly WorkspaceFeatureId[] = ['uptime', 'database'];
+export const SHARE_WIRED_FEATURES: readonly WorkspaceFeatureId[] = [
+    'uptime',
+    'database',
+    'deploy',
+    'git',
+    'audience',
+    'backup'
+];
 
 /** Les fonctionnalités qui savent prévenir, dans l'ordre du registre. */
 export const NOTIFYING_FEATURES: readonly WorkspaceFeatureId[] = FEATURE_REGISTRY.filter(

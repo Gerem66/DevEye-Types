@@ -1,7 +1,5 @@
 import { z } from 'zod';
 
-import { notificationSettingsSchema, type NotificationSettings } from './notifications';
-
 /**
  * Uptime monitoring: user-defined HTTP services the server pings on a schedule,
  * with long-term history, incidents and notifications.
@@ -73,6 +71,15 @@ export const uptimeServiceSchema = z.object({
     enabled: z.boolean(),
     /** Rank in the list; only the user's drag & drop changes it. */
     sortOrder: z.number().int().nonnegative(),
+    /**
+     * Ce service vient d'un **autre espace**, qui le projette ici.
+     *
+     * Il se lit et se modifie normalement — c'est tout l'objet de la projection
+     * — mais l'écran le signale : sans ça, le supprimer depuis l'espace où on le
+     * voit donnerait l'impression de retirer une ligne locale, alors qu'on
+     * toucherait la donnée d'ailleurs.
+     */
+    foreign: z.boolean(),
 
     status: uptimeStatusSchema,
     lastCheckedAt: z.number().int().nonnegative().nullable(),
@@ -152,17 +159,6 @@ export const uptimeIncidentSchema = z.object({
 });
 export type UptimeIncident = z.infer<typeof uptimeIncidentSchema>;
 
-/** Where down/recovery alerts are delivered. One row per user. */
-/**
- * Les canaux d'Uptime — **la forme commune**, définie une seule fois dans
- * `domain/notifications.ts`. Uptime et Sentinelle règlent les mêmes champs ; ce
- * qui les distingue est la ligne de `notification_settings` qu'ils lisent, pas
- * la structure. Deux définitions jumelles auraient dérivé à la première
- * évolution.
- */
-export const uptimeSettingsSchema = notificationSettingsSchema;
-export type UptimeSettings = NotificationSettings;
-
 /** Database row shapes (server-only). Mirror the columns exactly. */
 export interface UptimeServiceRow {
     id: number;
@@ -220,16 +216,4 @@ export interface UptimeIncidentRow {
     /** Encrypted error string (open tier). */
     error: string | null;
     notified: number;
-}
-
-export interface UptimeSettingsRow {
-    workspace_id: number;
-    email_enabled: number;
-    /** Encrypted recipient address (open tier), or null → the sending mail account's own address. */
-    email_enc: string | null;
-    /** FK to `mail_accounts.id` (must be "open" tier); null = no sender picked, alerts can't go out. */
-    mail_account_id: number | null;
-    webhook_enabled: number;
-    /** Encrypted webhook URL (open tier). */
-    webhook_enc: string | null;
 }

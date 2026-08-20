@@ -1,10 +1,5 @@
 import { z } from 'zod';
 import {
-    notificationSettingsInputSchema,
-    notificationSettingsSchema,
-    notificationTestSchema
-} from '../domain/notifications';
-import {
     CREDENTIAL_LABEL_MAX_LENGTH,
     CREDENTIAL_SECRET_MAX_LENGTH,
     credentialSchema
@@ -182,39 +177,6 @@ export const deployLog = {
     output: z.object({ log: z.string() })
 };
 
-// --------------------------------------------------------- notifications
-
-/**
- * Où partent les avis de déploiement.
- *
- * **Ses propres canaux**, dès le premier jour : un déploiement qui échoue ne
- * concerne ni les mêmes personnes ni le même salon qu'un service tombé (Uptime)
- * ou qu'une machine suspecte (Sentinelle). Emprunter la ligne d'un autre
- * émetteur est le travers que la migration 075 a corrigé pour Sentinelle et que
- * la 085 corrige pour Bases de données ; il n'y avait aucune raison de le
- * refaire une troisième fois.
- *
- * Éteint par défaut : rien ne part tant que rien n'est réglé ici.
- */
-export const deployGetSettings = {
-    command: 'deploy.getSettings' as const,
-    input: z.object({}),
-    output: z.object({ settings: notificationSettingsSchema })
-};
-
-export const deploySetSettings = {
-    command: 'deploy.setSettings' as const,
-    input: notificationSettingsInputSchema,
-    output: z.object({ settings: notificationSettingsSchema })
-};
-
-/** Envoie un avis d'exemple sur chaque canal configuré. */
-export const deployTestNotification = {
-    command: 'deploy.testNotification' as const,
-    input: z.object({}),
-    output: notificationTestSchema
-};
-
 // ------------------------------------------------------------------ jetons
 
 /**
@@ -276,9 +238,6 @@ export const deployCommands = [
     deployTrigger,
     deployHistory,
     deployLog,
-    deployGetSettings,
-    deploySetSettings,
-    deployTestNotification,
     deployCredentialList,
     deployCredentialAdd,
     deployCredentialUpdate,

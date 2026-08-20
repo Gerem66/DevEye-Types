@@ -800,7 +800,6 @@ export {
     uptimeResolutionSchema,
     uptimeRetentionSchema,
     uptimeServiceSchema,
-    uptimeSettingsSchema,
     uptimeStatusSchema
 } from './domain/uptime';
 export type {
@@ -816,8 +815,6 @@ export type {
     UptimeResolution,
     UptimeService,
     UptimeServiceRow,
-    UptimeSettings,
-    UptimeSettingsRow,
     UptimeStatus
 } from './domain/uptime';
 export {
@@ -1166,18 +1163,69 @@ export type {
     OsintTone
 } from './domain/osint';
 export {
+    NOTIFICATION_CHANNEL_KINDS,
+    NOTIFICATION_EMAIL_MAX,
+    NOTIFICATION_LABEL_MAX,
+    NOTIFICATION_TARGET_MAX,
+    notificationChannelInputSchema,
+    notificationChannelKindSchema,
+    notificationChannelSchema,
+    notificationChannelUsageSchema,
     notificationFeatureSchema,
-    notificationSettingsInputSchema,
-    notificationSettingsSchema,
+    notificationRouteInputSchema,
+    notificationRouteSchema,
+    notificationRouteTargetSchema,
     notificationTestSchema
 } from './domain/notifications';
 export type {
+    NotificationChannel,
+    NotificationChannelInput,
+    NotificationChannelKind,
+    NotificationChannelRow,
+    NotificationChannelUsage,
     NotificationFeature,
-    NotificationSettings,
-    NotificationSettingsInput,
-    NotificationSettingsRow,
+    NotificationRoute,
+    NotificationRouteInput,
+    NotificationRouteRow,
+    NotificationRouteTarget,
     NotificationTest
 } from './domain/notifications';
+
+export {
+    FEATURE_REGISTRY,
+    NOTIFYING_FEATURES,
+    featureDescriptor,
+    featureLabel
+} from './domain/featureRegistry';
+export type { FeatureDescriptor } from './domain/featureRegistry';
+export {
+    foreignRefSchema,
+    itemAccessSchema,
+    itemRefSchema,
+    itemRoleGrantSchema,
+    itemShareSchema,
+    itemShareStateSchema,
+    shareBlockerSchema
+} from './domain/sharing';
+export type {
+    ForeignRef,
+    ItemAccess,
+    ItemRef,
+    ItemRoleGrant,
+    ItemRoleGrantRow,
+    ItemShare,
+    ItemShareRow,
+    ItemShareState,
+    ShareBlocker
+} from './domain/sharing';
+export {
+    itemGrantList,
+    itemGrantSet,
+    shareGet,
+    shareSet,
+    sharingCommands
+} from './features/sharing';
+export { SHAREABLE_FEATURES, SHARE_WIRED_FEATURES } from './domain/featureRegistry';
 export { presenceEventSchema } from './domain/presence';
 export type { PresenceEvent, PresenceRow } from './domain/presence';
 export {
@@ -1313,14 +1361,11 @@ export {
     deployCredentialRemove,
     deployCredentialUpdate,
     deployGet,
-    deployGetSettings,
     deployHistory,
     deployList,
     deployLog,
     deployRemove,
     deployReorder,
-    deploySetSettings,
-    deployTestNotification,
     deployTrigger,
     deployUpdate
 } from './features/deploy';
@@ -1360,7 +1405,6 @@ export {
     databaseCommands,
     databaseCount,
     databaseGet,
-    databaseGetSettings,
     databaseInspect,
     databaseList,
     databaseQuery,
@@ -1368,7 +1412,6 @@ export {
     databaseReorder,
     databaseExecute,
     databaseExport,
-    databaseSetSettings,
     databaseRowDelete,
     databaseRowInsert,
     databaseRowUpdate,
@@ -1377,7 +1420,6 @@ export {
     databaseTableStructure,
     databaseTest,
     databaseTestDraft,
-    databaseTestNotification,
     databaseUpdate
 } from './features/database';
 export {
@@ -1388,7 +1430,6 @@ export {
     backupDestinationRemove,
     backupDestinationTest,
     backupDestinationUpdate,
-    backupGetSettings,
     backupJobAdd,
     backupJobGet,
     backupJobList,
@@ -1396,9 +1437,7 @@ export {
     backupJobRun,
     backupJobUpdate,
     backupRuns,
-    backupSetSettings,
-    backupSources,
-    backupTestNotification
+    backupSources
 } from './features/backup';
 export {
     audienceActivity,
@@ -1625,7 +1664,6 @@ export {
     sentinelCommands,
     sentinelCount,
     sentinelFindings,
-    sentinelGetSettings,
     sentinelOverview,
     sentinelPosture,
     sentinelRemoveAllow,
@@ -1633,9 +1671,7 @@ export {
     sentinelResetBaseline,
     sentinelResolve,
     sentinelScanNow,
-    sentinelSetConfig,
-    sentinelSetSettings,
-    sentinelTestNotification
+    sentinelSetConfig
 } from './features/sentinel';
 export {
     uptimeAdd,
@@ -1644,17 +1680,27 @@ export {
     uptimeCheckStats,
     uptimeCommands,
     uptimeCount,
-    uptimeGetSettings,
     uptimeHistory,
     uptimeIncidents,
     uptimeList,
     uptimeRemove,
     uptimeReorder,
     uptimeSetEnabled,
-    uptimeSetSettings,
-    uptimeTestNotification,
     uptimeUpdate
 } from './features/uptime';
+export {
+    notifyChannelAdd,
+    notifyChannelDelete,
+    notifyChannelList,
+    notifyChannelReorder,
+    notifyChannelTest,
+    notifyChannelUpdate,
+    notifyChannelUsage,
+    notifyCommands,
+    notifyRouteGet,
+    notifyRouteSet,
+    notifyRouteTest
+} from './features/notify';
 export {
     twoFactorCommands,
     twoFactorDisable,

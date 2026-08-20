@@ -1,30 +1,68 @@
 import { z } from 'zod';
 
+import { NOTIFYING_FEATURES } from './featureRegistry';
+
 /**
- * Les canaux d'alerte d'un espace — **par feature**.
+ * Les canaux d'alerte d'un espace — **une liste, et des liaisons vers elle**.
  *
- * Le mécanisme est commun (un compte mail « open » comme expéditeur, un
- * webhook), la configuration ne l'est pas : Uptime prévient quand un service
- * tombe, Sentinelle quand une machine est suspecte, et ce ne sont ni les mêmes
- * destinataires, ni la même urgence, ni forcément le même salon Discord.
+ * ## Ce que le modèle précédent ne savait pas faire
  *
- * Sentinelle a d'abord emprunté les canaux d'Uptime « pour éviter deux jeux de
- * réglages ». C'était une erreur de fond : on recevait des alertes de sécurité
- * sur un canal qu'on n'avait jamais désigné pour ça, sans que rien ne l'ait
- * annoncé ni ne permette de l'éteindre.
+ * Il portait deux canaux binaires — un mail, un webhook — par couple
+ * `(espace, feature)`. Trois conséquences, toutes rencontrées :
  *
- * Bases de données faisait **exactement la même chose**, et l'a fait plus
- * longtemps : `DatabaseMonitor` appelait `UptimeMonitor.resolveChannels`, si
- * bien qu'un seuil SQL franchi partait sur le salon de la disponibilité. Ce
- * n'était pas un oubli mais un choix documenté — il n'en était pas moins le
- * même travers, et la ligne `database` le referme. Déploiement arrive avec ses
- * propres canaux dès le premier jour, ce qui n'aurait pas dû mériter d'être
- * signalé.
+ * 1. **Le même salon Discord était redéclaré cinq fois.** Le corriger demandait
+ *    d'ouvrir cinq écrans, et en oublier un ne se voyait qu'à la première alerte
+ *    qui n'arrivait plus.
+ * 2. **Deux destinataires étaient impossibles.** Une équipe pour la production,
+ *    une autre pour la recette : il fallait choisir.
+ * 3. **Aucun routage par élément.** Toutes les bases d'un espace prévenaient les
+ *    mêmes gens, quel que soit le projet derrière.
+ *
+ * ## La forme retenue
+ *
+ * Un **canal** est une destination nommée qui vit à l'échelle de l'espace : un
+ * type, un libellé, une cible. On en déclare autant qu'on veut, et on les
+ * corrige **à un seul endroit**.
+ *
+ * Une **route** dit qui écrit vers quels canaux. Elle vise soit une
+ * fonctionnalité entière, soit un de ses éléments. Un élément sans route propre
+ * **hérite** de celle de sa fonctionnalité ; une route d'élément vide vaut
+ * « silencieux » et non « hérite », ce qui rend le silence exprimable.
+ *
+ * Ce qui n'a pas changé, et qui compte : **tout est éteint par défaut.** Sans
+ * canal ni route, rien ne part. Une fonctionnalité qui se met à écrire à des
+ * gens sans qu'ils l'aient demandé reste le travers que ce modèle refuse.
  */
 
 /**
- * Les features qui savent notifier. Une entrée ici, pas une table de plus :
- * ajouter un émetteur ne doit rien coûter au schéma.
+ * Le type d'un canal, et ce qu'il change à l'envoi.
+ *
+ * `webhook` et `discord` **séparent ce que l'URL devinait**. Le module d'envoi
+ * reconnaissait Discord en analysant l'adresse, ce qui marchait mais décidait à
+ * la place de l'utilisateur : un point d'entrée maison hébergé derrière un
+ * domaine Discord aurait reçu des embeds au lieu de son texte, et rien ne
+ * permettait de demander l'inverse. C'est désormais une déclaration.
+ *
+ *  - `email`   — un compte Mail « open » de l'espace expédie vers une adresse.
+ *  - `webhook` — un POST JSON générique : le message lisible est répété dans
+ *    `content` (Discord) et `text` (Slack), les champs structurés suivent pour
+ *    un point d'entrée maison. Aucune des trois têtes ne gêne les autres.
+ *  - `discord` — la mise en page riche de Discord (embeds, couleurs, champs),
+ *    et pour le déploiement le **suivi vivant** : un seul message qui se met à
+ *    jour du début à la fin.
+ */
+export const notificationChannelKindSchema = z.enum(['email', 'webhook', 'discord']);
+export type NotificationChannelKind = z.infer<typeof notificationChannelKindSchema>;
+
+export const NOTIFICATION_CHANNEL_KINDS = notificationChannelKindSchema.options;
+
+/**
+ * Les fonctionnalités qui savent prévenir.
+ *
+ * Enum fermé plutôt que chaîne libre : c'est lui qui garde une route d'être
+ * posée sur une fonctionnalité qui n'écrira jamais. Il double le drapeau
+ * `notifies` du registre, et le contrôle en bas de fichier interdit qu'ils
+ * divergent.
  */
 export const notificationFeatureSchema = z.enum([
     'uptime',
@@ -35,61 +73,174 @@ export const notificationFeatureSchema = z.enum([
 ]);
 export type NotificationFeature = z.infer<typeof notificationFeatureSchema>;
 
-export const notificationSettingsSchema = z.object({
-    emailEnabled: z.boolean(),
-    /** Destinataire, ou `null` pour l'adresse du compte expéditeur lui-même. */
-    email: z.string().nullable(),
-    /** Le compte Mail qui envoie ; `null` = aucun choisi, donc aucun envoi. */
+export const NOTIFICATION_LABEL_MAX = 64;
+export const NOTIFICATION_TARGET_MAX = 2048;
+export const NOTIFICATION_EMAIL_MAX = 320;
+
+/**
+ * Un canal tel que le client le reçoit.
+ *
+ * `target` sort **en clair** : c'est une adresse que son auteur a saisie et doit
+ * pouvoir relire pour la corriger. Elle est chiffrée au repos (étage ouvert),
+ * comme l'étaient déjà les réglages qu'elle remplace.
+ */
+export const notificationChannelSchema = z.object({
+    id: z.number().int().positive(),
+    kind: notificationChannelKindSchema,
+    /** Nom donné par l'utilisateur — « Astreinte », « #ops », « Webhook Grafana ». */
+    label: z.string().min(1).max(NOTIFICATION_LABEL_MAX),
+    /**
+     * Adresse destinataire (`email`) ou URL appelée en POST (`webhook`,
+     * `discord`) — **vide pour qui n'a pas `workspace.notifications`**.
+     *
+     * La liste est lisible par tout membre, parce qu'il faut voir les
+     * destinations pour router une fonctionnalité vers l'une d'elles. Leur
+     * *contenu* ne l'est pas : confier le réglage d'Uptime ne confie pas
+     * l'adresse de l'astreinte ni l'URL du salon de production. On voit donc
+     * « Astreinte · e-mail », on peut y router, et on ne peut ni la lire ni la
+     * modifier.
+     */
+    target: z.string().max(NOTIFICATION_TARGET_MAX),
+    /** Le compte Mail expéditeur ; `null` hors des canaux `email`. */
     mailAccountId: z.number().int().positive().nullable(),
     /**
-     * Faux quand `mailAccountId` est absent, pointe sur un compte disparu ou
-     * non « open ». L'interface le dit au lieu de laisser croire à un canal actif.
+     * Ce canal partirait-il **maintenant** ?
+     *
+     * Faux quand le compte expéditeur manque, a disparu, est désactivé ou n'est
+     * pas au palier « open ». L'interface le dit au lieu de laisser croire à un
+     * canal actif — l'avertissement n'existait à l'origine que dans Uptime, et
+     * son absence ailleurs faisait passer un canal muet pour un canal réglé.
      */
-    mailAccountReady: z.boolean(),
-    webhookEnabled: z.boolean(),
-    /** Reçoit un POST JSON à chaque alerte ; `null` quand non réglé. */
-    webhookUrl: z.string().nullable()
+    ready: z.boolean(),
+    /** Éteint sans être supprimé : ses routes restent, rien ne part. */
+    enabled: z.boolean(),
+    position: z.number().int().nonnegative(),
+    /**
+     * Combien de routes le désignent — ce que l'écran affiche en « utilisé par
+     * N ». Compté côté serveur : le client n'a pas les routes des autres
+     * fonctionnalités sous la main, et les demander toutes pour afficher un
+     * nombre serait une requête par ligne.
+     */
+    usageCount: z.number().int().nonnegative()
 });
-export type NotificationSettings = z.infer<typeof notificationSettingsSchema>;
+export type NotificationChannel = z.infer<typeof notificationChannelSchema>;
+
+/** Ce qu'accepte `notify.channelAdd` / `channelUpdate`. */
+export const notificationChannelInputSchema = z.object({
+    kind: notificationChannelKindSchema,
+    label: z.string().min(1).max(NOTIFICATION_LABEL_MAX),
+    /** Adresse ou URL. Vide sur un `email` = l'adresse du compte expéditeur. */
+    target: z.string().max(NOTIFICATION_TARGET_MAX),
+    mailAccountId: z.number().int().positive().nullable()
+});
+export type NotificationChannelInput = z.infer<typeof notificationChannelInputSchema>;
 
 /**
- * Ce qu'une commande `*.setSettings` accepte — **un seul schéma pour les quatre
- * émetteurs**.
+ * La cible d'une route : une fonctionnalité, ou un de ses éléments.
  *
- * Il était recopié à l'identique dans `features/uptime.ts` et
- * `features/sentinel.ts`, et l'aurait été deux fois de plus en branchant Bases
- * de données et Déploiement. Quatre copies d'un même objet de cinq champs, c'est
- * la garantie qu'un futur canal n'arrivera que dans trois d'entre elles. La
- * différence entre les émetteurs tient dans le nom de la commande, pas dans ce
- * qu'elle prend.
+ * `itemId` absent vaut « la fonctionnalité elle-même ». En base il devient `0`,
+ * parce qu'une colonne d'une clé primaire ne peut pas être nulle ; le contrat,
+ * lui, n'a pas à porter cette contrainte de stockage.
  */
-export const notificationSettingsInputSchema = z.object({
-    emailEnabled: z.boolean(),
-    /** Vide = l'adresse du compte expéditeur lui-même. */
-    email: z.string().max(320),
-    mailAccountId: z.number().int().positive().nullable(),
-    webhookEnabled: z.boolean(),
-    webhookUrl: z.string().max(2048)
+export const notificationRouteTargetSchema = z.object({
+    feature: notificationFeatureSchema,
+    itemId: z.number().int().positive().optional()
 });
-export type NotificationSettingsInput = z.infer<typeof notificationSettingsInputSchema>;
+export type NotificationRouteTarget = z.infer<typeof notificationRouteTargetSchema>;
 
 /**
- * Ce que rend un `*.testNotification` : parti, ou pourquoi non.
+ * Où écrit une cible.
+ *
+ * `inherits` n'a de sens que sur un élément : vrai, il suit sa fonctionnalité et
+ * `channelIds` n'est que le rappel de ce dont il hérite (l'écran l'affiche
+ * grisé). Sur une fonctionnalité il vaut toujours faux — il n'y a rien au-dessus
+ * d'elle.
+ */
+export const notificationRouteSchema = z.object({
+    inherits: z.boolean(),
+    channelIds: z.array(z.number().int().positive())
+});
+export type NotificationRoute = z.infer<typeof notificationRouteSchema>;
+
+/** Ce qu'accepte `notify.routeSet`. */
+export const notificationRouteInputSchema = notificationRouteTargetSchema.extend({
+    /** Vrai → la route de l'élément est supprimée et `channelIds` ignoré. */
+    inherits: z.boolean(),
+    channelIds: z.array(z.number().int().positive()).max(32)
+});
+export type NotificationRouteInput = z.infer<typeof notificationRouteInputSchema>;
+
+/**
+ * Ce que rend un envoi d'essai : parti, ou pourquoi non.
  *
  * `sent: false` avec un `error` n'est pas une exception — « aucun canal activé »
- * est une réponse, pas une panne, et la remonter comme telle laisserait le
- * dialogue afficher « échec » là où il n'y a rien à échouer.
+ * est une réponse, pas une panne, et la remonter comme telle laisserait l'écran
+ * afficher « échec » là où il n'y a rien à échouer.
  */
 export const notificationTestSchema = z.object({ sent: z.boolean(), error: z.string().nullable() });
 export type NotificationTest = z.infer<typeof notificationTestSchema>;
 
-/** Ligne de `notification_settings` (serveur uniquement). */
-export interface NotificationSettingsRow {
+/**
+ * Ce qu'une suppression de canal emporte avec elle.
+ *
+ * Rendu **avant** la suppression pour que la confirmation nomme ce qui va
+ * cesser de prévenir, plutôt que de demander « êtes-vous sûr ? » sans dire de
+ * quoi. Une liste vide veut dire qu'aucune route ne le désigne.
+ */
+export const notificationChannelUsageSchema = z.object({
+    channelId: z.number().int().positive(),
+    routes: z.array(
+        z.object({
+            feature: notificationFeatureSchema,
+            itemId: z.number().int().positive().nullable(),
+            /** Nom de l'élément, déchiffré par le serveur ; `null` sur une route de feature. */
+            itemLabel: z.string().nullable()
+        })
+    )
+});
+export type NotificationChannelUsage = z.infer<typeof notificationChannelUsageSchema>;
+
+/** Ligne de `notification_channels` (serveur uniquement). */
+export interface NotificationChannelRow {
+    id: number;
+    workspace_id: number;
+    kind: NotificationChannelKind;
+    label_enc: string;
+    target_enc: string;
+    mail_account_id: number | null;
+    enabled: number;
+    position: number;
+    created: number;
+}
+
+/** Ligne de `notification_routes` (serveur uniquement). */
+export interface NotificationRouteRow {
+    id: number;
     workspace_id: number;
     feature: NotificationFeature;
-    email_enabled: number;
-    email_enc: string | null;
-    mail_account_id: number | null;
-    webhook_enabled: number;
-    webhook_enc: string | null;
+    /** `0` = la fonctionnalité elle-même. */
+    item_id: number;
+}
+
+/**
+ * Contrôle de cohérence, au chargement du module.
+ *
+ * `notifies` dans le registre et cet enum répondent à la même question ; les
+ * tenir séparés est un choix (l'un décrit, l'autre valide), les laisser diverger
+ * n'en est pas un. Une fonctionnalité marquée `notifies` mais absente de l'enum
+ * afficherait un onglet Notifications dont toutes les commandes seraient
+ * refusées — un écran qui ment, découvert à la première alerte attendue.
+ *
+ * Même esprit que le contrôle des sujets `mutates` côté serveur : attraper
+ * l'oubli au démarrage plutôt qu'en production.
+ */
+{
+    const registry = [...NOTIFYING_FEATURES].sort().join(', ');
+    const declared = [...notificationFeatureSchema.options].sort().join(', ');
+    if (registry !== declared) {
+        throw new Error(
+            `notificationFeatureSchema et FEATURE_REGISTRY.notifies divergent — ` +
+                `registre : [${registry}], enum : [${declared}]`
+        );
+    }
 }

@@ -16,6 +16,8 @@ import { logsCommands } from './logs';
 import { mailCommands } from './mail';
 import { metricsCommands } from './metrics';
 import { noteCommands } from './note';
+import { notifyCommands } from './notify';
+import { sharingCommands } from './sharing';
 import { osintCommands } from './osint';
 import { passwordCommands } from './password';
 import { projectCommands } from './project';
@@ -62,6 +64,8 @@ export const featureCommands = [
     ...logsCommands,
     ...homeCommands,
     ...mailCommands,
+    ...notifyCommands,
+    ...sharingCommands,
     ...liveCommands
 ] as const;
 

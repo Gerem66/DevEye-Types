@@ -1,10 +1,5 @@
 import { z } from 'zod';
 import {
-    notificationSettingsInputSchema,
-    notificationSettingsSchema,
-    notificationTestSchema
-} from '../domain/notifications';
-import {
     BACKUP_ACCESS_KEY_MAX,
     BACKUP_BUCKET_MAX,
     BACKUP_DESTINATION_NAME_MAX,
@@ -217,33 +212,6 @@ export const backupRuns = {
     output: z.object({ runs: z.array(backupRunSchema) })
 };
 
-// --------------------------------------------------------- notifications
-
-/**
- * Où partent les avis de sauvegarde.
- *
- * Ses propres canaux, comme les quatre émetteurs qui précèdent: une sauvegarde
- * qui rate ne réveille pas les mêmes gens qu'un service tombé. Éteint par
- * défaut.
- */
-export const backupGetSettings = {
-    command: 'backup.getSettings' as const,
-    input: z.object({}),
-    output: z.object({ settings: notificationSettingsSchema })
-};
-
-export const backupSetSettings = {
-    command: 'backup.setSettings' as const,
-    input: notificationSettingsInputSchema,
-    output: z.object({ settings: notificationSettingsSchema })
-};
-
-export const backupTestNotification = {
-    command: 'backup.testNotification' as const,
-    input: z.object({}),
-    output: notificationTestSchema
-};
-
 export const backupCommands = [
     backupDestinationList,
     backupDestinationAdd,
@@ -258,8 +226,5 @@ export const backupCommands = [
     backupJobRemove,
     backupJobRun,
     backupSources,
-    backupRuns,
-    backupGetSettings,
-    backupSetSettings,
-    backupTestNotification
+    backupRuns
 ] as const;

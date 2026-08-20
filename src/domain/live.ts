@@ -158,7 +158,19 @@ export const liveTopicSchema = z.enum([
      */
     'home',
     /** Réglages de compte (avatar, couleur, thème, chiffrement). */
-    'account'
+    'account',
+    /**
+     * Les canaux d'alerte de l'espace, et les routes qui pointent dessus.
+     *
+     * Un sujet à lui, et non `workspace` : les canaux se relisent depuis
+     * l'écran de réglages de n'importe quelle fonctionnalité, et les rattacher
+     * au sujet de l'espace ferait re-solliciter la liste des membres, les rôles
+     * et le nom à chaque fois qu'on coche une case. Ni `uptime` ni ses voisins
+     * ne conviennent non plus : une route change pour **une** fonctionnalité,
+     * mais un canal change pour toutes à la fois, et `mutates` est déclaré par
+     * commande, pas par argument.
+     */
+    'notify'
 ]);
 export type LiveTopic = z.infer<typeof liveTopicSchema>;
 
@@ -191,7 +203,11 @@ export const TOPIC_FEATURE: Record<LiveTopic, WorkspaceFeatureId | null> = {
     osint: 'osint',
     workspace: null,
     home: null,
-    account: null
+    account: null,
+    // Aucun droit de feature à vérifier : la diffusion ne dit que « quelque
+    // chose a changé », et la relecture qu'elle déclenche est gardée par
+    // `workspace.notifications` côté commande. Même nature que `workspace`.
+    notify: null
 };
 
 /**

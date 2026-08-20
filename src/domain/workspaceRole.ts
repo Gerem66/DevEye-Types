@@ -21,7 +21,18 @@ export const workspaceCapabilitySchema = z.enum([
     /** Modifier le thème de l'espace. */
     'workspace.appearance',
     /** Modifier la disposition de l'accueil de l'espace. */
-    'workspace.layout'
+    'workspace.layout',
+    /**
+     * Gérer les **canaux d'alerte** de l'espace : en déclarer, corriger une
+     * adresse ou une URL, en supprimer.
+     *
+     * Distincte des droits de fonctionnalité exprès. Un canal est une
+     * destination de l'espace, partagée par tout ce qui prévient : l'adresse de
+     * l'astreinte ou le salon de la production ne se confient pas à qui reçoit
+     * seulement le droit de régler où Uptime écrit. Ce dernier relève de
+     * `uptime: write`, et se donne donc sans celle-ci.
+     */
+    'workspace.notifications'
 ]);
 
 export type WorkspaceCapability = z.infer<typeof workspaceCapabilitySchema>;

@@ -1,10 +1,5 @@
 import { z } from 'zod';
 import {
-    notificationSettingsInputSchema,
-    notificationSettingsSchema,
-    notificationTestSchema
-} from '../domain/notifications';
-import {
     DATABASE_ALERT_MESSAGE_MAX_LENGTH,
     DATABASE_ALERT_NAME_MAX_LENGTH,
     DATABASE_HOST_MAX_LENGTH,
@@ -431,43 +426,6 @@ export const databaseAlertTest = {
     })
 };
 
-// ----------------------------------------------------------- notifications
-
-/**
- * Où partent les alertes de base.
- *
- * **Ses propres canaux**, depuis la migration 085. Elles empruntaient ceux
- * d'Uptime : `DatabaseMonitor` appelait `UptimeMonitor.resolveChannels`, et un
- * seuil SQL franchi arrivait donc sur le salon désigné pour la disponibilité.
- * C'était présenté comme une économie — « mêmes destinataires, une seule
- * configuration à tenir à jour » — mais c'est mot pour mot le raisonnement que
- * Sentinelle avait suivi avant la migration 075, avec le même effet : on ne
- * pouvait pas éteindre les alertes de base sans éteindre aussi Uptime, ni les
- * router ailleurs.
- *
- * La reprise est **à l'identique** : la 085 recopie la ligne `uptime` dans
- * `database`, si bien que personne ne perd une alerte qu'il recevait la veille.
- * Les deux jeux divergent ensuite librement.
- */
-export const databaseGetSettings = {
-    command: 'database.getSettings' as const,
-    input: z.object({}),
-    output: z.object({ settings: notificationSettingsSchema })
-};
-
-export const databaseSetSettings = {
-    command: 'database.setSettings' as const,
-    input: notificationSettingsInputSchema,
-    output: z.object({ settings: notificationSettingsSchema })
-};
-
-/** Envoie une alerte d'exemple sur chaque canal configuré. */
-export const databaseTestNotification = {
-    command: 'database.testNotification' as const,
-    input: z.object({}),
-    output: notificationTestSchema
-};
-
 /** Une requête libre en lecture seule, pour mettre au point une condition. */
 export const databaseQuery = {
     command: 'database.query' as const,
@@ -499,8 +457,5 @@ export const databaseCommands = [
     databaseAlertUpdate,
     databaseAlertRemove,
     databaseAlertTest,
-    databaseGetSettings,
-    databaseSetSettings,
-    databaseTestNotification,
     databaseQuery
 ] as const;

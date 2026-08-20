@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { notificationSettingsInputSchema, notificationTestSchema } from '../domain/notifications';
 import {
     UPTIME_INTERVAL_MAX,
     UPTIME_INTERVAL_MIN,
@@ -17,8 +16,7 @@ import {
     uptimeRangeSchema,
     uptimeResolutionSchema,
     uptimeRetentionSchema,
-    uptimeServiceSchema,
-    uptimeSettingsSchema
+    uptimeServiceSchema
 } from '../domain/uptime';
 
 const serviceId = z.number().int().positive();
@@ -173,34 +171,6 @@ export const uptimeIncidents = {
     output: z.object({ incidents: z.array(uptimeIncidentSchema) })
 };
 
-export const uptimeGetSettings = {
-    command: 'uptime.getSettings' as const,
-    input: z.object({}),
-    output: z.object({ settings: uptimeSettingsSchema })
-};
-
-/**
- * L'entrée est `notificationSettingsInputSchema` — **la forme commune**, comme
- * la sortie l'est déjà. Elle était recopiée ici champ par champ ; ajouter un
- * canal aurait demandé de retrouver les quatre copies.
- */
-export const uptimeSetSettings = {
-    command: 'uptime.setSettings' as const,
-    input: notificationSettingsInputSchema,
-    output: z.object({ settings: uptimeSettingsSchema })
-};
-
-/**
- * Send a sample alert through the configured channels so the user can verify
- * their SMTP / webhook without waiting for a real outage. `error` explains the
- * failure when nothing could be delivered.
- */
-export const uptimeTestNotification = {
-    command: 'uptime.testNotification' as const,
-    input: z.object({}),
-    output: notificationTestSchema
-};
-
 export const uptimeCommands = [
     uptimeList,
     uptimeCount,
@@ -213,8 +183,5 @@ export const uptimeCommands = [
     uptimeHistory,
     uptimeChecks,
     uptimeCheckStats,
-    uptimeIncidents,
-    uptimeGetSettings,
-    uptimeSetSettings,
-    uptimeTestNotification
+    uptimeIncidents
 ] as const;

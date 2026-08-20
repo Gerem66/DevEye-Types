@@ -1,10 +1,5 @@
 import { z } from 'zod';
 import {
-    notificationSettingsInputSchema,
-    notificationSettingsSchema,
-    notificationTestSchema
-} from '../domain/notifications';
-import {
     allowEntrySchema,
     allowScopeSchema,
     baselineEntrySchema,
@@ -221,34 +216,6 @@ export const sentinelResetBaseline = {
     output: z.object({ deviceId, cleared: z.number().int().nonnegative() })
 };
 
-/**
- * Où partent les constats de Sentinelle.
- *
- * **Ses propres canaux**, distincts de ceux d'Uptime : une alerte de sécurité
- * n'a ni les mêmes destinataires ni la même urgence qu'un service tombé, et
- * emprunter un salon désigné pour autre chose revient à écrire à des gens sans
- * le leur avoir demandé. Éteint par défaut : rien ne part tant que rien n'est
- * réglé ici.
- */
-export const sentinelGetSettings = {
-    command: 'sentinel.getSettings' as const,
-    input: z.object({}),
-    output: z.object({ settings: notificationSettingsSchema })
-};
-
-export const sentinelSetSettings = {
-    command: 'sentinel.setSettings' as const,
-    input: notificationSettingsInputSchema,
-    output: z.object({ settings: notificationSettingsSchema })
-};
-
-/** Envoie une alerte d'exemple sur chaque canal configuré. */
-export const sentinelTestNotification = {
-    command: 'sentinel.testNotification' as const,
-    input: z.object({}),
-    output: notificationTestSchema
-};
-
 export const sentinelCommands = [
     sentinelOverview,
     sentinelCount,
@@ -262,8 +229,5 @@ export const sentinelCommands = [
     sentinelRemoveAllow,
     sentinelSetConfig,
     sentinelScanNow,
-    sentinelResetBaseline,
-    sentinelGetSettings,
-    sentinelSetSettings,
-    sentinelTestNotification
+    sentinelResetBaseline
 ] as const;

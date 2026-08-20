@@ -65,8 +65,6 @@ export const uptimeServiceSchema = z.object({
     timeoutSeconds: z.number().int().positive(),
     failureThreshold: z.number().int().positive(),
     retentionDays: uptimeRetentionSchema,
-    /** Send a notification when this service goes down or recovers. */
-    notify: z.boolean(),
     /** Paused services keep their history but are never probed. */
     enabled: z.boolean(),
     /** Rank in the list; only the user's drag & drop changes it. */
@@ -172,7 +170,6 @@ export interface UptimeServiceRow {
     timeout_seconds: number;
     failure_threshold: number;
     retention_days: number | null;
-    notify: number;
     enabled: number;
     sort_order: number;
     status: UptimeStatus;

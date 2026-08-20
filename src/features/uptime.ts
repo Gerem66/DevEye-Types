@@ -32,7 +32,6 @@ const uptimeDraftSchema = z.object({
     timeoutSeconds: z.number().int().min(UPTIME_TIMEOUT_MIN).max(UPTIME_TIMEOUT_MAX),
     failureThreshold: z.number().int().min(1).max(UPTIME_THRESHOLD_MAX),
     retentionDays: uptimeRetentionSchema,
-    notify: z.boolean(),
     enabled: z.boolean()
 });
 

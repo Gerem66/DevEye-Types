@@ -4,6 +4,7 @@ import {
     notificationChannelInputSchema,
     notificationChannelSchema,
     notificationChannelUsageSchema,
+    notificationFeatureSchema,
     notificationRouteInputSchema,
     notificationRouteSchema,
     notificationRouteTargetSchema,
@@ -28,27 +29,29 @@ import {
  *
  * ## Deux étages d'autorisation, et ils ne sont pas les mêmes
  *
- * Les **canaux** appartiennent à l'espace : les gérer relève de la capacité
- * `workspace.notifications`, comme renommer l'espace relève de
- * `workspace.manage`. Les **routes**, elles, relèvent de la fonctionnalité
- * visée (`{ feature, level: 'write' }`) : décider où Uptime écrit fait partie du
- * réglage d'Uptime, et n'a pas à ouvrir la gestion des destinations de l'espace.
- * C'est la séparation qui permet de confier le routage d'une fonctionnalité sans
- * confier l'adresse de l'astreinte.
+ * Gérer les **canaux** relève de la capacité `workspace.notifications`, comme
+ * renommer l'espace relève de `workspace.manage` ; un canal appartient à une
+ * fonctionnalité (091), mais son adresse reste un secret d'espace. Les
+ * **routes**, elles, relèvent de la fonctionnalité visée (`{ feature, level:
+ * 'write' }`) : décider où Uptime écrit fait partie du réglage d'Uptime, et n'a
+ * pas à ouvrir la gestion des destinations. C'est la séparation qui permet de
+ * confier le routage d'une fonctionnalité sans confier l'adresse de
+ * l'astreinte.
  */
 
 const channelId = z.number().int().positive();
 
-/** Tous les canaux de l'espace, ordonnés, avec leur nombre d'usages. */
+/** Les canaux d'une fonctionnalité, ordonnés, avec leur nombre d'usages. */
 export const notifyChannelList = {
     command: 'notify.channelList' as const,
-    input: z.object({}),
+    input: z.object({ feature: notificationFeatureSchema }),
     output: z.object({ channels: z.array(notificationChannelSchema) })
 };
 
 export const notifyChannelAdd = {
     command: 'notify.channelAdd' as const,
-    input: notificationChannelInputSchema,
+    /** `feature` : la fonctionnalité propriétaire, immuable ensuite. */
+    input: notificationChannelInputSchema.extend({ feature: notificationFeatureSchema }),
     output: z.object({ channel: notificationChannelSchema })
 };
 

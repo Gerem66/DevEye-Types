@@ -20,9 +20,15 @@ import { NOTIFYING_FEATURES } from './featureRegistry';
  *
  * ## La forme retenue
  *
- * Un **canal** est une destination nommée qui vit à l'échelle de l'espace : un
- * type, un libellé, une cible. On en déclare autant qu'on veut, et on les
- * corrige **à un seul endroit**.
+ * Un **canal** est une destination nommée : un type, un libellé, une cible. Il
+ * appartient à **une fonctionnalité** (091) : c'est une source de cette
+ * fonctionnalité, au même titre qu'un jeton Dokploy pour le Déploiement, et il
+ * se gère dans ses réglages à elle. La 087 l'avait fait vivre à l'échelle de
+ * l'espace, partagé par les cinq émetteurs ; on retrouvait alors une liste
+ * commune gérée depuis cinq endroits, l'inverse du patron des sources. Le prix
+ * assumé du retour : deux features qui préviennent le même salon le déclarent
+ * deux fois. On en déclare autant qu'on veut, et on les corrige **à un seul
+ * endroit** : les réglages de leur fonctionnalité.
  *
  * Une **route** dit qui écrit vers quels canaux. Elle vise soit une
  * fonctionnalité entière, soit un de ses éléments. Un élément sans route propre
@@ -117,9 +123,9 @@ export const notificationChannelSchema = z.object({
     position: z.number().int().nonnegative(),
     /**
      * Combien de routes le désignent — ce que l'écran affiche en « utilisé par
-     * N ». Compté côté serveur : le client n'a pas les routes des autres
-     * fonctionnalités sous la main, et les demander toutes pour afficher un
-     * nombre serait une requête par ligne.
+     * N ». Compté côté serveur : le client n'a pas les routes des éléments sous
+     * la main, et les demander toutes pour afficher un nombre serait une
+     * requête par ligne.
      */
     usageCount: z.number().int().nonnegative()
 });
@@ -204,6 +210,8 @@ export type NotificationChannelUsage = z.infer<typeof notificationChannelUsageSc
 export interface NotificationChannelRow {
     id: number;
     workspace_id: number;
+    /** La fonctionnalité propriétaire : un canal est une source de SA feature (091). */
+    feature: NotificationFeature;
     kind: NotificationChannelKind;
     label_enc: string;
     target_enc: string;

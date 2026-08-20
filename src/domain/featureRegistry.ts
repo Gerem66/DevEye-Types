@@ -65,9 +65,9 @@ export interface FeatureDescriptor {
      * l'onglet : elle dit ce qu'on y gère et qui s'en sert.
      *
      * Les canaux de notification suivent la même logique sans passer par ce
-     * champ : leur gestion vit dans l'onglet « Notifications » à l'échelle de la
-     * fonctionnalité, parce qu'ils appartiennent à l'espace entier et non à une
-     * fonctionnalité (voir `notifies`).
+     * champ : ce sont les sources des émetteurs (chaque feature a les siens,
+     * migration 091), gérées dans leur onglet « Notifications », qui porte
+     * aussi le routage, indissociable (voir `notifies`).
      */
     sources?: { hint: string };
     /**

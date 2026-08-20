@@ -40,7 +40,18 @@ export const itemShareSchema = z.object({
     workspaceName: z.string(),
     /** Faux quand c'est l'espace d'origine : il n'est pas décochable. */
     isHome: z.boolean(),
-    shared: z.boolean()
+    shared: z.boolean(),
+    /**
+     * L'appelant peut régler, **depuis ici**, ce que chaque rôle de cet espace
+     * voit de l'élément (`share.grantList` / `share.grantSet` avec ce
+     * `workspaceId`).
+     *
+     * Vrai quand l'élément y est visible, que l'espace est partagé (un espace
+     * personnel n'a pas de rôles) et que l'appelant y tient `workspace.roles`.
+     * C'est ce qui permet de gérer les permissions de toutes les fenêtres
+     * depuis l'onglet Partage, sans changer d'espace.
+     */
+    grantsManageable: z.boolean()
 });
 export type ItemShare = z.infer<typeof itemShareSchema>;
 
@@ -95,6 +106,37 @@ export const itemRoleGrantSchema = z.object({
     access: itemAccessSchema
 });
 export type ItemRoleGrant = z.infer<typeof itemRoleGrantSchema>;
+
+/**
+ * Un rôle d'un espace, vu depuis l'écran des restrictions d'un élément.
+ *
+ * Porte tout ce que l'écran affiche, pour qu'il n'ait **aucun** recoupement à
+ * faire : l'identité du rôle, ce que la fonctionnalité lui donne (le droit
+ * *hérité*, affiché même quand aucune exception n'est posée — une vue
+ * d'ensemble qui ne montre que les exceptions oblige à deviner le reste), et
+ * l'exception posée s'il y en a une.
+ */
+export const itemRoleGrantViewSchema = z.object({
+    roleId: z.number().int().positive(),
+    name: z.string(),
+    color: z.string(),
+    /**
+     * Ce que le rôle a sur la **fonctionnalité** — le plafond, et la valeur
+     * effective quand `access` est `null`.
+     */
+    featureAccess: z.enum(['none', 'read', 'write']),
+    /** L'exception posée sur cet élément, ou `null` : « comme la fonctionnalité ». */
+    access: itemAccessSchema.nullable()
+});
+export type ItemRoleGrantView = z.infer<typeof itemRoleGrantViewSchema>;
+
+/** L'état des restrictions d'un élément dans **un** espace, prêt à afficher. */
+export const itemGrantStateSchema = z.object({
+    workspaceId: z.number().int().positive(),
+    workspaceName: z.string(),
+    roles: z.array(itemRoleGrantViewSchema)
+});
+export type ItemGrantState = z.infer<typeof itemGrantStateSchema>;
 
 /** La cible d'un partage ou d'une restriction. */
 export const itemRefSchema = z.object({

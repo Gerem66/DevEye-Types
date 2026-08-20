@@ -24,6 +24,12 @@ export interface FeatureDescriptor {
     id: WorkspaceFeatureId;
     /** Intitulé d'interface, en français. Jamais l'identifiant technique. */
     label: string;
+    /**
+     * Ce que le droit ouvre, en une phrase — affichée sous la ligne de la
+     * fonctionnalité dans l'écran des rôles. Dit ce que `read` et `write`
+     * recouvrent quand la différence n'est pas évidente.
+     */
+    description: string;
     /** Classe d'icône de `Styles/icons.css`, sans le préfixe `icon-`. */
     icon: string;
     /**
@@ -77,6 +83,8 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'devices',
         label: 'Appareils',
+        description:
+            'Lecture : voir les machines et leur supervision. Écriture : les appairer, renommer, retirer.',
         icon: 'server',
         notifies: false,
         hasItems: true,
@@ -86,6 +94,8 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'sentinel',
         label: 'Sentinelle',
+        description:
+            'Lecture : constats et posture. Écriture : acquitter, régler, relancer un relevé.',
         icon: 'shield',
         notifies: true,
         hasItems: false,
@@ -94,6 +104,7 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'weather',
         label: 'Météo',
+        description: 'Les lieux suivis et leurs prévisions.',
         icon: 'cloud',
         notifies: false,
         hasItems: false,
@@ -102,6 +113,7 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'password',
         label: 'Mots de passe',
+        description: 'Le coffre de mots de passe de l’espace.',
         icon: 'lock',
         notifies: false,
         hasItems: true,
@@ -111,6 +123,7 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'notes',
         label: 'Notes',
+        description: 'Notes et dossiers partagés de l’espace.',
         icon: 'notes',
         notifies: false,
         hasItems: true,
@@ -120,6 +133,7 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'cloudsync',
         label: 'CloudSync',
+        description: 'Partages de fichiers : dossiers, versions, appareils attachés.',
         icon: 'cloud',
         notifies: false,
         hasItems: true,
@@ -129,6 +143,8 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'uptime',
         label: 'Uptime',
+        description:
+            'Lecture : disponibilité et incidents. Écriture : déclarer et régler les services.',
         icon: 'uptime',
         notifies: true,
         hasItems: true,
@@ -138,6 +154,7 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'mail',
         label: 'Mail',
+        description: 'Comptes mail de l’espace, boîtes et messages.',
         icon: 'mail',
         notifies: false,
         hasItems: true,
@@ -147,6 +164,7 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'projects',
         label: 'Projets',
+        description: 'Tableaux, jalons, cartes et discussions des projets.',
         icon: 'projects',
         notifies: false,
         hasItems: true,
@@ -156,6 +174,8 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'git',
         label: 'Git',
+        description:
+            'Lecture : dépôts, commits, PR. Écriture : déclarer un dépôt, poser le jeton du fournisseur.',
         icon: 'branch',
         notifies: false,
         hasItems: true,
@@ -165,6 +185,8 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'deploy',
         label: 'Déploiements',
+        description:
+            'Lecture : cibles et historique. Écriture : poser la clé d’API et déclencher une mise en production.',
         icon: 'rocket',
         notifies: true,
         hasItems: true,
@@ -174,6 +196,8 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'database',
         label: 'Bases de données',
+        description:
+            'Lecture : état et exploration. Écriture : déclarer une base, ses accès et ses alertes.',
         icon: 'database',
         notifies: true,
         hasItems: true,
@@ -183,6 +207,8 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'backup',
         label: 'Sauvegardes',
+        description:
+            'Lecture : travaux et historique — la liste dit où dorment les copies. Écriture : destinations et déclenchement.',
         icon: 'archive',
         notifies: true,
         hasItems: true,
@@ -192,6 +218,8 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'finance',
         label: 'Finances',
+        description:
+            'Le grand livre : comptes, opérations, budgets. La lecture seule est déjà lourde.',
         icon: 'finance',
         notifies: false,
         hasItems: true,
@@ -201,6 +229,8 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'audience',
         label: 'Audience',
+        description:
+            'Lecture : statistiques des sites. Écriture : déclarer un site, ses origines, sa clé.',
         icon: 'eye-open',
         notifies: false,
         hasItems: true,
@@ -210,6 +240,8 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
     {
         id: 'osint',
         label: 'OSINT',
+        description:
+            'Lecture : recherches et historique. Écriture : purge et clés d’API des fournisseurs.',
         icon: 'search',
         notifies: false,
         hasItems: false,

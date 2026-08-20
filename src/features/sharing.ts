@@ -2,8 +2,8 @@ import { z } from 'zod';
 
 import {
     itemAccessSchema,
+    itemGrantStateSchema,
     itemRefSchema,
-    itemRoleGrantSchema,
     itemShareStateSchema
 } from '../domain/sharing';
 
@@ -43,15 +43,24 @@ export const shareSet = {
     output: itemShareStateSchema
 };
 
-/** Les restrictions posées sur cet élément, rôle par rôle. */
+/**
+ * Ce que chaque rôle d'un espace voit de cet élément — l'hérité et l'exception.
+ *
+ * `workspaceId` absent = l'espace actif. Renseigné, il vise n'importe quel
+ * espace où l'élément est visible : c'est ce qui permet de régler, depuis
+ * l'onglet Partage du domicile, ce que chaque fenêtre montre — sans changer
+ * d'espace. L'appelant doit être membre de l'espace visé ; y **écrire** exige
+ * d'y tenir `workspace.roles`.
+ */
 export const itemGrantList = {
     command: 'share.grantList' as const,
-    input: itemRefSchema,
-    output: z.object({ grants: z.array(itemRoleGrantSchema) })
+    input: itemRefSchema.extend({ workspaceId: z.number().int().positive().optional() }),
+    output: itemGrantStateSchema
 };
 
 /**
- * Abaisse (ou rétablit) ce qu'un rôle peut faire sur cet élément.
+ * Abaisse (ou rétablit) ce qu'un rôle peut faire sur cet élément, dans l'espace
+ * visé (`workspaceId` absent = l'actif).
  *
  * `access: null` **retire** la restriction : le rôle reprend ce que la
  * fonctionnalité lui donne. C'est l'absence de ligne qui exprime « rien de
@@ -60,10 +69,11 @@ export const itemGrantList = {
 export const itemGrantSet = {
     command: 'share.grantSet' as const,
     input: itemRefSchema.extend({
+        workspaceId: z.number().int().positive().optional(),
         roleId: z.number().int().positive(),
         access: itemAccessSchema.nullable()
     }),
-    output: z.object({ grants: z.array(itemRoleGrantSchema) })
+    output: itemGrantStateSchema
 };
 
 export const sharingCommands = [shareGet, shareSet, itemGrantList, itemGrantSet] as const;

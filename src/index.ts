@@ -1201,8 +1201,10 @@ export type { FeatureDescriptor } from './domain/featureRegistry';
 export {
     foreignRefSchema,
     itemAccessSchema,
+    itemGrantStateSchema,
     itemRefSchema,
     itemRoleGrantSchema,
+    itemRoleGrantViewSchema,
     itemShareSchema,
     itemShareStateSchema,
     shareBlockerSchema
@@ -1210,9 +1212,11 @@ export {
 export type {
     ForeignRef,
     ItemAccess,
+    ItemGrantState,
     ItemRef,
     ItemRoleGrant,
     ItemRoleGrantRow,
+    ItemRoleGrantView,
     ItemShare,
     ItemShareRow,
     ItemShareState,

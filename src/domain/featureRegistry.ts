@@ -53,6 +53,24 @@ export interface FeatureDescriptor {
      */
     itemNoun?: string;
     /**
+     * Les **sources** de la fonctionnalité : des réglages d'espace réutilisables
+     * (un jeton Dokploy, un jeton GitHub, une destination d'archives) que
+     * chaque élément ne fait que **désigner**. Corriger une source corrige d'un
+     * coup tout ce qui s'en sert.
+     *
+     * Présent, il ouvre l'onglet « Sources » des réglages **à l'échelle de la
+     * fonctionnalité**, le seul endroit où les sources se créent et se
+     * corrigent. Les dialogues d'élément, eux, ne font que choisir dans la
+     * liste, avec un bouton qui mène ici. `hint` est la phrase de tête de
+     * l'onglet : elle dit ce qu'on y gère et qui s'en sert.
+     *
+     * Les canaux de notification suivent la même logique sans passer par ce
+     * champ : leur gestion vit dans l'onglet « Notifications » à l'échelle de la
+     * fonctionnalité, parce qu'ils appartiennent à l'espace entier et non à une
+     * fonctionnalité (voir `notifies`).
+     */
+    sources?: { hint: string };
+    /**
      * Un de ses éléments peut-il être rendu visible depuis un autre espace ?
      *
      * La réponse tient entièrement au **chiffrement**, pas au goût : un élément
@@ -180,6 +198,9 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
         notifies: false,
         hasItems: true,
         itemNoun: 'dépôt',
+        sources: {
+            hint: 'Les jetons GitHub de l’espace. Chaque dépôt en désigne un ; corriger un jeton corrige d’un coup tous les dépôts qui s’en servent.'
+        },
         shareTier: 'open'
     },
     {
@@ -191,6 +212,9 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
         notifies: true,
         hasItems: true,
         itemNoun: 'cible',
+        sources: {
+            hint: 'Les accès Dokploy de l’espace (adresse de l’instance et clé d’API). Chaque cible en désigne un ; corriger un accès corrige d’un coup toutes les cibles qui s’en servent.'
+        },
         shareTier: 'open'
     },
     {
@@ -208,11 +232,14 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
         id: 'backup',
         label: 'Sauvegardes',
         description:
-            'Lecture : travaux et historique — la liste dit où dorment les copies. Écriture : destinations et déclenchement.',
+            'Lecture : travaux et historique (la liste dit où dorment les copies). Écriture : destinations et déclenchement.',
         icon: 'archive',
         notifies: true,
         hasItems: true,
         itemNoun: 'travail',
+        sources: {
+            hint: 'Les destinations d’archives de l’espace : un dossier du serveur, une machine ou un bucket S3. Chaque travail écrit vers l’une d’elles ; la corriger corrige d’un coup tous les travaux qui s’en servent.'
+        },
         shareTier: 'open'
     },
     {

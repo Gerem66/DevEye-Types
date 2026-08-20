@@ -30,10 +30,15 @@ import { NOTIFYING_FEATURES } from './featureRegistry';
  * deux fois. On en déclare autant qu'on veut, et on les corrige **à un seul
  * endroit** : les réglages de leur fonctionnalité.
  *
- * Une **route** dit qui écrit vers quels canaux. Elle vise soit une
- * fonctionnalité entière, soit un de ses éléments. Un élément sans route propre
- * **hérite** de celle de sa fonctionnalité ; une route d'élément vide vaut
- * « silencieux » et non « hérite », ce qui rend le silence exprimable.
+ * Une **route** dit qui écrit vers quels canaux, et la sélection vit **sur
+ * l'élément** (092) : chaque cible coche un ou plusieurs canaux de sa feature
+ * dans ses propres réglages, et sans sélection rien ne part. L'héritage
+ * d'une « route de la fonctionnalité » a été essayé (087) puis retiré : cocher
+ * un canal à l'échelle de la feature ne visait aucun élément nommable, et les
+ * cases des éléments, grisées tant qu'ils « suivaient » la feature, semblaient
+ * ne jamais pouvoir se cocher. Une route de fonctionnalité (`itemId` absent)
+ * ne subsiste que pour les émetteurs **sans éléments** (Sentinelle), dont les
+ * alertes ne visent rien de plus fin.
  *
  * Ce qui n'a pas changé, et qui compte : **tout est éteint par défaut.** Sans
  * canal ni route, rien ne part. Une fonctionnalité qui se met à écrire à des
@@ -155,23 +160,19 @@ export const notificationRouteTargetSchema = z.object({
 export type NotificationRouteTarget = z.infer<typeof notificationRouteTargetSchema>;
 
 /**
- * Où écrit une cible.
+ * Où écrit une cible : sa sélection de canaux, rien de plus.
  *
- * `inherits` n'a de sens que sur un élément : vrai, il suit sa fonctionnalité et
- * `channelIds` n'est que le rappel de ce dont il hérite (l'écran l'affiche
- * grisé). Sur une fonctionnalité il vaut toujours faux — il n'y a rien au-dessus
- * d'elle.
+ * Vide, elle ne prévient personne — il n'y a plus d'héritage à distinguer
+ * (092), donc plus de drapeau `inherits` : une sélection vide et une sélection
+ * jamais faite disent la même chose, le silence.
  */
 export const notificationRouteSchema = z.object({
-    inherits: z.boolean(),
     channelIds: z.array(z.number().int().positive())
 });
 export type NotificationRoute = z.infer<typeof notificationRouteSchema>;
 
-/** Ce qu'accepte `notify.routeSet`. */
+/** Ce qu'accepte `notify.routeSet`. Une sélection vide efface la route. */
 export const notificationRouteInputSchema = notificationRouteTargetSchema.extend({
-    /** Vrai → la route de l'élément est supprimée et `channelIds` ignoré. */
-    inherits: z.boolean(),
     channelIds: z.array(z.number().int().positive()).max(32)
 });
 export type NotificationRouteInput = z.infer<typeof notificationRouteInputSchema>;

@@ -24,7 +24,8 @@
     "./sdk/testing": {
       "types": "./src/sdk/testing.ts",
       "default": "./src/sdk/testing.ts"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "src",

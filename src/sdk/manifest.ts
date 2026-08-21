@@ -72,7 +72,18 @@ const EXTRA_KEY_PATTERN = /^[a-z][a-zA-Z0-9]{1,23}$/;
  * Calling a facade you did not declare throws `forbidden`: the declaration
  * is also what an administrator reviews before installing your module.
  */
-export type NativeCapability = 'notify' | 'mail.accounts' | 'members.read';
+export type NativeCapability =
+    | 'notify'
+    | 'mail.accounts'
+    | 'members.read'
+    /** Read/authorize the workspace's devices. */
+    | 'devices.read'
+    /**
+     * The full agent-fleet sync transport (outbound requests, browser fan-out,
+     * per-socket subscriptions). Reserved for repatriated NATIVE features: the
+     * agent protocol is app infrastructure, not a third-party surface.
+     */
+    | 'agents';
 
 /**
  * Settings tabs the shell can render for you.
@@ -102,6 +113,14 @@ const BUILTIN_TABS: readonly string[] = [
     'encryption',
     'sharing'
 ];
+
+/** See {@link FeatureManifest.alsoInvalidatedBy}. */
+export interface CrossTopicInvalidation {
+    /** A NATIVE live topic that is not this feature's own. */
+    topic: string;
+    /** Subset of `resources` to re-fetch when it beats. */
+    keys: readonly string[];
+}
 
 /** Where a feature's card can live on the home grid. */
 export type FeatureCategory = 'supervision' | 'security' | 'dev' | 'work' | 'daily' | 'analysis';
@@ -157,6 +176,22 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
     invalidatedByTopic?: readonly string[];
 
     /**
+     * Keys ALSO re-fetched when another feature's topic fires. The escape
+     * hatch for real data coupling (CloudSync's share rows carry device names:
+     * a device rename must refresh the share list). Native topics only, and
+     * never your own.
+     */
+    alsoInvalidatedBy?: readonly CrossTopicInvalidation[];
+
+    /**
+     * Prefix override for commands and resources. Native-id modules only, and
+     * only when the historical command casing differs from the id (cloudsync
+     * owns `cloudSync.*` commands). Must equal `<id>.` case-insensitively.
+     * Defaults to `<id>.`.
+     */
+    commandPrefix?: string;
+
+    /**
      * Builds the live/teleport segment for one item, e.g. `(id) => `job:${id}``.
      * MUST return byte-for-byte what your view declares via `useLiveSegment('l1', ...)`:
      * it is a rendezvous, not a convention. Requires `hasItems`.
@@ -192,7 +227,16 @@ export function validateManifest(m: FeatureManifest): void {
         fail(m.id, "external modules must declare shareTier 'never' for now");
     }
 
-    const prefix = `${m.id}.`;
+    if (m.commandPrefix !== undefined) {
+        if (external) fail(m.id, 'commandPrefix is reserved for native-id modules');
+        if (m.commandPrefix.toLowerCase() !== `${m.id}.`.toLowerCase()) {
+            fail(
+                m.id,
+                `commandPrefix « ${m.commandPrefix} » must equal « ${m.id}. » case-insensitively`
+            );
+        }
+    }
+    const prefix = m.commandPrefix ?? `${m.id}.`;
     for (const c of m.commands) {
         if (!c.command.startsWith(prefix)) {
             fail(m.id, `command « ${c.command} » must start with « ${prefix} »`);
@@ -207,6 +251,21 @@ export function validateManifest(m: FeatureManifest): void {
         if (!m.resources.includes(key)) {
             fail(m.id, `invalidatedByTopic « ${key} » is not in resources`);
         }
+    }
+
+    const cross = m.alsoInvalidatedBy ?? [];
+    if (cross.length > 4) fail(m.id, 'more than 4 alsoInvalidatedBy entries');
+    for (const entry of cross) {
+        if (entry.topic === m.id) fail(m.id, "alsoInvalidatedBy must name ANOTHER feature's topic");
+        for (const key of entry.keys) {
+            if (!m.resources.includes(key)) {
+                fail(m.id, `alsoInvalidatedBy key « ${key} » is not in resources`);
+            }
+        }
+    }
+
+    if ((m.nativeCapabilities ?? []).includes('agents') && external) {
+        fail(m.id, "capability 'agents' is reserved for native-id modules");
     }
 
     const extras = m.extraPermissions ?? [];

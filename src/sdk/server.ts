@@ -2,6 +2,25 @@ import type { z, ZodType } from 'zod';
 import type { ErrorCode } from '../protocol/error';
 import type { FeatureAccess } from '../domain/workspaceRole';
 import type { LogLevelName } from '../domain/logs';
+import type {
+    AgentSyncAckPayload,
+    AgentSyncApplyChunkPayload,
+    AgentSyncApplyDirPayload,
+    AgentSyncApplyLocalPayload,
+    AgentSyncApplyStartPayload,
+    AgentSyncChangedPayload,
+    AgentSyncChunkPayload,
+    AgentSyncConfigPayload,
+    AgentSyncDeletePayload,
+    AgentSyncIndexPayload,
+    AgentSyncMovePayload,
+    AgentSyncOpResultPayload,
+    AgentSyncPushPayload,
+    AgentSyncScanPayload,
+    CloudSyncChunkPush,
+    CloudSyncProgressPush,
+    CloudSyncStatePush
+} from '../protocol/agent';
 
 /**
  * Server-side SDK surface: what a feature module's handlers and background
@@ -139,6 +158,85 @@ export interface DevEyeFacade {
     members: {
         list(): Promise<ReadonlyArray<{ userId: number; name: string; isOwner: boolean }>>;
     };
+    /** Requires capability `'devices.read'`. */
+    devices: {
+        /** Throws `not_found` unless the device exists AND belongs to this workspace. */
+        authorize(deviceId: string): Promise<SdkDevice>;
+        list(): Promise<readonly SdkDevice[]>;
+        isOnline(deviceId: string): boolean;
+    };
+    /** Requires capability `'agents'`. Same object as the service deps' `agents`. */
+    agents: AgentsFacade;
+}
+
+/**
+ * The agent-fleet sync transport (capability `'agents'`, native-id modules
+ * only). Method names and semantics mirror the app's MonitorHub exactly, so a
+ * repatriated engine swaps its hub handle for this facade and changes nothing
+ * else. Outbound calls return `false` when the agent is offline (frame
+ * dropped, never queued).
+ */
+export interface AgentsFacade {
+    isOnline(deviceId: string): boolean;
+    requestSyncConfig(deviceId: string, payload: AgentSyncConfigPayload): boolean;
+    requestSyncScan(deviceId: string, payload: AgentSyncScanPayload): boolean;
+    requestSyncPush(deviceId: string, payload: AgentSyncPushPayload): boolean;
+    requestSyncApplyChunk(deviceId: string, payload: AgentSyncApplyChunkPayload): boolean;
+    requestSyncApplyStart(deviceId: string, payload: AgentSyncApplyStartPayload): boolean;
+    requestSyncApplyDir(deviceId: string, payload: AgentSyncApplyDirPayload): boolean;
+    requestSyncApplyLocal(deviceId: string, payload: AgentSyncApplyLocalPayload): boolean;
+    requestSyncMove(deviceId: string, payload: AgentSyncMovePayload): boolean;
+    requestSyncDelete(deviceId: string, payload: AgentSyncDeletePayload): boolean;
+    /** Fan-out to the browsers subscribed to the payload's share. */
+    publishSyncProgress(payload: CloudSyncProgressPush): void;
+    publishSyncState(payload: CloudSyncStatePush): void;
+}
+
+/**
+ * The caller's own browser socket (capability `'agents'`): live subscriptions
+ * and chunked downloads with backpressure. Mirrors the app's MonitorTransport
+ * sync subset.
+ */
+export interface SdkSocketTransport {
+    subscribeSync(shareIds: number[]): void;
+    unsubscribeSync(shareIds: number[]): void;
+    /** Returns the socket's send-buffer size after the frame, for backpressure. */
+    sendSyncChunk(payload: CloudSyncChunkPush): number;
+    syncChunkBuffered(): number;
+}
+
+/**
+ * Inbound agent events, dispatched by the app's agent socket layer to the
+ * modules that declare `'agents'`. Every hook is optional; an absent hook is a
+ * no-op. Hooks may fire before your service's `start()` has completed: drop
+ * quietly in that case, the agent will resend or reconcile.
+ */
+export interface FeatureAgentHooks {
+    onAgentConnect?(deviceId: string): void | Promise<void>;
+    onAgentOffline?(deviceId: string): void;
+    onSyncChanged?(payload: AgentSyncChangedPayload): void;
+    onSyncIndex?(deviceId: string, payload: AgentSyncIndexPayload): void;
+    onSyncChunk?(deviceId: string, payload: AgentSyncChunkPayload): void;
+    onSyncAck?(deviceId: string, payload: AgentSyncAckPayload): void;
+    onSyncOpResult?(deviceId: string, payload: AgentSyncOpResultPayload): void;
+}
+
+/**
+ * Raw bytes under the SERVER key (the `Encryption.encryptWithKey` wire format,
+ * byte-compatible with what native code wrote). For wrapping module-owned key
+ * material; never for user data, which goes through ciphers and the store.
+ */
+export interface SdkServerKeys {
+    sealBytes(plain: Uint8Array): string;
+    /** null when the sealed blob cannot be opened (tampered, or server keys changed). */
+    openBytes(sealed: string): Uint8Array | null;
+}
+
+/** A workspace device, as the devices facade reveals it. */
+export interface SdkDevice {
+    id: string;
+    name: string;
+    online: boolean;
 }
 
 /** What a handler receives. One request, one workspace, rights pre-resolved. */
@@ -161,6 +259,8 @@ export interface SdkFeatureContext<Repo = unknown> {
     cipher(mode?: 'server' | 'private'): SdkCipher;
     /** Native features, gated by your manifest's `nativeCapabilities`. */
     deveye: DevEyeFacade;
+    /** The caller's socket (capability `'agents'`); every method throws `forbidden` otherwise. */
+    transport: SdkSocketTransport;
     /** Fire-and-forget audit line; actor, IP and workspace are pre-bound. */
     audit(entry: {
         action: string;
@@ -204,10 +304,21 @@ export function defineSdkFeature<Repo, Cmd extends string, I extends ZodType, O 
     return def;
 }
 
-/** A background worker. Started after boot, stopped on shutdown. */
+/**
+ * A background worker. Started during boot (awaited, before the agent socket
+ * layer registers), stopped on shutdown.
+ */
 export interface FeatureService {
-    start(): void;
+    start(): void | Promise<void>;
     stop(): void | Promise<void>;
+    /** Inbound agent events this module wants (requires capability `'agents'`). */
+    agentHooks?: FeatureAgentHooks;
+    /**
+     * Named contracts offered to the host app (see `sdk/providers.ts`): the
+     * inversion for public code that needs a module's data. The app looks a
+     * provider up at call time and degrades cleanly when the module is absent.
+     */
+    providers?: Readonly<Record<string, unknown>>;
 }
 
 /**
@@ -223,6 +334,23 @@ export interface FeatureServiceDeps<Repo = unknown> {
     cipherFor(workspaceId: number): SdkCipher;
     /** Sessionless-safe facade subset. */
     deveyeFor(workspaceId: number): Pick<DevEyeFacade, 'notify'>;
+    /** Devices of one workspace, sessionless (capability `'devices.read'`). */
+    devicesFor(workspaceId: number): Pick<DevEyeFacade['devices'], 'list' | 'isOnline'>;
+    /**
+     * Audit line recorded as the SYSTEM (no session). `userId` attributes the
+     * line to a user when the work concerns their data.
+     */
+    audit(entry: {
+        action: string;
+        description: string;
+        level?: LogLevelName;
+        userId?: number;
+        metadata?: Record<string, unknown> | null;
+    }): void;
+    /** The agent-fleet transport (capability `'agents'`). */
+    agents: AgentsFacade;
+    /** Raw key wrapping under the server key. */
+    keys: SdkServerKeys;
     /**
      * The app's standard loop: setInterval + reentrancy guard + unref, the
      * exact pattern of every native service. Use it instead of rolling your own.

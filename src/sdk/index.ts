@@ -8,3 +8,4 @@
  */
 export * from './ids';
 export * from './manifest';
+export * from './providers';

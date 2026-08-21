@@ -72,6 +72,29 @@ function memoryStore(): TestFeatureStore {
 export interface RecordedCalls {
     notifications: { subject: string; body: string; itemId?: number }[];
     audits: { action: string; description: string }[];
+    /** Outbound agent frames, as `{ method, deviceId }` (payloads dropped for brevity). */
+    agentRequests: { method: string; deviceId: string }[];
+}
+
+function recordingAgents(recorded: RecordedCalls): DevEyeFacade['agents'] {
+    const req = (method: string) => (deviceId: string) => {
+        recorded.agentRequests.push({ method, deviceId });
+        return true;
+    };
+    return {
+        isOnline: () => true,
+        requestSyncConfig: req('requestSyncConfig'),
+        requestSyncScan: req('requestSyncScan'),
+        requestSyncPush: req('requestSyncPush'),
+        requestSyncApplyChunk: req('requestSyncApplyChunk'),
+        requestSyncApplyStart: req('requestSyncApplyStart'),
+        requestSyncApplyDir: req('requestSyncApplyDir'),
+        requestSyncApplyLocal: req('requestSyncApplyLocal'),
+        requestSyncMove: req('requestSyncMove'),
+        requestSyncDelete: req('requestSyncDelete'),
+        publishSyncProgress: () => undefined,
+        publishSyncState: () => undefined
+    };
 }
 
 export interface TestContext<Repo> extends SdkFeatureContext<Repo> {
@@ -97,7 +120,7 @@ export interface TestContextOverrides<Repo> {
 export function createTestContext<Repo = undefined>(
     overrides: TestContextOverrides<Repo> = {}
 ): TestContext<Repo> {
-    const recorded: RecordedCalls = { notifications: [], audits: [] };
+    const recorded: RecordedCalls = { notifications: [], audits: [], agentRequests: [] };
     const extras = overrides.extras ?? {};
     const workspaceId = overrides.workspaceId ?? 1;
     const deveye: DevEyeFacade = {
@@ -117,6 +140,12 @@ export function createTestContext<Repo = undefined>(
             list: () =>
                 Promise.resolve([{ userId: overrides.userId ?? 1, name: 'Test', isOwner: true }])
         },
+        devices: {
+            authorize: (id) => Promise.resolve({ id, name: 'Test device', online: true }),
+            list: () => Promise.resolve([]),
+            isOnline: () => true
+        },
+        agents: recordingAgents(recorded),
         ...overrides.deveye
     };
     return {
@@ -135,6 +164,12 @@ export function createTestContext<Repo = undefined>(
         store: memoryStore(),
         cipher: () => identityCipher,
         deveye,
+        transport: {
+            subscribeSync: () => undefined,
+            unsubscribeSync: () => undefined,
+            sendSyncChunk: () => 0,
+            syncChunkBuffered: () => 0
+        },
         audit: (entry) => {
             recorded.audits.push({ action: entry.action, description: entry.description });
         },

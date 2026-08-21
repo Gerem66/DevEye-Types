@@ -273,6 +273,7 @@ export const agentSyncChangedPayloadSchema = z.object({
     deviceId: z.uuid(),
     shareId: z.number().int().positive()
 });
+export type AgentSyncChangedPayload = z.infer<typeof agentSyncChangedPayloadSchema>;
 
 /**
  * Une entrée du scan local (exclusions déjà appliquées). Fichiers réguliers,
@@ -318,6 +319,7 @@ export const agentSyncIndexPayloadSchema = z.object({
     /** Posé sur le lot final quand le scan a échoué (la session est abandonnée). */
     error: z.string().max(500).optional()
 });
+export type AgentSyncIndexPayload = z.infer<typeof agentSyncIndexPayloadSchema>;
 
 /**
  * Un chunk d'upload (réponse à `sync.push`). La frame finale porte le hash,
@@ -336,6 +338,7 @@ export const agentSyncChunkPayloadSchema = z.object({
     mtime: z.number().int().nonnegative().optional(),
     error: z.string().max(500).optional()
 });
+export type AgentSyncChunkPayload = z.infer<typeof agentSyncChunkPayloadSchema>;
 
 /** Crédit de flux : l'agent a écrit le chunk `seq` d'un `sync.applyChunk`. */
 export const AGENT_SYNC_ACK = 'sync.ack' as const;
@@ -344,6 +347,7 @@ export const agentSyncAckPayloadSchema = z.object({
     opId: syncOpId,
     seq: z.number().int().nonnegative()
 });
+export type AgentSyncAckPayload = z.infer<typeof agentSyncAckPayloadSchema>;
 
 /**
  * Issue d'une op locale : install atomique (`apply`), création de dossier vide
@@ -361,6 +365,7 @@ export const agentSyncOpResultPayloadSchema = z.object({
     resumeFrom: z.number().int().nonnegative().optional(),
     error: z.string().max(500).optional()
 });
+export type AgentSyncOpResultPayload = z.infer<typeof agentSyncOpResultPayloadSchema>;
 
 export const agentReportMessagePayloadSchema = z.object({
     deviceId: z.uuid(),

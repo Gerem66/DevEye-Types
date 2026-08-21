@@ -33,9 +33,12 @@ const silentLogger: SdkLogger = {
     error: () => undefined
 };
 
-function memoryStore(): FeatureStore & {
+/** The in-memory store, with its rows exposed so tests can assert on modes. */
+export interface TestFeatureStore extends FeatureStore {
     rows: Map<string, { value: string; mode: StorageEncryption }>;
-} {
+}
+
+function memoryStore(): TestFeatureStore {
     const rows = new Map<string, { value: string; mode: StorageEncryption }>();
     return {
         rows,
@@ -73,6 +76,7 @@ export interface RecordedCalls {
 
 export interface TestContext<Repo> extends SdkFeatureContext<Repo> {
     recorded: RecordedCalls;
+    store: TestFeatureStore;
 }
 
 export interface TestContextOverrides<Repo> {

@@ -126,7 +126,14 @@ export const notifyRouteGet = {
          * tourne. Laisser l'écran proposer le réglage produirait un geste que
          * le serveur refuse — un écran qui ment, pas une garde.
          */
-        managedHere: z.boolean()
+        managedHere: z.boolean(),
+        /**
+         * L'espace **où cette route se règle** : le domicile de l'élément.
+         * Égal à l'espace de l'enveloppe quand `managedHere` est vrai. C'est ce
+         * qui permet à l'écran, sur un élément projeté, de proposer d'aller
+         * régler chez lui plutôt que d'expliquer un refus.
+         */
+        homeWorkspaceId: z.number().int().positive()
     })
 };
 

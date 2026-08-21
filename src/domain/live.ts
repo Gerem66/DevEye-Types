@@ -205,8 +205,9 @@ export const TOPIC_FEATURE: Record<LiveTopic, WorkspaceFeatureId | null> = {
     home: null,
     account: null,
     // Aucun droit de feature à vérifier : la diffusion ne dit que « quelque
-    // chose a changé », et la relecture qu'elle déclenche est gardée par
-    // `workspace.notifications` côté commande. Même nature que `workspace`.
+    // chose a changé », et la relecture qu'elle déclenche est gardée côté
+    // commande (droits de la fonctionnalité et gestion de ses canaux). Même
+    // nature que `workspace`.
     notify: null
 };
 

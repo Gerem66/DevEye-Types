@@ -29,9 +29,9 @@ import {
  *
  * ## Deux étages d'autorisation, et ils ne sont pas les mêmes
  *
- * Gérer les **canaux** relève de la capacité `workspace.notifications`, comme
- * renommer l'espace relève de `workspace.manage` ; un canal appartient à une
- * fonctionnalité (091), mais son adresse reste un secret d'espace. Les
+ * Gérer les **canaux** d'une fonctionnalité relève du champ `channels` de son
+ * grant de rôle (migration 093) : un canal appartient à une fonctionnalité
+ * (091), et son adresse ne se livre qu'à qui gère les canaux de celle-ci. Les
  * **routes**, elles, relèvent de la fonctionnalité visée (`{ feature, level:
  * 'write' }`) : décider où Uptime écrit fait partie du réglage d'Uptime, et n'a
  * pas à ouvrir la gestion des destinations. C'est la séparation qui permet de

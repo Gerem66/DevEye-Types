@@ -102,14 +102,14 @@ export const notificationChannelSchema = z.object({
     label: z.string().min(1).max(NOTIFICATION_LABEL_MAX),
     /**
      * Adresse destinataire (`email`) ou URL appelée en POST (`webhook`,
-     * `discord`) — **vide pour qui n'a pas `workspace.notifications`**.
+     * `discord`) : **vide pour qui n'a pas la gestion des canaux de la
+     * fonctionnalité** (le champ `channels` de son grant, migration 093).
      *
-     * La liste est lisible par tout membre, parce qu'il faut voir les
-     * destinations pour router une fonctionnalité vers l'une d'elles. Leur
-     * *contenu* ne l'est pas : confier le réglage d'Uptime ne confie pas
-     * l'adresse de l'astreinte ni l'URL du salon de production. On voit donc
-     * « Astreinte · e-mail », on peut y router, et on ne peut ni la lire ni la
-     * modifier.
+     * La liste est lisible avec la fonctionnalité, parce qu'il faut voir les
+     * destinations pour router vers l'une d'elles. Leur *contenu* ne l'est
+     * pas : confier le réglage d'Uptime ne confie pas l'adresse de l'astreinte
+     * ni l'URL du salon de production. On voit donc « Astreinte · e-mail », on
+     * peut y router, et on ne peut ni la lire ni la modifier.
      */
     target: z.string().max(NOTIFICATION_TARGET_MAX),
     /** Le compte Mail expéditeur ; `null` hors des canaux `email`. */

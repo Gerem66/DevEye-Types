@@ -125,14 +125,9 @@ export const backupDestinationSchema = z.object({
      * première chose qui casse quand on l'oublie.
      */
     pathStyle: z.boolean(),
-    /**
-     * Les archives sont-elles scellées avant d'être écrites ?
-     *
-     * Par défaut **oui** dès que les octets quittent le serveur (`device`, `s3`),
-     * **non** pour `local`, où le chiffrement n'ajouterait rien qu'un risque de
-     * clé perdue face à un disque déjà sous la même garde que le serveur.
-     */
-    encrypt: z.boolean(),
+    // Le chiffrement des archives n'est plus un attribut de la destination :
+    // il se règle par TRAVAIL (`backupJobSchema.encryption`, migration 094).
+    // Une destination dit où écrire, le travail dit sous quelle forme.
     status: backupDestinationStatusSchema,
     /** Message du dernier contrôle raté; `null` quand tout va bien. */
     lastError: z.string().nullable(),
@@ -143,11 +138,32 @@ export const backupDestinationSchema = z.object({
 });
 export type BackupDestination = z.infer<typeof backupDestinationSchema>;
 
+/**
+ * Sous quelle forme les archives d'un travail sont écrites.
+ *
+ * - `none` : en clair. Lisible par qui tient la destination ; à réserver aux
+ *   destinations déjà sous la même garde que le serveur.
+ * - `server` : scellées (AES-256-GCM) sous une clé dérivée de
+ *   CRYPT_KEY_A / CRYPT_KEY_B — jamais stockée, donc jamais dans l'archive
+ *   qu'elle protège, et récupérable par `scripts/restore-backup.mjs` avec ces
+ *   deux seules variables.
+ *
+ * Il n'y a **pas** de mode « mot de passe » et ce n'est pas un oubli :
+ * l'ordonnanceur tourne la nuit sans session, or la clé dérivée du mot de
+ * passe ne vit que dans une session déverrouillée, en mémoire, à fenêtre
+ * glissante (voir Docs/SECURITY_MODEL.md). Un tel mode ne pourrait ni tourner
+ * planifié, ni survivre à un dump de plusieurs heures.
+ */
+export const backupEncryptionSchema = z.enum(['none', 'server']);
+export type BackupEncryption = z.infer<typeof backupEncryptionSchema>;
+
 /** Un travail: quoi, où, quand, et combien de copies on garde. */
 export const backupJobSchema = z.object({
     id: z.number().int().positive(),
     name: z.string().max(BACKUP_JOB_NAME_MAX),
     enabled: z.boolean(),
+    /** La forme des archives à venir ; chaque exécution fige la sienne. */
+    encryption: backupEncryptionSchema,
     destinationId: z.number().int().positive(),
     /** Recopié pour que la liste n'ait pas à recouper deux jeux de données. */
     destinationName: z.string(),
@@ -252,7 +268,6 @@ export interface BackupDestinationRow {
     device_id: string | null;
     /** Adressage par chemin pour S3. */
     path_style: number;
-    encrypt: number;
     /** 'unknown' | 'ok' | 'error'. */
     status: string;
     checked_at: number | null;
@@ -294,6 +309,10 @@ export interface BackupJobRow {
     schedule_weekday: number;
     schedule_day: number;
     keep_last: number;
+    /** 'none' | 'server' : la forme des archives à venir. En clair, comme les
+     *  colonnes d'ordonnancement : l'exécuteur choisit un chemin de code sans
+     *  déchiffrer. */
+    encryption: string;
     /**
      * Quand l'ordonnanceur doit repasser. `NULL` = jamais (travail manuel ou
      * désactivé), ce qui le sort de l'index des travaux dus **sans** condition

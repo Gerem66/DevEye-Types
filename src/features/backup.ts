@@ -10,6 +10,7 @@ import {
     backupDestinationKindSchema,
     backupDestinationProbeSchema,
     backupDestinationSchema,
+    backupEncryptionSchema,
     backupJobSchema,
     backupRunSchema,
     backupScheduleKindSchema,
@@ -62,8 +63,7 @@ export const backupDestinationAdd = {
         bucket: z.string().max(BACKUP_BUCKET_MAX).nullable(),
         accessKeyId: z.string().max(BACKUP_ACCESS_KEY_MAX).nullable(),
         secret: z.string().max(BACKUP_SECRET_MAX).nullable(),
-        pathStyle: z.boolean(),
-        encrypt: z.boolean()
+        pathStyle: z.boolean()
     }),
     output: z.object({ destination: backupDestinationSchema })
 };
@@ -81,8 +81,7 @@ export const backupDestinationUpdate = {
         bucket: z.string().max(BACKUP_BUCKET_MAX).nullable(),
         accessKeyId: z.string().max(BACKUP_ACCESS_KEY_MAX).nullable(),
         secret: z.string().max(BACKUP_SECRET_MAX).optional(),
-        pathStyle: z.boolean(),
-        encrypt: z.boolean()
+        pathStyle: z.boolean()
     }),
     output: z.object({ destination: backupDestinationSchema })
 };
@@ -143,6 +142,7 @@ export const backupJobGet = {
 const jobBody = {
     name: z.string().min(1).max(BACKUP_JOB_NAME_MAX),
     destinationId,
+    encryption: backupEncryptionSchema,
     source: backupSourceKindSchema,
     sourceId: z.number().int().positive().nullable(),
     enabled: z.boolean(),

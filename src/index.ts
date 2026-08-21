@@ -506,6 +506,7 @@ export {
     backupDestinationProbeSchema,
     backupDestinationSchema,
     backupDestinationStatusSchema,
+    backupEncryptionSchema,
     backupJobSchema,
     backupRunSchema,
     backupRunStatusSchema,
@@ -516,6 +517,7 @@ export {
 export type {
     BackupDestination,
     BackupDestinationKind,
+    BackupEncryption,
     BackupDestinationProbe,
     BackupDestinationRow,
     BackupDestinationStatus,

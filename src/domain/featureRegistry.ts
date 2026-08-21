@@ -126,7 +126,10 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
         icon: 'cloud',
         notifies: false,
         hasItems: false,
-        shareTier: 'never'
+        shareTier: 'never',
+        sources: {
+            hint: 'Les clés d’API des fournisseurs, communes à l’espace. Un lieu peut porter la sienne dans ses propres réglages ; sans elle, il retombe sur celle-ci.'
+        }
     },
     {
         id: 'password',
@@ -272,7 +275,10 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
         icon: 'search',
         notifies: false,
         hasItems: false,
-        shareTier: 'never'
+        shareTier: 'never',
+        sources: {
+            hint: 'Les clés d’API des fournisseurs, toutes facultatives : chaque sonde libre fonctionne déjà, une clé ne fait qu’enrichir la sienne.'
+        }
     }
 ];
 

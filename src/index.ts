@@ -1643,6 +1643,7 @@ export {
     weatherAdd,
     weatherCommands,
     weatherGet,
+    weatherKeyList,
     weatherList,
     weatherRemove,
     weatherReorder,

@@ -69,6 +69,25 @@ export const weatherGet = {
     output: z.object({ report: weatherReportSchema })
 };
 
+/**
+ * L'état des clés d'espace, par fournisseur — jamais les clés elles-mêmes.
+ *
+ * Le panneau Sources de la Météo a besoin de dire « clé enregistrée » ou
+ * « aucune clé » : le fait, pas le secret, exactement comme `osint.keyList`.
+ */
+export const weatherKeyList = {
+    command: 'weather.keyList' as const,
+    input: z.object({}),
+    output: z.object({
+        providers: z.array(
+            z.object({
+                provider: weatherProviderSchema,
+                hasKey: z.boolean()
+            })
+        )
+    })
+};
+
 /** Store or clear the per-account API key for an advanced provider. */
 export const weatherSetKey = {
     command: 'weather.setKey' as const,
@@ -87,5 +106,6 @@ export const weatherCommands = [
     weatherReorder,
     weatherSetPrimary,
     weatherGet,
+    weatherKeyList,
     weatherSetKey
 ] as const;

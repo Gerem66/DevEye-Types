@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { NOTIFYING_FEATURES } from './featureRegistry';
+import { externalFeatureIdSchema } from './workspaceRole';
 
 /**
  * Les canaux d'alerte d'un espace — **une liste, et des liaisons vers elle**.
@@ -68,19 +69,31 @@ export type NotificationChannelKind = z.infer<typeof notificationChannelKindSche
 export const NOTIFICATION_CHANNEL_KINDS = notificationChannelKindSchema.options;
 
 /**
- * Les fonctionnalités qui savent prévenir.
+ * Les fonctionnalités **natives** qui savent prévenir.
  *
  * Enum fermé plutôt que chaîne libre : c'est lui qui garde une route d'être
  * posée sur une fonctionnalité qui n'écrira jamais. Il double le drapeau
  * `notifies` du registre, et le contrôle en bas de fichier interdit qu'ils
  * divergent.
  */
-export const notificationFeatureSchema = z.enum([
+export const nativeNotificationFeatureSchema = z.enum([
     'uptime',
     'sentinel',
     'database',
     'deploy',
     'backup'
+]);
+export type NativeNotificationFeature = z.infer<typeof nativeNotificationFeatureSchema>;
+
+/**
+ * Un module externe peut prévenir aussi. Le schéma n'atteste que la **forme**
+ * de l'id : la garde de fond (« ce module déclare bien `notifies` ») ne peut
+ * pas vivre ici, elle dépend de l'installation ; le serveur la tient contre le
+ * registre fusionné, au même endroit que `assertChannels`.
+ */
+export const notificationFeatureSchema = z.union([
+    nativeNotificationFeatureSchema,
+    externalFeatureIdSchema
 ]);
 export type NotificationFeature = z.infer<typeof notificationFeatureSchema>;
 
@@ -245,10 +258,10 @@ export interface NotificationRouteRow {
  */
 {
     const registry = [...NOTIFYING_FEATURES].sort().join(', ');
-    const declared = [...notificationFeatureSchema.options].sort().join(', ');
+    const declared = [...nativeNotificationFeatureSchema.options].sort().join(', ');
     if (registry !== declared) {
         throw new Error(
-            `notificationFeatureSchema et FEATURE_REGISTRY.notifies divergent — ` +
+            `nativeNotificationFeatureSchema et FEATURE_REGISTRY.notifies divergent : ` +
                 `registre : [${registry}], enum : [${declared}]`
         );
     }

@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import {
+    externalFeatureIdSchema,
+    isExternalFeatureId,
+    type ExternalFeatureId
+} from './workspaceRole';
 
 /**
  * Disposition de l'accueil (par espace). La grille est composée de **sections**
@@ -12,8 +17,8 @@ import { z } from 'zod';
  * thème), jamais de charge zero-knowledge.
  */
 
-/** Built-in feature widgets that can be placed on the grid. */
-export const homeFeatureIdSchema = z.enum([
+/** Les seize tuiles de fonctionnalités natives. */
+export const nativeHomeFeatureIdSchema = z.enum([
     'monitoring',
     'sentinel',
     'weather',
@@ -31,7 +36,16 @@ export const homeFeatureIdSchema = z.enum([
     'audience',
     'osint'
 ]);
-export type HomeFeatureId = z.infer<typeof homeFeatureIdSchema>;
+export type NativeHomeFeatureId = z.infer<typeof nativeHomeFeatureIdSchema>;
+
+/**
+ * Une tuile de fonctionnalité posable sur la grille : native, ou module externe
+ * (préfixe `x-`, voir `workspaceRole.ts`). Surensemble pur : les dispositions
+ * persistées parsent inchangées, et une tuile `x-` dont le module a disparu
+ * parse aussi : la grille l'ignore au rendu tant que rien ne porte cet id.
+ */
+export const homeFeatureIdSchema = z.union([nativeHomeFeatureIdSchema, externalFeatureIdSchema]);
+export type HomeFeatureId = NativeHomeFeatureId | ExternalFeatureId;
 
 /**
  * Compact widgets that can be pinned to the top-right of the navbar. Like the
@@ -174,8 +188,12 @@ export type HomeTile = z.infer<typeof homeTileSchema>;
 /** Ce que porte une tuile. Une seule lecture de la forme, partagée par tous. */
 export type HomeTileKind = 'device' | 'feature' | 'shortcut' | 'folder';
 
-/** Toutes les fonctionnalités, pour distinguer leur identifiant d'un id d'appareil. */
-export const HOME_FEATURE_IDS = homeFeatureIdSchema.options;
+/**
+ * Les fonctionnalités **natives**, pour distinguer leur identifiant d'un id
+ * d'appareil. Les externes se reconnaissent à leur préfixe (`isExternalFeatureId`),
+ * pas à une liste : la liste dépend de l'installation, le préfixe non.
+ */
+export const HOME_FEATURE_IDS = nativeHomeFeatureIdSchema.options;
 
 /**
  * Le genre d'une tuile.
@@ -186,6 +204,7 @@ export const HOME_FEATURE_IDS = homeFeatureIdSchema.options;
  */
 export function homeTileKind(tile: HomeTile): HomeTileKind {
     if (typeof tile !== 'string') return 'kind' in tile ? 'folder' : 'shortcut';
+    if (isExternalFeatureId(tile)) return 'feature';
     return (HOME_FEATURE_IDS as readonly string[]).includes(tile) ? 'feature' : 'device';
 }
 

@@ -8,6 +8,22 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./sdk": {
+      "types": "./src/sdk/index.ts",
+      "default": "./src/sdk/index.ts"
+    },
+    "./sdk/server": {
+      "types": "./src/sdk/server.ts",
+      "default": "./src/sdk/server.ts"
+    },
+    "./sdk/client": {
+      "types": "./src/sdk/client.ts",
+      "default": "./src/sdk/client.ts"
+    },
+    "./sdk/testing": {
+      "types": "./src/sdk/testing.ts",
+      "default": "./src/sdk/testing.ts"
     }
   },
   "files": [
@@ -38,6 +54,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^8.0.0",
+    "@types/react": "^19.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.0.0",

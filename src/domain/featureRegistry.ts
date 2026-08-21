@@ -1,4 +1,9 @@
-import type { WorkspaceFeatureId } from './workspaceRole';
+import {
+    isExternalFeatureId,
+    type ExternalFeatureId,
+    type FeatureId,
+    type WorkspaceFeatureId
+} from './workspaceRole';
 
 /**
  * Ce qu'est une fonctionnalité, dit **une fois**.
@@ -21,8 +26,8 @@ import type { WorkspaceFeatureId } from './workspaceRole';
  * matrice de permissions, l'écran des rôles — lisent celui-ci et rien d'autre.
  */
 export interface FeatureDescriptor {
-    id: WorkspaceFeatureId;
-    /** Intitulé d'interface, en français. Jamais l'identifiant technique. */
+    id: FeatureId;
+    /** Intitulé d'interface, en français (anglais pour un module externe). Jamais l'identifiant technique. */
     label: string;
     /**
      * Ce que le droit ouvre, en une phrase — affichée sous la ligne de la
@@ -97,7 +102,7 @@ export interface FeatureDescriptor {
  * Ordre volontairement identique à celui de `workspaceFeatureIdSchema` : les
  * deux se lisent côte à côte, et une entrée manquante se voit.
  */
-export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
+export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeatureId })[] = [
     {
         id: 'devices',
         label: 'Appareils',
@@ -285,20 +290,53 @@ export const FEATURE_REGISTRY: readonly FeatureDescriptor[] = [
 const BY_ID = new Map<string, FeatureDescriptor>(FEATURE_REGISTRY.map((f) => [f.id, f]));
 
 /**
- * Le descriptif d'une fonctionnalité.
+ * Les modules **externes** enregistrés dans ce processus.
  *
- * Lève plutôt que de rendre `undefined` : l'identifiant vient d'un enum fermé,
- * donc une absence est un oubli d'entrée dans ce fichier, pas un cas d'exécution
- * à traiter chez l'appelant.
+ * Le registre natif est une constante ; celui-ci se remplit au chargement, une
+ * fois par module installé, depuis la glue générée des deux bundles. Il ne
+ * s'agit pas de chargement à chaud : la liste est figée à la compilation, la
+ * carte n'existe que parce qu'un fichier ne peut pas être à la fois publié dans
+ * ce package et généré par l'application qui l'installe.
  */
-export function featureDescriptor(id: WorkspaceFeatureId): FeatureDescriptor {
-    const found = BY_ID.get(id);
+const EXTERNAL_BY_ID = new Map<ExternalFeatureId, FeatureDescriptor>();
+
+/** Déclare le descripteur d'un module externe. Appelée par la glue générée. */
+export function registerExternalFeature(desc: FeatureDescriptor & { id: ExternalFeatureId }): void {
+    if (!isExternalFeatureId(desc.id)) {
+        throw new Error(`registerExternalFeature: id invalide « ${desc.id} » (attendu x-<slug>)`);
+    }
+    EXTERNAL_BY_ID.set(desc.id, desc);
+}
+
+/** Le registre fusionné : les seize natives puis les modules, dans l'ordre d'enregistrement. */
+export function allFeatureDescriptors(): readonly FeatureDescriptor[] {
+    return EXTERNAL_BY_ID.size === 0
+        ? FEATURE_REGISTRY
+        : [...FEATURE_REGISTRY, ...EXTERNAL_BY_ID.values()];
+}
+
+/**
+ * Le descriptif d'une fonctionnalité, native ou externe.
+ *
+ * Lève plutôt que de rendre `undefined` : un id natif vient d'un enum fermé,
+ * donc une absence est un oubli d'entrée dans ce fichier ; un id externe
+ * inconnu signifie que la glue générée n'a pas tourné, pas un cas d'exécution
+ * à traiter chez l'appelant. Les écrans qui veulent tolérer un module absent
+ * (une tuile orpheline) passent par {@link maybeFeatureDescriptor}.
+ */
+export function featureDescriptor(id: FeatureId): FeatureDescriptor {
+    const found = maybeFeatureDescriptor(id);
     if (!found) throw new Error(`FEATURE_REGISTRY: aucune entrée pour « ${id} »`);
     return found;
 }
 
+/** Variante tolérante, pour les données qui peuvent survivre à un module retiré. */
+export function maybeFeatureDescriptor(id: FeatureId): FeatureDescriptor | undefined {
+    return isExternalFeatureId(id) ? EXTERNAL_BY_ID.get(id) : BY_ID.get(id);
+}
+
 /** L'intitulé seul — le besoin de très loin le plus courant. */
-export function featureLabel(id: WorkspaceFeatureId): string {
+export function featureLabel(id: FeatureId): string {
     return featureDescriptor(id).label;
 }
 

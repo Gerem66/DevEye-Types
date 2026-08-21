@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { userColorSchema } from './user';
-import { workspaceFeatureIdSchema, type WorkspaceFeatureId } from './workspaceRole';
+import {
+    externalFeatureIdSchema,
+    isExternalFeatureId,
+    workspaceFeatureIdSchema,
+    type FeatureId,
+    type WorkspaceFeatureId
+} from './workspaceRole';
 
 /**
  * La présence en direct : qui est dans l'espace, où, et ce qui vient d'y changer.
@@ -133,7 +139,7 @@ export type LivePeer = z.infer<typeof livePeerSchema>;
  * re-sollicite. Un sujet plus fin ne ferait qu'ajouter de la synchronisation
  * sans rien économiser.
  */
-export const liveTopicSchema = z.enum([
+export const nativeLiveTopicSchema = z.enum([
     ...workspaceFeatureIdSchema.options,
     /**
      * Les messages des projets, séparés de `projects` exprès.
@@ -172,7 +178,26 @@ export const liveTopicSchema = z.enum([
      */
     'notify'
 ]);
+export type NativeLiveTopic = z.infer<typeof nativeLiveTopicSchema>;
+
+/**
+ * Un module externe vaut **un** sujet, qui est son id : la coupure fine de
+ * `projectsChat` reste un privilège natif, un module re-sollicite tout ce qu'il
+ * expose. Le préfixe `x-` garantit qu'un sujet externe ne percute ni une
+ * feature native ni un sujet réservé.
+ */
+export const liveTopicSchema = z.union([nativeLiveTopicSchema, externalFeatureIdSchema]);
 export type LiveTopic = z.infer<typeof liveTopicSchema>;
+
+/**
+ * La feature dont relève un sujet, natif ou externe. Seule porte d'entrée à
+ * garder : la table `TOPIC_FEATURE` ne connaît que les sujets natifs, et un
+ * sujet externe **est** sa feature.
+ */
+export function topicFeatureOf(topic: LiveTopic): FeatureId | null {
+    if (isExternalFeatureId(topic)) return topic;
+    return TOPIC_FEATURE[topic as NativeLiveTopic];
+}
 
 /**
  * La feature dont un sujet relève, ou `null` quand il n'en relève d'aucune.
@@ -183,7 +208,7 @@ export type LiveTopic = z.infer<typeof liveTopicSchema>;
  * disposition de l'accueil est commune, et `account` n'est jamais diffusé que
  * dans un espace personnel, c'est-à-dire à ses propres autres onglets.
  */
-export const TOPIC_FEATURE: Record<LiveTopic, WorkspaceFeatureId | null> = {
+export const TOPIC_FEATURE: Record<NativeLiveTopic, WorkspaceFeatureId | null> = {
     devices: 'devices',
     sentinel: 'sentinel',
     weather: 'weather',
@@ -227,7 +252,7 @@ export const TOPIC_FEATURE: Record<LiveTopic, WorkspaceFeatureId | null> = {
  * `null` voudrait dire « visible par tous », ce qui ferait fuiter « Gerem est
  * dans Sécurité ». D'où le troisième cas, plutôt qu'une réutilisation directe.
  */
-export type LivePathGate = WorkspaceFeatureId | 'public' | 'private';
+export type LivePathGate = FeatureId | 'public' | 'private';
 
 const DEVICE_VIEW_PREFIX = 'device:';
 
@@ -237,6 +262,9 @@ export function livePathGate(rootSegment: string | undefined): LivePathGate {
     const viewId = segmentValue(rootSegment);
     const asFeature = workspaceFeatureIdSchema.safeParse(viewId);
     if (asFeature.success) return asFeature.data;
+    // Une vue de module externe est gardée par le droit du module, comme une
+    // feature native : même règle, reconnue au préfixe plutôt qu'à l'enum.
+    if (isExternalFeatureId(viewId)) return viewId;
     // La page Appareils et chaque vue d'appareil relèvent du même droit — miroir
     // exact de `featureBehind` côté client.
     if (viewId === 'clients' || viewId.startsWith(DEVICE_VIEW_PREFIX)) return 'devices';

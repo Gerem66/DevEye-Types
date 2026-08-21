@@ -124,6 +124,42 @@ export type WorkspaceFeatureId = z.infer<typeof workspaceFeatureIdSchema>;
 
 export const WORKSPACE_FEATURE_IDS = workspaceFeatureIdSchema.options;
 
+/**
+ * Identifiant d'une feature **externe** (module tiers compilé dans l'app).
+ *
+ * Le préfixe `x-` porte trois garanties d'un coup : aucune collision possible
+ * avec les seize ids natifs ni avec les sujets réservés (`workspace`, `home`,
+ * `account`, `notify`, `projectsChat`), aucune confusion avec un UUID
+ * d'appareil dans une disposition d'accueil (un UUID commence par un chiffre
+ * hexadécimal, jamais par `x`), et un tri visuel immédiat dans un grant ou un
+ * journal. Pas de tiret intérieur : l'id sert tel quel de préfixe de commande
+ * (`x-crypto.list`) et de valeur de segment live.
+ */
+export const EXTERNAL_FEATURE_ID_PATTERN = /^x-[a-z][a-z0-9]{1,24}$/;
+
+export type ExternalFeatureId = `x-${string}`;
+
+export const externalFeatureIdSchema = z
+    .string()
+    .regex(EXTERNAL_FEATURE_ID_PATTERN) as unknown as z.ZodType<ExternalFeatureId>;
+
+/**
+ * Toute feature adressable par un droit : native (enum fermé) ou externe.
+ *
+ * Le surensemble est **pur** : chaque valeur déjà persistée (grants JSON,
+ * dispositions) parse inchangée. Une valeur externe inconnue de l'installation
+ * courante parse aussi : un rôle peut garder le grant d'un module retiré, il
+ * reste simplement inerte tant qu'aucun module ne porte cet id.
+ */
+export const featureIdSchema = z.union([workspaceFeatureIdSchema, externalFeatureIdSchema]);
+
+export type FeatureId = WorkspaceFeatureId | ExternalFeatureId;
+
+/** Cette valeur est-elle l'id d'une feature externe ? */
+export function isExternalFeatureId(id: string): id is ExternalFeatureId {
+    return EXTERNAL_FEATURE_ID_PATTERN.test(id);
+}
+
 /** `write` implique `read` : il n'existe pas d'écriture aveugle. */
 export const featureAccessSchema = z.enum(['read', 'write']);
 export type FeatureAccess = z.infer<typeof featureAccessSchema>;
@@ -134,7 +170,7 @@ export type FeatureAccess = z.infer<typeof featureAccessSchema>;
  * d'état ternaire à normaliser partout.
  */
 export const workspaceFeatureGrantSchema = z.object({
-    feature: workspaceFeatureIdSchema,
+    feature: featureIdSchema,
     access: featureAccessSchema,
     /**
      * Gérer les **canaux d'alerte** de cette fonctionnalité : en déclarer,
@@ -147,7 +183,21 @@ export const workspaceFeatureGrantSchema = z.object({
      * se donne sans livrer les destinations elles-mêmes. Sans effet sur une
      * fonctionnalité qui n'émet pas de notifications.
      */
-    channels: z.boolean()
+    channels: z.boolean(),
+    /**
+     * Permissions **déclarées par la feature elle-même** (module externe, ou
+     * native modernisée) au-delà de lecture/écriture : la clé vient de son
+     * manifest (`extraPermissions`), la valeur est un booléen (`toggle`) ou la
+     * valeur d'un choix (`choice`).
+     *
+     * Fermeture par défaut, une seule règle : une clé **absente** vaut « refusé »
+     * pour un toggle et « valeur par défaut du manifest » (la moins privilégiée)
+     * pour un choix. Le propriétaire, qui a tout, reçoit `true` / la valeur
+     * `ownerValue`. Une clé inconnue du manifest courant est rejetée à
+     * l'écriture du rôle et ignorée à la lecture ; un grant survivant à la
+     * dépose d'un module reste donc inerte, jamais dangereux.
+     */
+    extras: z.record(z.string().max(24), z.union([z.boolean(), z.string().max(32)])).default({})
 });
 
 export type WorkspaceFeatureGrant = z.infer<typeof workspaceFeatureGrantSchema>;

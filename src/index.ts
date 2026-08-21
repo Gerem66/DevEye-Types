@@ -885,6 +885,7 @@ export { userRoleSchema } from './domain/role';
 export type { UserRole } from './domain/role';
 export {
     homeFeatureIdSchema,
+    nativeHomeFeatureIdSchema,
     homeFolderSchema,
     homeLayoutSchema,
     homeSectionSchema,
@@ -905,6 +906,7 @@ export {
 } from './domain/home';
 export type {
     HomeFeatureId,
+    NativeHomeFeatureId,
     HomeFolder,
     HomeLayout,
     HomeSection,
@@ -923,9 +925,11 @@ export {
     livePathSegmentSchema,
     livePeerSchema,
     liveTopicSchema,
+    nativeLiveTopicSchema,
     segmentKind,
     segmentValue,
-    TOPIC_FEATURE
+    TOPIC_FEATURE,
+    topicFeatureOf
 } from './domain/live';
 export type {
     LiveCursor,
@@ -933,7 +937,8 @@ export type {
     LivePath,
     LivePathGate,
     LivePeer,
-    LiveTopic
+    LiveTopic,
+    NativeLiveTopic
 } from './domain/live';
 export {
     LIVE_CHANGED_EVENT,
@@ -982,7 +987,11 @@ export { secrecyStatusSchema, secrecyWrapModeSchema } from './domain/secrecy';
 export type { SecrecyStatus, SecrecyWrapMode, UserSecretKeyRow } from './domain/secrecy';
 export { workspaceKindSchema, workspaceSchema } from './domain/workspace';
 export {
+    EXTERNAL_FEATURE_ID_PATTERN,
+    externalFeatureIdSchema,
     featureAccessSchema,
+    featureIdSchema,
+    isExternalFeatureId,
     WORKSPACE_CAPABILITIES,
     WORKSPACE_FEATURE_IDS,
     WORKSPACE_ROLE_NAME_MAX,
@@ -993,7 +1002,9 @@ export {
     workspaceRoleSchema
 } from './domain/workspaceRole';
 export type {
+    ExternalFeatureId,
     FeatureAccess,
+    FeatureId,
     WorkspaceCapability,
     WorkspaceFeatureGrant,
     WorkspaceFeatureId,
@@ -1174,6 +1185,7 @@ export {
     notificationChannelSchema,
     notificationChannelUsageSchema,
     notificationFeatureSchema,
+    nativeNotificationFeatureSchema,
     notificationRouteInputSchema,
     notificationRouteSchema,
     notificationRouteTargetSchema,
@@ -1186,6 +1198,7 @@ export type {
     NotificationChannelRow,
     NotificationChannelUsage,
     NotificationFeature,
+    NativeNotificationFeature,
     NotificationRoute,
     NotificationRouteInput,
     NotificationRouteRow,
@@ -1196,8 +1209,11 @@ export type {
 export {
     FEATURE_REGISTRY,
     NOTIFYING_FEATURES,
+    allFeatureDescriptors,
     featureDescriptor,
-    featureLabel
+    featureLabel,
+    maybeFeatureDescriptor,
+    registerExternalFeature
 } from './domain/featureRegistry';
 export type { FeatureDescriptor } from './domain/featureRegistry';
 export {

@@ -13,7 +13,7 @@ import {
     syncIndexFingerprintSchema,
     syncScanModeSchema,
     syncShareStatusSchema
-} from '../domain/cloudSync';
+} from '../domain/syncProtocol';
 import {
     fileListingSchema,
     fileMatchSchema,

@@ -214,7 +214,8 @@ export interface SdkSocketTransport {
 export interface FeatureAgentHooks {
     onAgentConnect?(deviceId: string): void | Promise<void>;
     onAgentOffline?(deviceId: string): void;
-    onSyncChanged?(payload: AgentSyncChangedPayload): void;
+    /** `deviceId` est l'identite AUTHENTIFIEE du socket ; le payload en porte une copie non fiable. */
+    onSyncChanged?(deviceId: string, payload: AgentSyncChangedPayload): void;
     onSyncIndex?(deviceId: string, payload: AgentSyncIndexPayload): void;
     onSyncChunk?(deviceId: string, payload: AgentSyncChunkPayload): void;
     onSyncAck?(deviceId: string, payload: AgentSyncAckPayload): void;

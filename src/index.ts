@@ -858,6 +858,7 @@ export {
     homeTileKind,
     homeTileSchema,
     homeTopbarWidgetIdSchema,
+    nativeHomeTopbarWidgetIdSchema,
     HOME_FEATURE_IDS,
     HOME_FOLDER_MAX_ITEMS,
     HOME_SECTION_MAX_TILES,
@@ -878,6 +879,7 @@ export type {
     HomeTile,
     HomeTileKind,
     HomeTopbarWidgetId,
+    NativeHomeTopbarWidgetId,
     ShortcutItem,
     ShortcutPreview,
     ShortcutTemplate

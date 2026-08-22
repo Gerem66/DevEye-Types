@@ -44,6 +44,17 @@ export interface FeatureClient {
      */
     settingsPanels?: Readonly<Record<string, ComponentType<SettingsPanelProps>>>;
     /**
+     * The compact topbar widget declared by `manifest.topbarWidget`.
+     *
+     * Rendered with NO props, on purpose: that is the security contract. The
+     * host hands the component nothing (no user, no stores, no other feature's
+     * state); everything it shows must come through YOUR feature's commands
+     * (`featureApi`), which the server authorizes against the caller's grants
+     * like any other call. The host also only mounts it for members whose role
+     * grants your feature. Freedom inside the box, nothing outside it.
+     */
+    TopbarWidget?: ComponentType;
+    /**
      * Minutes the full view stays mounted (state preserved) after closing.
      * `0` = unmount immediately; omit = mounted forever.
      */

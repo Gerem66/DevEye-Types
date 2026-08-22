@@ -158,6 +158,15 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
     /** Card rendering on the home grid. `compact` halves the minimum height. */
     tile?: { compact?: boolean };
 
+    /**
+     * The feature offers a compact TOPBAR widget (pinned top-right of the
+     * navbar). Declares only the DATA the picker shows; the component itself
+     * comes from the client entry (`FeatureClient.TopbarWidget`). Offered and
+     * rendered only to members whose role grants the feature: absence of the
+     * grant means absence of the widget, same rule as the grid card.
+     */
+    topbarWidget?: { description: string };
+
     /** See {@link ExtraPermissionSpec}. At most {@link MAX_EXTRA_PERMISSIONS}. */
     extraPermissions?: readonly ExtraPermissionSpec[];
     /** See {@link NativeCapability}. */

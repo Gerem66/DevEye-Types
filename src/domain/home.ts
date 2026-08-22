@@ -1,8 +1,10 @@
 import { z } from 'zod';
 import {
     externalFeatureIdSchema,
+    featureIdSchema,
     isExternalFeatureId,
-    type ExternalFeatureId
+    type ExternalFeatureId,
+    type FeatureId
 } from './workspaceRole';
 
 /**
@@ -57,8 +59,16 @@ export type HomeFeatureId = NativeHomeFeatureId | ExternalFeatureId;
  *  - `uptime`   → services up / total monitored.
  *  - `live`     → qui d'autre est dans l'espace, et où (bulles cliquables).
  */
-export const homeTopbarWidgetIdSchema = z.enum(['weather', 'devices', 'secrecy', 'uptime', 'live']);
-export type HomeTopbarWidgetId = z.infer<typeof homeTopbarWidgetIdSchema>;
+export const nativeHomeTopbarWidgetIdSchema = z.enum(['weather', 'devices', 'secrecy', 'uptime', 'live']);
+export type NativeHomeTopbarWidgetId = z.infer<typeof nativeHomeTopbarWidgetIdSchema>;
+
+/**
+ * Un module peut épingler SON widget de topbar : son id de feature sert d'id
+ * de widget. Surensemble pur, comme les tuiles : les dispositions persistées
+ * parsent inchangées, un id sans widget est ignoré au rendu.
+ */
+export const homeTopbarWidgetIdSchema = z.union([nativeHomeTopbarWidgetIdSchema, featureIdSchema]);
+export type HomeTopbarWidgetId = NativeHomeTopbarWidgetId | FeatureId;
 
 /**
  * Shortcut preview type, auto-detected from the URL's domain (the user never

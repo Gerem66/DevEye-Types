@@ -1480,7 +1480,11 @@ export {
 } from './features/finance';
 
 export { homeCommands, homeSetLayout, homeShortcutPreview } from './features/home';
-export { featureCommandRegistry, featureCommands } from './features/registry';
+export {
+    featureCommandRegistry,
+    featureCommands,
+    registerFeatureCommands
+} from './features/registry';
 export type {
     CommandInput,
     CommandOutput,

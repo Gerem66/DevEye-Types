@@ -71,6 +71,31 @@ export const featureCommandRegistry: Record<string, FeatureCommandDescriptor> = 
     featureCommands.map((c) => [c.command, c])
 );
 
+/**
+ * Verse les contrats d'un module installé dans le registre des commandes,
+ * celui que le `ws.send` du client consulte avant tout envoi. Sans cet
+ * enregistrement, chaque commande d'un module serait refusée côté client
+ * (« Unknown command ») avant même d'atteindre la socket, et son interface
+ * resterait en chargement pour toujours.
+ *
+ * Une native rapatriée déclare les MÊMES objets que le registre publié : la
+ * réinscription à l'identique est un no-op. Deux contrats différents sous le
+ * même nom, en revanche, sont une collision de config, et le chargement doit
+ * le dire plutôt que d'en servir un des deux au hasard.
+ */
+export function registerFeatureCommands(commands: readonly FeatureCommandDescriptor[]): void {
+    for (const c of commands) {
+        const existing = featureCommandRegistry[c.command];
+        if (existing === c) continue;
+        if (existing) {
+            throw new Error(
+                `registerFeatureCommands: « ${c.command} » est déjà enregistrée par un autre module`
+            );
+        }
+        featureCommandRegistry[c.command] = c;
+    }
+}
+
 export type FeatureCommandName = (typeof featureCommands)[number]['command'];
 
 export type CommandInput<N extends FeatureCommandName> = z.infer<

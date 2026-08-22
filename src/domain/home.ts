@@ -59,7 +59,13 @@ export type HomeFeatureId = NativeHomeFeatureId | ExternalFeatureId;
  *  - `uptime`   → services up / total monitored.
  *  - `live`     → qui d'autre est dans l'espace, et où (bulles cliquables).
  */
-export const nativeHomeTopbarWidgetIdSchema = z.enum(['weather', 'devices', 'secrecy', 'uptime', 'live']);
+export const nativeHomeTopbarWidgetIdSchema = z.enum([
+    'weather',
+    'devices',
+    'secrecy',
+    'uptime',
+    'live'
+]);
 export type NativeHomeTopbarWidgetId = z.infer<typeof nativeHomeTopbarWidgetIdSchema>;
 
 /**

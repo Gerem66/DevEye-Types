@@ -175,7 +175,9 @@ declare module 'deveye-sdk-client' {
         value: string | null
     ): { value: string | null } | null;
     export function useLiveOutline(kind: LiveSegmentKind, value: string | null): LiveOutlineProps;
-    export function useLiveOutlines(kind: LiveSegmentKind): (value: string | null) => LiveOutlineProps;
+    export function useLiveOutlines(
+        kind: LiveSegmentKind
+    ): (value: string | null) => LiveOutlineProps;
     export function useLiveItemTarget(
         kind: LiveSegmentKind,
         value: string | null,

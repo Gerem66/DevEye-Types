@@ -6,6 +6,9 @@ on:
 
 permissions:
   contents: read
+  # Trusted publishing (OIDC) : npmjs fait confiance à CE workflow de CE repo,
+  # aucun jeton à stocker. Le jeton d'identité est émis à la volée par GitHub.
+  id-token: write
 
 jobs:
   publish:
@@ -19,6 +22,10 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+
+      # Le npm livré avec Node 22 est un 10.x : l'échange OIDC exige npm >= 11.5.1.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest && npm --version
 
       - name: Install deps
         run: npm install
@@ -38,9 +45,9 @@ jobs:
             npm version "$TARGET_VERSION" --no-git-tag-version
           fi
 
-      # NPM_TOKEN : un jeton « automation » npmjs, à poser dans les secrets du
-      # repo. Le publishConfig du package fixe déjà le registre et l'accès public.
-      - name: Publish to npm
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Registre et accès public viennent du publishConfig du package.
+      # `--provenance=false` tant que le dépôt est privé : npm ne peut attester
+      # que la source d'un dépôt public. À retirer le jour où il passe public,
+      # l'attestation sera alors générée d'office.
+      - name: Publish to npm (trusted publishing)
+        run: npm publish --provenance=false

@@ -6,7 +6,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   publish:
@@ -19,7 +18,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          registry-url: https://npm.pkg.github.com
+          registry-url: https://registry.npmjs.org
 
       - name: Install deps
         run: npm install
@@ -39,7 +38,9 @@ jobs:
             npm version "$TARGET_VERSION" --no-git-tag-version
           fi
 
-      - name: Publish to GitHub Packages
+      # NPM_TOKEN : un jeton « automation » npmjs, à poser dans les secrets du
+      # repo. Le publishConfig du package fixe déjà le registre et l'accès public.
+      - name: Publish to npm
         run: npm publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

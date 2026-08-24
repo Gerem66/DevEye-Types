@@ -31,10 +31,10 @@
         "removeComments": false,
         "pretty": true,
         "paths": {
-            "deveye-types": [
+            "@deveye/types": [
                 "./src/index.ts"
             ],
-            "deveye-types/sdk": [
+            "@deveye/types/sdk": [
                 "./src/sdk/index.ts"
             ]
         }

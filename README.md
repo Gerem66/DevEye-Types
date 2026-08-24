@@ -1,4 +1,4 @@
-# deveye-types
+# @deveye/types
 
 Les contrats partagés de [DevEye](https://github.com/Gerem66/DevEye) : types
 TypeScript et schémas zod, consommés par le serveur, le client et les modules
@@ -6,14 +6,14 @@ de features.
 
 Le package sert ses sources directement (`src/*.ts`, aucun build) :
 
-- **`deveye-types`** — le domaine transverse (espaces, rôles, live, partage…),
+- **`@deveye/types`** — le domaine transverse (espaces, rôles, live, partage…),
   les protocoles (enveloppe WS, agent), le registre d'identité des features.
-- **`deveye-types/sdk`** — le contrat des modules de features : `FeatureManifest`,
+- **`@deveye/types/sdk`** — le contrat des modules de features : `FeatureManifest`,
   `validateManifest`, ids `x-<slug>`.
-- **`deveye-types/sdk/server`** — le contexte serveur d'un module (handlers,
+- **`@deveye/types/sdk/server`** — le contexte serveur d'un module (handlers,
   store, façade, service).
-- **`deveye-types/sdk/client`** — les contrats de l'entrée client d'un module.
-- **`deveye-types/sdk/testing`** — le harnais de test en mémoire des handlers.
+- **`@deveye/types/sdk/client`** — les contrats de l'entrée client d'un module.
+- **`@deveye/types/sdk/testing`** — le harnais de test en mémoire des handlers.
 
 Le portrait typé du barrel `deveye-sdk-client` (le runtime que l'app fournit
 aux modules) est publié ici aussi (`src/sdk/client-ambient.d.ts`) ; la CI de

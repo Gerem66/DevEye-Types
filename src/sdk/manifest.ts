@@ -18,7 +18,7 @@ import {
 
 /**
  * One WebSocket command contract. Identical in shape to the descriptors native
- * features declare in `deveye-types/src/features/*`: the server validates the
+ * features declare in `@deveye/types/src/features/*`: the server validates the
  * input before your handler runs and the output after it returns, both ways,
  * so a payload that does not match a schema never crosses the wire.
  */

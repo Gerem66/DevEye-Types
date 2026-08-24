@@ -25,8 +25,8 @@ declare module 'deveye-sdk-client' {
         SelectHTMLAttributes
     } from 'react';
     import type { z, ZodType } from 'zod';
-    import type { FeatureAccess, FeatureId, WorkspaceCapability } from 'deveye-types';
-    import type { FeatureManifest } from 'deveye-types/sdk';
+    import type { FeatureAccess, FeatureId, WorkspaceCapability } from '@deveye/types';
+    import type { FeatureManifest } from '@deveye/types/sdk';
 
     // ── UI kit ─────────────────────────────────────────────────────────────
     export const Button: ComponentType<

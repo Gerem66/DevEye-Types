@@ -17,7 +17,6 @@ import { metricsCommands } from './metrics';
 import { noteCommands } from './note';
 import { notifyCommands } from './notify';
 import { sharingCommands } from './sharing';
-import { osintCommands } from './osint';
 import { passwordCommands } from './password';
 import { projectCommands } from './project';
 import { secrecyCommands } from './secrecy';
@@ -25,7 +24,6 @@ import { sentinelCommands } from './sentinel';
 import { twoFactorCommands } from './twoFactor';
 import { uptimeCommands } from './uptime';
 import { userCommands } from './user';
-import { weatherCommands } from './weather';
 import { adminCommands } from './admin';
 import { workspaceCommands } from './workspace';
 
@@ -54,8 +52,6 @@ export const featureCommands = [
     ...deviceFilesCommands,
     ...metricsCommands,
     ...sentinelCommands,
-    ...weatherCommands,
-    ...osintCommands,
     ...uptimeCommands,
     ...twoFactorCommands,
     ...secrecyCommands,

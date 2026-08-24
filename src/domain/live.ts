@@ -249,7 +249,7 @@ export const TOPIC_FEATURE: Record<NativeLiveTopic, WorkspaceFeatureId | null> =
  * Les vues de compte et d'administration (Profil, Sécurité, Journaux,
  * Utilisateurs, Gestion de l'espace) tombent dans `'private'`. `featureBehind`
  * côté client leur rend `null` parce qu'elles ont leurs propres gardes ; ici
- * `null` voudrait dire « visible par tous », ce qui ferait fuiter « Gerem est
+ * `null` voudrait dire « visible par tous », ce qui ferait fuiter « untel est
  * dans Sécurité ». D'où le troisième cas, plutôt qu'une réutilisation directe.
  */
 export type LivePathGate = FeatureId | 'public' | 'private';

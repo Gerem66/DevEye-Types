@@ -29,10 +29,12 @@
   },
   "files": [
     "src",
-    "dist"
+    "LICENSE",
+    "README.md"
   ],
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "scripts": {
     "build": "tsc",
@@ -63,5 +65,7 @@
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.39.1"
   },
-  "type": "module"
+  "type": "module",
+  "license": "MIT",
+  "author": "Gérémy L."
 }

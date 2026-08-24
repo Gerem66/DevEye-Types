@@ -5,8 +5,8 @@
  * is its typed portrait, so a module repo can `tsc --noEmit` standalone.
  *
  * How it is consumed:
- *  - a module repo (the template) references this file from its own stub
- *    (`types/deveye-sdk-client.d.ts`, a one-line triple-slash reference);
+ *  - a module repo (the template) pulls it into its standalone typecheck via
+ *    one tsconfig `include` entry pointing at this file in node_modules;
  *  - DevEye itself verifies MECHANICALLY that the real barrel honours this
  *    declaration (`client/npm run check:sdk`): a drift breaks the app's CI,
  *    never a third-party build.

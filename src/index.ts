@@ -1103,46 +1103,6 @@ export type {
     SeverityCounts
 } from './domain/sentinel';
 export {
-    detectTarget,
-    OSINT_HISTORY_PAGE_MAX,
-    OSINT_PROBE_LABELS,
-    OSINT_PROBES_BY_KIND,
-    OSINT_PROVIDER_META,
-    OSINT_QUERY_MAX_LENGTH,
-    OSINT_RAW_MAX_LENGTH,
-    OSINT_SLOW_PROBES,
-    osintFieldSchema,
-    osintHistoryEntrySchema,
-    osintLinkSchema,
-    osintProbeIdSchema,
-    osintProbeResultSchema,
-    osintProbeStatusSchema,
-    osintProviderSchema,
-    osintProviderStatusSchema,
-    osintScoreSchema,
-    osintTagSchema,
-    osintTargetKindSchema,
-    osintTargetSchema,
-    osintToneSchema
-} from './domain/osint';
-export type {
-    OsintField,
-    OsintHistoryEntry,
-    OsintLink,
-    OsintLookupRow,
-    OsintProbeId,
-    OsintProbeResult,
-    OsintProbeStatus,
-    OsintProvider,
-    OsintProviderKeyRow,
-    OsintProviderStatus,
-    OsintScore,
-    OsintTag,
-    OsintTarget,
-    OsintTargetKind,
-    OsintTone
-} from './domain/osint';
-export {
     NOTIFICATION_CHANNEL_KINDS,
     NOTIFICATION_EMAIL_MAX,
     NOTIFICATION_LABEL_MAX,
@@ -1237,26 +1197,6 @@ export type {
     TwoFactorSetup,
     TwoFactorStatus
 } from './domain/twoFactor';
-export {
-    weatherConditionSchema,
-    weatherDaySchema,
-    weatherFormatSchema,
-    weatherHourSchema,
-    weatherLocationSchema,
-    weatherProviderSchema,
-    weatherReportSchema
-} from './domain/weather';
-export type {
-    WeatherCondition,
-    WeatherDay,
-    WeatherFormat,
-    WeatherHour,
-    WeatherLocation,
-    WeatherLocationRow,
-    WeatherProvider,
-    WeatherProviderKeyRow,
-    WeatherReport
-} from './domain/weather';
 
 // Features
 export {
@@ -1594,28 +1534,6 @@ export {
     metricsSubscribe,
     metricsUnsubscribe
 } from './features/metrics';
-export {
-    weatherAdd,
-    weatherCommands,
-    weatherGet,
-    weatherKeyList,
-    weatherList,
-    weatherRemove,
-    weatherReorder,
-    weatherSetKey,
-    weatherSetPrimary,
-    weatherUpdate
-} from './features/weather';
-export {
-    osintCommands,
-    osintHistory,
-    osintHistoryClear,
-    osintHistoryRemove,
-    osintKeyList,
-    osintLookup,
-    osintProbe,
-    osintSetKey
-} from './features/osint';
 export {
     SENTINEL_PAGE_MAX,
     sentinelAcknowledge,

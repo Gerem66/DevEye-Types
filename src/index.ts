@@ -1449,7 +1449,6 @@ export {
     workspaceAdd,
     workspaceCommands,
     workspaceDelete,
-    workspaceEnableSharedKey,
     workspaceLeave,
     workspaceRemoveMember,
     workspaceAddMember,
@@ -1460,8 +1459,7 @@ export {
     workspaceRoleList,
     workspaceRoleSetDefault,
     workspaceRoleUpdate,
-    workspaceSetFavorite,
-    workspaceSharedKeyStatus
+    workspaceSetFavorite
 } from './features/workspace';
 export {
     AVATAR_MAX_LENGTH,

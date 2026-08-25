@@ -89,33 +89,6 @@ export const workspaceAddMember = {
     output: z.object({ workspace: workspaceSchema })
 };
 
-/**
- * État de la clé d'espace : déjà active, applicable, et ce qui l'empêcherait.
- */
-export const workspaceSharedKeyStatus = {
-    command: 'workspace.sharedKeyStatus' as const,
-    input: z.object({}),
-    output: z.object({
-        /** L'espace utilise déjà sa propre clé. */
-        enabled: z.boolean(),
-        /** Faux pour un espace personnel, qui garde la clé de son propriétaire. */
-        applicable: z.boolean(),
-        /** Obstacles à lever avant conversion, rédigés pour l'utilisateur. */
-        blockers: z.array(z.string())
-    })
-};
-
-/**
- * Convertit l'espace vers sa propre clé. Exige le propriétaire, session
- * déverrouillée : le contenu existant doit être relu avec sa clé avant d'être
- * réécrit sous celle de l'espace.
- */
-export const workspaceEnableSharedKey = {
-    command: 'workspace.enableSharedKey' as const,
-    input: z.object({}),
-    output: z.object({ converted: z.number().int().nonnegative() })
-};
-
 /** Le contenu modifiable d'un rôle. */
 const roleDraftSchema = z.object({
     name: z.string().min(1).max(WORKSPACE_ROLE_NAME_MAX),
@@ -187,8 +160,6 @@ export const workspaceCommands = [
     workspaceRoleDelete,
     workspaceRoleSetDefault,
     workspaceAssignRole,
-    workspaceSharedKeyStatus,
-    workspaceEnableSharedKey,
     workspaceRename,
     workspaceLeave,
     workspaceRemoveMember,

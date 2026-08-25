@@ -283,7 +283,7 @@ export const audienceOverviewSchema = z.object({
 export type AudienceOverview = z.infer<typeof audienceOverviewSchema>;
 
 export const audienceBreakdownItemSchema = z.object({
-    /** Le libellé déchiffré. Vide quand il l'est resté (clé d'espace convertie). */
+    /** Le libellé déchiffré, vide si le blob est illisible. */
     label: z.string(),
     views: z.number().int().nonnegative(),
     visitors: z.number().int().nonnegative()

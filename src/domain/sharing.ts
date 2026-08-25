@@ -10,8 +10,8 @@ import { featureAccessSchema, workspaceFeatureIdSchema } from './workspaceRole';
  * Un élément partagé **ne change jamais de clé**. Il reste chiffré sous celle de
  * son espace d'origine ; servi ailleurs, il est déchiffré avec le codec ouvert
  * de cet espace-là. C'est le prolongement direct du levier L3 de
- * `WORKSPACES.md` — « un espace résout les clés de son propriétaire » — et la
- * raison pour laquelle ce chantier ne re-chiffre rien.
+ * `WORKSPACES.md`, « chaque espace a sa clé, et un blob n'en change jamais »,
+ * et la raison pour laquelle ce chantier ne re-chiffre rien.
  *
  * `WORKSPACES.md` §10 range **déplacer** un élément hors périmètre, précisément
  * parce que ce serait la seule opération à exiger un déchiffrement clé A puis un

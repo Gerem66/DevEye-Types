@@ -1,0 +1,97 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { z } from 'zod';
+
+import {
+    externalDescriptorOf,
+    resolveExtras,
+    validateManifest,
+    type FeatureManifest
+} from './manifest';
+
+const base: FeatureManifest = {
+    id: 'x-demo',
+    label: 'Demo',
+    description: 'A demo module.',
+    icon: 'x-demo-icon',
+    category: 'daily',
+    notifies: false,
+    hasItems: false,
+    shareTier: 'never',
+    resources: ['x-demo.state'],
+    commands: [{ command: 'x-demo.get', input: z.object({}), output: z.object({}) }]
+};
+
+test('validateManifest accepts a minimal external manifest', () => {
+    assert.doesNotThrow(() => validateManifest(base));
+});
+
+test('validateManifest rejects the classic mistakes', () => {
+    const rejects = (patch: Partial<FeatureManifest>, fragment: string) =>
+        assert.throws(() => validateManifest({ ...base, ...patch }), new RegExp(fragment));
+    rejects({ label: '  ' }, 'empty label');
+    rejects({ hasItems: true }, 'itemNoun');
+    rejects({ itemSegment: (id) => `item:${id}` }, 'itemSegment');
+    rejects({ shareTier: 'open' }, "shareTier 'never'");
+    rejects({ commandPrefix: 'x-demo.' }, 'commandPrefix');
+    rejects(
+        { commands: [{ command: 'other.get', input: z.object({}), output: z.object({}) }] },
+        'x-demo'
+    );
+});
+
+test('externalDescriptorOf projects the identity fields only, and refuses a native id', () => {
+    assert.deepEqual(
+        externalDescriptorOf({ ...base, itemNoun: 'thing', sources: { hint: 'keys' } }),
+        {
+            id: 'x-demo',
+            label: 'Demo',
+            description: 'A demo module.',
+            icon: 'x-demo-icon',
+            notifies: false,
+            hasItems: false,
+            itemNoun: 'thing',
+            sources: { hint: 'keys' },
+            shareTier: 'never'
+        }
+    );
+    assert.throws(() => externalDescriptorOf({ ...base, id: 'weather' }), /not an external id/);
+});
+
+test('resolveExtras: the owner holds everything, a member what the grant says, unknown keys nothing', () => {
+    const specs: FeatureManifest['extraPermissions'] = [
+        { key: 'reset', type: 'toggle', label: 'Reset', description: '' },
+        {
+            key: 'limit',
+            type: 'choice',
+            label: 'Limit',
+            description: '',
+            options: [
+                { value: 'low', label: 'Low' },
+                { value: 'high', label: 'High' }
+            ],
+            default: 'low',
+            ownerValue: 'high'
+        }
+    ];
+    const owner = resolveExtras(specs, true, {});
+    assert.equal(owner.canExtra('reset'), true);
+    assert.equal(owner.extraValue('limit'), 'high');
+
+    const member = resolveExtras(specs, false, { reset: true, limit: 'high' });
+    assert.equal(member.canExtra('reset'), true);
+    assert.equal(member.extraValue('limit'), 'high');
+
+    const restricted = resolveExtras(specs, false, { reset: false, limit: 'bogus' });
+    assert.equal(restricted.canExtra('reset'), false);
+    assert.equal(
+        restricted.extraValue('limit'),
+        'low',
+        'a value outside the options falls back to the default'
+    );
+
+    // Wrong kind or undeclared: nothing, owner or not.
+    assert.equal(owner.canExtra('limit'), false);
+    assert.equal(owner.extraValue('reset'), '');
+    assert.equal(resolveExtras(undefined, true, { reset: true }).canExtra('reset'), false);
+});

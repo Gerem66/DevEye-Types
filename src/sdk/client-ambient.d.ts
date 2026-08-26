@@ -78,6 +78,15 @@ declare module 'deveye-sdk-client' {
         fill?: boolean;
         holdSecrecy?: boolean;
     }>;
+    /** Request the enclosing Dialog's guarded close (the unsaved-changes prompt included). */
+    export function useDialogClose(): () => void;
+    /** Register `fn` as the enclosing Dialog's primary action (Enter triggers it); `null` clears it. */
+    export function useDialogSubmit(fn: (() => void) | null): void;
+    /**
+     * Register `onEscape` as the topmost dismissible layer while `open`, so
+     * Escape closes overlays innermost first. `null` absorbs Escape without closing.
+     */
+    export function useDismissLayer(open: boolean, onEscape: (() => void) | null): void;
     export const StatusBadge: ComponentType<{
         tone?: 'online' | 'offline' | 'success' | 'warning' | 'danger' | 'accent' | 'neutral';
         /** Show the leading status dot (default true). */
@@ -158,8 +167,14 @@ declare module 'deveye-sdk-client' {
     export interface SecrecyState {
         /** True when password-based encryption is enabled for the account. */
         enabled: boolean;
-        /** True while the session holds the unlocked key. */
+        /** True while the session holds the unlocked key (no prompt needed). */
         unlocked: boolean;
+        /** True while the unlock dialog is open. */
+        prompting: boolean;
+        /** Epoch ms at which the grace window expires, or null when nothing counts down. */
+        unlockedUntil: number | null;
+        /** "Validate on every action": the key is never cached, unlocking ahead of time is pointless. */
+        alwaysPrompt: boolean;
     }
     /** Live lock state of the session (shared with the topbar widget and the global prompt). */
     export function useSecrecy(): SecrecyState;

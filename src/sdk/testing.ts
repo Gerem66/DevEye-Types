@@ -1,22 +1,30 @@
 import type { ZodType } from 'zod';
+import { resolveExtras, type FeatureManifest } from './manifest';
 import type {
     DevEyeFacade,
+    FeatureServiceDeps,
     FeatureStore,
     SdkCipher,
+    SdkDevice,
     SdkFeatureContext,
     SdkLogger,
     StorageEncryption
 } from './server';
 
 /**
- * Test harness for feature handlers: a fully in-memory {@link SdkFeatureContext}
- * with identity ciphers, a recording facade, and a silent logger. Call your
- * handlers directly from `node:test` files; no app, no database, no socket.
+ * Test harnesses: a fully in-memory {@link SdkFeatureContext} for handlers and
+ * a matching {@link FeatureServiceDeps} for background services, with
+ * identity ciphers, a recording facade, and a silent logger. Call your code
+ * directly from `node:test` files; no app, no database, no socket.
  *
  * ```ts
- * const ctx = createTestContext({ repo: fakeRepo() });
+ * const ctx = createTestContext({ repo: fakeRepo(), manifest });
  * const out = await myFeature.features[0].handler(ctx, { name: 'x' });
  * assert.equal(ctx.recorded.notifications.length, 1);
+ *
+ * const deps = createTestServiceDeps({ repo: fakeRepo() });
+ * const service = myServer.createService(deps);
+ * await deps.recorded.tickers[0].tick();
  * ```
  */
 
@@ -76,6 +84,31 @@ export interface RecordedCalls {
     agentRequests: { method: string; deviceId: string }[];
 }
 
+function recordingNotify(recorded: RecordedCalls, hasRoute: boolean): DevEyeFacade['notify'] {
+    return {
+        hasRoute: () => Promise.resolve(hasRoute),
+        send(alert, opts) {
+            recorded.notifications.push({
+                subject: alert.subject,
+                body: alert.body,
+                itemId: opts?.itemId
+            });
+            return Promise.resolve(true);
+        }
+    };
+}
+
+function recordingDevices(devices: readonly SdkDevice[]): DevEyeFacade['devices'] {
+    return {
+        authorize: (id) =>
+            Promise.resolve(
+                devices.find((d) => d.id === id) ?? { id, name: 'Test device', online: true }
+            ),
+        list: () => Promise.resolve([...devices]),
+        isOnline: (id) => devices.find((d) => d.id === id)?.online ?? true
+    };
+}
+
 function recordingAgents(recorded: RecordedCalls): DevEyeFacade['agents'] {
     const req = (method: string) => (deviceId: string) => {
         recorded.agentRequests.push({ method, deviceId });
@@ -111,8 +144,16 @@ export interface TestContextOverrides<Repo> {
     canWrite?: boolean;
     /** Extra permissions the caller holds, as the grant would carry them. */
     extras?: Record<string, boolean | string>;
+    /**
+     * Your manifest: `canExtra` / `extraValue` then follow the exact runtime
+     * rules ({@link resolveExtras}). Without it no extra is declared, so
+     * every key answers `false` / `''`, owner or not.
+     */
+    manifest?: Pick<FeatureManifest, 'extraPermissions'>;
     /** What `deveye.notify.hasRoute` answers. Default true. */
     hasRoute?: boolean;
+    /** Devices `deveye.devices` reveals. Default none listed, any id authorized. */
+    devices?: readonly SdkDevice[];
     /** Override facade members entirely when the defaults are not enough. */
     deveye?: Partial<DevEyeFacade>;
 }
@@ -121,30 +162,16 @@ export function createTestContext<Repo = undefined>(
     overrides: TestContextOverrides<Repo> = {}
 ): TestContext<Repo> {
     const recorded: RecordedCalls = { notifications: [], audits: [], agentRequests: [] };
-    const extras = overrides.extras ?? {};
+    const isOwner = overrides.isOwner ?? true;
     const workspaceId = overrides.workspaceId ?? 1;
     const deveye: DevEyeFacade = {
-        notify: {
-            hasRoute: () => Promise.resolve(overrides.hasRoute ?? true),
-            send(alert, opts) {
-                recorded.notifications.push({
-                    subject: alert.subject,
-                    body: alert.body,
-                    itemId: opts?.itemId
-                });
-                return Promise.resolve(true);
-            }
-        },
+        notify: recordingNotify(recorded, overrides.hasRoute ?? true),
         mail: { listAccounts: () => Promise.resolve([]) },
         members: {
             list: () =>
                 Promise.resolve([{ userId: overrides.userId ?? 1, name: 'Test', isOwner: true }])
         },
-        devices: {
-            authorize: (id) => Promise.resolve({ id, name: 'Test device', online: true }),
-            list: () => Promise.resolve([]),
-            isOnline: () => true
-        },
+        devices: recordingDevices(overrides.devices ?? []),
         agents: recordingAgents(recorded),
         ...overrides.deveye
     };
@@ -153,13 +180,9 @@ export function createTestContext<Repo = undefined>(
         userId: overrides.userId ?? 1,
         workspaceId,
         workspace: { id: workspaceId, kind: overrides.kind ?? 'personal', name: 'Test' },
-        isOwner: overrides.isOwner ?? true,
+        isOwner,
         canWrite: overrides.canWrite ?? true,
-        canExtra: (key) => (overrides.isOwner ?? true) || extras[key] === true,
-        extraValue: (key) => {
-            const value = extras[key];
-            return typeof value === 'string' ? value : '';
-        },
+        ...resolveExtras(overrides.manifest?.extraPermissions, isOwner, overrides.extras ?? {}),
         repo: overrides.repo as Repo,
         store: memoryStore(),
         cipher: () => identityCipher,
@@ -175,5 +198,82 @@ export function createTestContext<Repo = undefined>(
         },
         logger: silentLogger,
         requestId: 'test'
+    };
+}
+
+export interface RecordedServiceCalls extends RecordedCalls {
+    /** Every `createTicker` call, so a test drives ticks by hand: `await tickers[0].tick()`. */
+    tickers: { intervalMs: number; tick(): Promise<void> }[];
+}
+
+export interface TestServiceDeps<Repo> extends FeatureServiceDeps<Repo> {
+    recorded: RecordedServiceCalls;
+    /** One in-memory store per workspace touched, keyed by workspace id. */
+    stores: Map<number, TestFeatureStore>;
+}
+
+export interface TestServiceOverrides<Repo> {
+    repo?: Repo;
+    /** What `listWorkspaceIds` answers. Default `[1]`. */
+    workspaceIds?: readonly number[];
+    /** Devices every workspace reveals. Default none. */
+    devices?: readonly SdkDevice[];
+    /** What `deveyeFor(...).notify.hasRoute` answers. Default true. */
+    hasRoute?: boolean;
+}
+
+/**
+ * The service twin of {@link createTestContext}: sessionless, so no guarded
+ * cipher and no `'private'` rows, exactly like the app. Tickers never start on
+ * their own; the test calls `recorded.tickers[i].tick()` when it wants a beat.
+ */
+export function createTestServiceDeps<Repo = undefined>(
+    overrides: TestServiceOverrides<Repo> = {}
+): TestServiceDeps<Repo> {
+    const recorded: RecordedServiceCalls = {
+        notifications: [],
+        audits: [],
+        agentRequests: [],
+        tickers: []
+    };
+    const stores = new Map<number, TestFeatureStore>();
+    const sealedBytes = new Map<string, Uint8Array>();
+    const notify = recordingNotify(recorded, overrides.hasRoute ?? true);
+    const devices = recordingDevices(overrides.devices ?? []);
+    return {
+        recorded,
+        stores,
+        repo: overrides.repo as Repo,
+        listWorkspaceIds: () => Promise.resolve([...(overrides.workspaceIds ?? [1])]),
+        storeFor(workspaceId) {
+            let store = stores.get(workspaceId);
+            if (!store) {
+                store = memoryStore();
+                stores.set(workspaceId, store);
+            }
+            return store;
+        },
+        cipherFor: () => identityCipher,
+        deveyeFor: () => ({ notify }),
+        devicesFor: () => ({ list: devices.list, isOnline: devices.isOnline }),
+        audit: (entry) => {
+            recorded.audits.push({ action: entry.action, description: entry.description });
+        },
+        agents: recordingAgents(recorded),
+        // A fake wrapper: the sealed string is a handle to the bytes, and an
+        // unknown handle opens to `null` exactly like a tampered blob would.
+        keys: {
+            sealBytes(plain) {
+                const handle = `sealed:${sealedBytes.size}`;
+                sealedBytes.set(handle, Uint8Array.from(plain));
+                return handle;
+            },
+            openBytes: (sealed) => sealedBytes.get(sealed) ?? null
+        },
+        createTicker({ intervalMs, tick }) {
+            recorded.tickers.push({ intervalMs, tick });
+            return { start: () => undefined, stop: () => undefined };
+        },
+        logger: silentLogger
     };
 }

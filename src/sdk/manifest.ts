@@ -1,7 +1,9 @@
 import type { ZodType } from 'zod';
+import type { FeatureDescriptor } from '../domain/featureRegistry';
 import {
     EXTERNAL_FEATURE_ID_PATTERN,
     isExternalFeatureId,
+    type ExternalFeatureId,
     type FeatureId
 } from '../domain/workspaceRole';
 
@@ -323,4 +325,68 @@ export function validateManifest(m: FeatureManifest): void {
             fail(m.id, 'item settings require hasItems');
         }
     }
+}
+
+/**
+ * The registry descriptor of an EXTERNAL module, read off its manifest: what
+ * the roles screen, the settings shell and the catalog need to know without
+ * opening the module. Natives keep their published descriptor; the app's
+ * server and client registries both project through here.
+ */
+export function externalDescriptorOf(
+    m: FeatureManifest
+): FeatureDescriptor & { id: ExternalFeatureId } {
+    if (!isExternalFeatureId(m.id)) {
+        throw new Error(`externalDescriptorOf: « ${m.id} » is not an external id`);
+    }
+    return {
+        id: m.id,
+        label: m.label,
+        description: m.description,
+        icon: m.icon,
+        notifies: m.notifies,
+        hasItems: m.hasItems,
+        itemNoun: m.itemNoun,
+        sources: m.sources,
+        shareTier: m.shareTier
+    };
+}
+
+export interface ExtrasResolver {
+    canExtra(key: string): boolean;
+    extraValue(key: string): string;
+}
+
+/**
+ * The runtime rules of extra permissions, shared by the app's request context
+ * and the test harness so the two can never drift:
+ *  - a key the manifest does not declare, or of the other kind, yields
+ *    `false` / `''`;
+ *  - the workspace owner holds every toggle and gets `ownerValue` of every
+ *    choice;
+ *  - a member holds a toggle when the grant says `true`, and gets a choice's
+ *    granted value when it is one of the options, `default` otherwise.
+ */
+export function resolveExtras(
+    specs: readonly ExtraPermissionSpec[] | undefined,
+    isOwner: boolean,
+    granted: Readonly<Record<string, boolean | string>>
+): ExtrasResolver {
+    const byKey = new Map((specs ?? []).map((spec) => [spec.key, spec]));
+    return {
+        canExtra(key) {
+            const spec = byKey.get(key);
+            if (!spec || spec.type !== 'toggle') return false;
+            return isOwner || granted[key] === true;
+        },
+        extraValue(key) {
+            const spec = byKey.get(key);
+            if (!spec || spec.type !== 'choice') return '';
+            if (isOwner) return spec.ownerValue;
+            const value = granted[key];
+            return typeof value === 'string' && spec.options.some((o) => o.value === value)
+                ? value
+                : spec.default;
+        }
+    };
 }

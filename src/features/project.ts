@@ -37,7 +37,7 @@ import { myTaskSchema, projectLinkCountsSchema } from '../domain/projectLink';
  * ⚠️ Toutes les commandes partagent le préfixe `project.`, qui porte le sujet
  * live `projects` (`src/features/_topics.ts`). Le contrôle de démarrage qui
  * attrape un `mutates` oublié cherche un verbe **juste après le point**
- * (`note.add`) : avec des noms en camelCase il ne voit rien ici. `mutates` est
+ * (`notes.add`) : avec des noms en camelCase il ne voit rien ici. `mutates` est
  * donc à relire à la main sur chaque écriture ajoutée à ce fichier.
  */
 
@@ -245,7 +245,7 @@ export const projectCardUpdate = {
  * Range une colonne : `cardIds` en est le contenu **complet** dans son ordre
  * final, et chaque carte listée est versée dans `columnId` au passage. Une
  * seule commande couvre donc le tri interne et le passage d'une colonne à
- * l'autre — c'est le motif de `note.reorder`.
+ * l'autre — c'est le motif de `notes.reorder`.
  *
  * Ne touche jamais au corps chiffré : un glisser-déposer fonctionne donc sans
  * déverrouiller quoi que ce soit.

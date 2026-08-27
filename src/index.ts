@@ -310,38 +310,6 @@ export type {
     FileUsageEntry
 } from './domain/deviceFiles';
 export {
-    NOTE_BLOCK_TEXT_MAX_LENGTH,
-    NOTE_FOLDER_MAX_LENGTH,
-    NOTE_MAX_BLOCKS,
-    NOTE_TITLE_MAX_LENGTH,
-    noteBlockSchema,
-    noteBulletBlockSchema,
-    noteCheckBlockSchema,
-    noteColorSchema,
-    noteDividerBlockSchema,
-    noteFolderSchema,
-    noteHeadingBlockSchema,
-    noteNumberBlockSchema,
-    noteSchema,
-    noteSummarySchema,
-    noteTextBlockSchema
-} from './domain/note';
-export type {
-    Note,
-    NoteBlock,
-    NoteBulletBlock,
-    NoteCheckBlock,
-    NoteColor,
-    NoteDividerBlock,
-    NoteFolder,
-    NoteFolderRow,
-    NoteHeadingBlock,
-    NoteNumberBlock,
-    NoteRow,
-    NoteSummary,
-    NoteTextBlock
-} from './domain/note';
-export {
     PROJECT_DESCRIPTION_MAX_LENGTH,
     PROJECT_ICON_MAX_LENGTH,
     PROJECT_MAX_TAGS,
@@ -1130,23 +1098,6 @@ export type {
 } from './domain/twoFactor';
 
 // Features
-export {
-    folderAdd,
-    folderDelete,
-    folderList,
-    folderRename,
-    folderReorder,
-    noteAdd,
-    noteArchive,
-    noteCommands,
-    noteCount,
-    noteDelete,
-    noteEdit,
-    noteGet,
-    noteList,
-    noteReorder,
-    noteRestore
-} from './features/note';
 export {
     projectAdd,
     projectArchive,

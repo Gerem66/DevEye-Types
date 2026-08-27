@@ -91,7 +91,7 @@ export const mailAccountDelete = {
     output: z.object({ id: accountId })
 };
 
-/** `ids` is the complete, final order — identical convention to `uptime.reorder`/`note.reorder`. */
+/** `ids` is the complete, final order — identical convention to `uptime.reorder`/`notes.reorder`. */
 export const mailAccountReorder = {
     command: 'mail.accountReorder' as const,
     input: z.object({ ids: z.array(accountId).min(1) }),

@@ -13,7 +13,6 @@ import { liveCommands } from './live';
 import { logsCommands } from './logs';
 import { mailCommands } from './mail';
 import { metricsCommands } from './metrics';
-import { noteCommands } from './note';
 import { notifyCommands } from './notify';
 import { sharingCommands } from './sharing';
 import { projectCommands } from './project';
@@ -35,7 +34,6 @@ export const featureCommands = [
     ...workspaceCommands,
     ...adminCommands,
     ...userCommands,
-    ...noteCommands,
     ...projectCommands,
     ...gitCommands,
     ...deployCommands,

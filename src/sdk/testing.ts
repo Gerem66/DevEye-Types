@@ -38,6 +38,19 @@ const identityCipher: SdkCipher = {
     tryDecrypt: (blob) => Promise.resolve(blob)
 };
 
+/**
+ * The guarded cipher of a SEALED session, as the app's behaves: `encrypt` and
+ * `decrypt` throw `locked`, `tryDecrypt` answers null (a listing that
+ * degrades gracefully). Handed out for `'private'` when the harness says
+ * `unlocked: false`, so a test covers both the guard a handler puts before
+ * reading and the refusal the cipher itself opposes.
+ */
+const sealedCipher: SdkCipher = {
+    encrypt: () => Promise.reject(new FeatureError('locked', 'Password encryption is locked')),
+    decrypt: () => Promise.reject(new FeatureError('locked', 'Password encryption is locked')),
+    tryDecrypt: () => Promise.resolve(null)
+};
+
 const silentLogger: SdkLogger = {
     debug: () => undefined,
     info: () => undefined,
@@ -196,7 +209,12 @@ export interface TestContextOverrides<Repo> {
     snapshots?: readonly SdkTelemetrySnapshot[];
     /** Override facade members entirely when the defaults are not enough. */
     deveye?: Partial<DevEyeFacade>;
-    /** What `secrecy.isUnlocked` answers. Default true. */
+    /**
+     * What `secrecy.isUnlocked` answers. Default true. When false, the
+     * `'private'` cipher is sealed too (`decrypt` throws `locked`,
+     * `tryDecrypt` answers null), exactly like the app's guarded tier in a
+     * locked session; the `'server'` cipher stays the identity.
+     */
     unlocked?: boolean;
     /** The caller's role restrictions on items, by item id. Default none. */
     itemRestrictions?: Readonly<Record<number, ItemAccess>>;
@@ -281,7 +299,8 @@ export function createTestContext<Repo = undefined>(
         ...resolveExtras(overrides.manifest?.extraPermissions, isOwner, overrides.extras ?? {}),
         repo: overrides.repo as Repo,
         store: memoryStore(),
-        cipher: () => identityCipher,
+        cipher: (mode) =>
+            mode === 'private' && overrides.unlocked === false ? sealedCipher : identityCipher,
         deveye,
         transport: {
             subscribeSync: () => undefined,

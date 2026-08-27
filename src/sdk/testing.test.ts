@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { z } from 'zod';
 
-import { createTestContext, createTestServiceDeps } from './testing';
+import { createTestContext, createTestServiceDeps, testDevice } from './testing';
 
 test('createTestContext follows the manifest for extras, and records what handlers do', async () => {
     const manifest = {
@@ -36,7 +36,7 @@ test('createTestContext follows the manifest for extras, and records what handle
 test('createTestServiceDeps: one store per workspace, hand-driven tickers, a wrapper that round-trips', async () => {
     const deps = createTestServiceDeps({
         workspaceIds: [1, 2],
-        devices: [{ id: 'd1', name: 'One', online: false }]
+        devices: [testDevice({ id: 'd1', name: 'One', online: false })]
     });
     assert.deepEqual(await deps.listWorkspaceIds(), [1, 2]);
     await deps.storeFor(1).put('a', '1');

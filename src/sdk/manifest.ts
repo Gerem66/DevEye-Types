@@ -85,7 +85,13 @@ export type NativeCapability =
      * per-socket subscriptions). Reserved for repatriated NATIVE features: the
      * agent protocol is app infrastructure, not a third-party surface.
      */
-    | 'agents';
+    | 'agents'
+    /**
+     * Read the devices' telemetry (process instants, metric rows, evidence
+     * pinning). Reserved for native-id modules like `'agents'`: the metric
+     * store is app infrastructure.
+     */
+    | 'telemetry.read';
 
 /**
  * Settings tabs the shell can render for you.
@@ -152,8 +158,15 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
     sources?: { hint: string };
     /**
      * Whether an item can be projected into another workspace. Decided by
-     * encryption, not preference. External modules: `'never'` only for now
-     * (cross-workspace listing requires repo-level wiring not yet in the SDK).
+     * encryption, not preference: only the open tier is readable by the
+     * server alone, so only open-tier rows can be served elsewhere.
+     *
+     * Anything but `'never'` commits the module to the sharing contract: a
+     * server entry with `items` (the app must find an item's home), listings
+     * that read `ctx.sharing.scope()` and pick the cipher row by row, and
+     * `ctx.items.restrictions()` applied to what they return. External modules
+     * declare `'never'` for now: the wiring is generic, but no third-party
+     * module has exercised it yet, and lifting the rule is one line here.
      */
     shareTier: 'open' | 'perItem' | 'never';
 
@@ -275,8 +288,10 @@ export function validateManifest(m: FeatureManifest): void {
         }
     }
 
-    if ((m.nativeCapabilities ?? []).includes('agents') && external) {
-        fail(m.id, "capability 'agents' is reserved for native-id modules");
+    for (const reserved of ['agents', 'telemetry.read'] as const) {
+        if ((m.nativeCapabilities ?? []).includes(reserved) && external) {
+            fail(m.id, `capability '${reserved}' is reserved for native-id modules`);
+        }
     }
 
     const extras = m.extraPermissions ?? [];

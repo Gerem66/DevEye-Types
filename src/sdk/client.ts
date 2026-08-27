@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 /**
  * Client-side SDK contracts: what your package's `./client` entry exports and
@@ -63,4 +63,82 @@ export interface FeatureClient {
     preload?: boolean;
     /** Hold the password-encryption unlock alive while the full view is open. */
     holdSecrecy?: boolean;
+    /**
+     * Named contracts offered to the host's screens (see `sdk/providers.ts`),
+     * the client twin of `FeatureService.providers`: the inversion for app
+     * screens that compose a module's components (Projects shows the Uptime
+     * strip of a linked service). The app looks a provider up at render time
+     * and degrades cleanly when the module is absent.
+     */
+    providers?: Readonly<Record<string, unknown>>;
+}
+
+/**
+ * A monitored service, as the Uptime client provider hands it to the host.
+ * Deliberately a subset of the module's own contract: what a linked-service
+ * block needs, and nothing the module may want to change later.
+ */
+export interface UptimeLinkedService {
+    id: number;
+    name: string;
+    url: string;
+    enabled: boolean;
+    status: string;
+    lastCheckedAt: number | null;
+    ratio24h: number | null;
+    ratio7d: number | null;
+    ratio30d: number | null;
+}
+
+/** One bucket of a service's availability history. */
+export interface UptimeHistoryPoint {
+    at: number;
+    checks: number;
+    upChecks: number;
+    avgMs: number | null;
+    minMs: number | null;
+    maxMs: number | null;
+}
+
+export type UptimeHistoryResolution = 'raw' | 'hour' | 'day';
+
+/**
+ * What the Uptime module offers the host's screens under
+ * `UPTIME_CLIENT_PROVIDER`: the availability strip, the ratios, the history
+ * hook feeding the strip, the list of the workspace's services, and the
+ * feature's own service dialog.
+ */
+export interface UptimeClientProvider {
+    /** The workspace's services, as `uptime.list` returns them. */
+    listServices(): Promise<readonly UptimeLinkedService[]>;
+    /**
+     * A service's history for the strip. `stamp` is what re-reads it (pass
+     * `service.lastCheckedAt`); no timer.
+     */
+    useServiceHistory(
+        id: number,
+        stamp: number | null
+    ): {
+        points: UptimeHistoryPoint[];
+        resolution: UptimeHistoryResolution;
+        axis: { from: number; to: number };
+    };
+    /** The availability strip over a window. */
+    StatusBars: ComponentType<{
+        points: UptimeHistoryPoint[];
+        from: number;
+        to: number;
+        resolution: UptimeHistoryResolution;
+        /** Rendered facing the legend (the ratios, typically). */
+        trailing?: ReactNode;
+    }>;
+    /** The three-window availability ratios of a service. */
+    Ratios: ComponentType<{ service: UptimeLinkedService; compact?: boolean }>;
+    /** The feature's service form: `service: null` declares a new one. */
+    ServiceDialog: ComponentType<{
+        open: boolean;
+        service: UptimeLinkedService | null;
+        onClose: () => void;
+        onSaved: (service: UptimeLinkedService) => void;
+    }>;
 }

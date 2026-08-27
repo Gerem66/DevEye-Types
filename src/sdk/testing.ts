@@ -1,14 +1,18 @@
 import type { ZodType } from 'zod';
+import type { ItemAccess } from '../domain/sharing';
 import { resolveExtras, type FeatureManifest } from './manifest';
-import type {
-    DevEyeFacade,
-    FeatureServiceDeps,
-    FeatureStore,
-    SdkCipher,
-    SdkDevice,
-    SdkFeatureContext,
-    SdkLogger,
-    StorageEncryption
+import {
+    FeatureError,
+    type DevEyeFacade,
+    type FeatureServiceDeps,
+    type FeatureStore,
+    type SdkCipher,
+    type SdkDevice,
+    type SdkFeatureContext,
+    type SdkLogger,
+    type SdkTelemetry,
+    type SdkTelemetrySnapshot,
+    type StorageEncryption
 } from './server';
 
 /**
@@ -78,10 +82,12 @@ function memoryStore(): TestFeatureStore {
 }
 
 export interface RecordedCalls {
-    notifications: { subject: string; body: string; itemId?: number }[];
+    notifications: { subject: string; body: string; itemId?: number; embeds?: number }[];
     audits: { action: string; description: string }[];
     /** Outbound agent frames, as `{ method, deviceId }` (payloads dropped for brevity). */
     agentRequests: { method: string; deviceId: string }[];
+    /** Instants pinned through `telemetry.pinInstant`. */
+    pinnedInstants: { deviceId: string; ts: number }[];
 }
 
 function recordingNotify(recorded: RecordedCalls, hasRoute: boolean): DevEyeFacade['notify'] {
@@ -91,21 +97,49 @@ function recordingNotify(recorded: RecordedCalls, hasRoute: boolean): DevEyeFaca
             recorded.notifications.push({
                 subject: alert.subject,
                 body: alert.body,
-                itemId: opts?.itemId
+                itemId: opts?.itemId,
+                // Only when the alert carries a layout: a test that
+                // deep-equals the plain record must not see the key appear.
+                ...(alert.embeds ? { embeds: alert.embeds.length } : {})
             });
             return Promise.resolve(true);
         }
     };
 }
 
+/** A device the harness invents for an id nothing listed: active, online, unreported. */
+export function testDevice(over: Partial<SdkDevice> & { id: string }): SdkDevice {
+    return {
+        name: 'Test device',
+        online: true,
+        status: 'active',
+        ownerUserId: 1,
+        workspaceId: 1,
+        metricIntervalSeconds: null,
+        report: null,
+        ...over
+    };
+}
+
 function recordingDevices(devices: readonly SdkDevice[]): DevEyeFacade['devices'] {
     return {
-        authorize: (id) =>
-            Promise.resolve(
-                devices.find((d) => d.id === id) ?? { id, name: 'Test device', online: true }
-            ),
+        authorize: (id) => Promise.resolve(devices.find((d) => d.id === id) ?? testDevice({ id })),
         list: () => Promise.resolve([...devices]),
         isOnline: (id) => devices.find((d) => d.id === id)?.online ?? true
+    };
+}
+
+function recordingTelemetry(
+    recorded: RecordedCalls,
+    snapshots: readonly SdkTelemetrySnapshot[]
+): SdkTelemetry {
+    return {
+        snapshot: (_deviceId, ts) =>
+            Promise.resolve(snapshots.find((s) => Math.abs(s.ts - ts) <= 1000) ?? null),
+        pinInstant(deviceId, ts) {
+            recorded.pinnedInstants.push({ deviceId, ts });
+            return Promise.resolve();
+        }
     };
 }
 
@@ -116,6 +150,8 @@ function recordingAgents(recorded: RecordedCalls): DevEyeFacade['agents'] {
     };
     return {
         isOnline: () => true,
+        requestScan: req('requestScan'),
+        pushConfig: (deviceId) => Promise.resolve(req('pushConfig')(deviceId)),
         requestSyncConfig: req('requestSyncConfig'),
         requestSyncScan: req('requestSyncScan'),
         requestSyncPush: req('requestSyncPush'),
@@ -133,6 +169,8 @@ function recordingAgents(recorded: RecordedCalls): DevEyeFacade['agents'] {
 export interface TestContext<Repo> extends SdkFeatureContext<Repo> {
     recorded: RecordedCalls;
     store: TestFeatureStore;
+    /** Item ids passed to `items.forget`, in order. */
+    forgotten: number[];
 }
 
 export interface TestContextOverrides<Repo> {
@@ -154,16 +192,34 @@ export interface TestContextOverrides<Repo> {
     hasRoute?: boolean;
     /** Devices `deveye.devices` reveals. Default none listed, any id authorized. */
     devices?: readonly SdkDevice[];
+    /** Instants `deveye.telemetry.snapshot` answers (matched within a second). Default none. */
+    snapshots?: readonly SdkTelemetrySnapshot[];
     /** Override facade members entirely when the defaults are not enough. */
     deveye?: Partial<DevEyeFacade>;
+    /** What `secrecy.isUnlocked` answers. Default true. */
+    unlocked?: boolean;
+    /** The caller's role restrictions on items, by item id. Default none. */
+    itemRestrictions?: Readonly<Record<number, ItemAccess>>;
+    /**
+     * Items projected INTO the workspace, as `itemId → home workspace id`.
+     * Default none: every item is at home. `sharing.scope().cipherFor` is the
+     * identity cipher either way.
+     */
+    shares?: Readonly<Record<number, number>>;
 }
 
 export function createTestContext<Repo = undefined>(
     overrides: TestContextOverrides<Repo> = {}
 ): TestContext<Repo> {
-    const recorded: RecordedCalls = { notifications: [], audits: [], agentRequests: [] };
+    const recorded: RecordedCalls = {
+        notifications: [],
+        audits: [],
+        agentRequests: [],
+        pinnedInstants: []
+    };
     const isOwner = overrides.isOwner ?? true;
     const workspaceId = overrides.workspaceId ?? 1;
+    const canWrite = overrides.canWrite ?? true;
     const deveye: DevEyeFacade = {
         notify: recordingNotify(recorded, overrides.hasRoute ?? true),
         mail: { listAccounts: () => Promise.resolve([]) },
@@ -172,11 +228,51 @@ export function createTestContext<Repo = undefined>(
                 Promise.resolve([{ userId: overrides.userId ?? 1, name: 'Test', isOwner: true }])
         },
         devices: recordingDevices(overrides.devices ?? []),
+        telemetry: recordingTelemetry(recorded, overrides.snapshots ?? []),
         agents: recordingAgents(recorded),
         ...overrides.deveye
     };
+    const restrictions = new Map<number, ItemAccess>(
+        Object.entries(overrides.itemRestrictions ?? {}).map(([id, access]) => [Number(id), access])
+    );
+    const homes = new Map<number, number>(
+        Object.entries(overrides.shares ?? {}).map(([id, home]) => [Number(id), home])
+    );
+    const forgotten: number[] = [];
     return {
         recorded,
+        forgotten,
+        secrecy: { isUnlocked: () => Promise.resolve(overrides.unlocked ?? true) },
+        items: {
+            restrictions: () => Promise.resolve(restrictions),
+            // The exact rule of the app's dispatcher: the feature first (a
+            // restriction can only lower), then the row.
+            assert(itemId, level = 'read') {
+                if (level === 'write' && !canWrite) {
+                    return Promise.reject(new FeatureError('forbidden', 'write required'));
+                }
+                const restriction = restrictions.get(itemId);
+                if (restriction === 'none') {
+                    return Promise.reject(new FeatureError('forbidden', 'item hidden'));
+                }
+                if (restriction === 'read' && level === 'write') {
+                    return Promise.reject(new FeatureError('forbidden', 'item read-only'));
+                }
+                return Promise.resolve();
+            },
+            forget(itemId) {
+                forgotten.push(itemId);
+                return Promise.resolve();
+            }
+        },
+        sharing: {
+            scope: () =>
+                Promise.resolve({
+                    foreignIds: new Set(homes.keys()),
+                    homeOf: (itemId) => homes.get(itemId) ?? null,
+                    cipherFor: () => Promise.resolve(identityCipher)
+                })
+        },
         userId: overrides.userId ?? 1,
         workspaceId,
         workspace: { id: workspaceId, kind: overrides.kind ?? 'personal', name: 'Test' },
@@ -204,6 +300,8 @@ export function createTestContext<Repo = undefined>(
 export interface RecordedServiceCalls extends RecordedCalls {
     /** Every `createTicker` call, so a test drives ticks by hand: `await tickers[0].tick()`. */
     tickers: { intervalMs: number; tick(): Promise<void> }[];
+    /** Workspaces passed to `live.changed`, in order. */
+    liveChanges: number[];
 }
 
 export interface TestServiceDeps<Repo> extends FeatureServiceDeps<Repo> {
@@ -220,6 +318,8 @@ export interface TestServiceOverrides<Repo> {
     devices?: readonly SdkDevice[];
     /** What `deveyeFor(...).notify.hasRoute` answers. Default true. */
     hasRoute?: boolean;
+    /** Instants `telemetry.snapshot` answers (matched within a second). Default none. */
+    snapshots?: readonly SdkTelemetrySnapshot[];
 }
 
 /**
@@ -234,7 +334,9 @@ export function createTestServiceDeps<Repo = undefined>(
         notifications: [],
         audits: [],
         agentRequests: [],
-        tickers: []
+        pinnedInstants: [],
+        tickers: [],
+        liveChanges: []
     };
     const stores = new Map<number, TestFeatureStore>();
     const sealedBytes = new Map<string, Uint8Array>();
@@ -256,6 +358,17 @@ export function createTestServiceDeps<Repo = undefined>(
         cipherFor: () => identityCipher,
         deveyeFor: () => ({ notify }),
         devicesFor: () => ({ list: devices.list, isOnline: devices.isOnline }),
+        devices: {
+            find: (id) =>
+                Promise.resolve((overrides.devices ?? []).find((d) => d.id === id) ?? null),
+            isOnline: devices.isOnline
+        },
+        telemetry: recordingTelemetry(recorded, overrides.snapshots ?? []),
+        live: {
+            changed(workspaceId) {
+                recorded.liveChanges.push(workspaceId);
+            }
+        },
         audit: (entry) => {
             recorded.audits.push({ action: entry.action, description: entry.description });
         },

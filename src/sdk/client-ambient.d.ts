@@ -25,6 +25,11 @@ declare module 'deveye-sdk-client' {
         SelectHTMLAttributes
     } from 'react';
     import type { z, ZodType } from 'zod';
+    import type {
+        ButtonHTMLAttributes as DialogButtonAttributes,
+        PointerEvent as ReactPointerEvent,
+        RefObject
+    } from 'react';
     import type { FeatureAccess, FeatureId, WorkspaceCapability } from '@deveye/types';
     import type { FeatureManifest } from '@deveye/types/sdk';
 
@@ -78,6 +83,41 @@ declare module 'deveye-sdk-client' {
         fill?: boolean;
         holdSecrecy?: boolean;
     }>;
+    /** The "Annuler" button of a Dialog footer: closes through the guarded close. */
+    export const DialogCancelButton: ComponentType<
+        DialogButtonAttributes<HTMLButtonElement> & {
+            variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+            icon?: string;
+        }
+    >;
+    /**
+     * The imperative dialog layer over Dialog: mount `<Popup id=...>` once
+     * around a form, then drive it with `OpenPopup(id, input)` (resolves with
+     * whatever `ClosePopup(id, result)` passes, `null` on dismiss).
+     */
+    export function Popup<TInput = unknown>(props: {
+        children: ReactNode;
+        id: string;
+        title?: string;
+        width?: number;
+        headerAction?: ReactNode;
+        onInputChange?: ((input: TInput) => void) | null;
+        onClosePopup?: ((id: string) => void) | null;
+        onSubmit?: () => void;
+        autoFocus?: boolean;
+        dirty?: boolean;
+        onSave?: () => void;
+        tall?: boolean;
+        holdSecrecy?: boolean;
+    }): ReactNode;
+    export function OpenPopup<T = object>(id: string, inputData?: unknown): Promise<T | null>;
+    export function ClosePopup(id: string, data?: unknown): void;
+    /** The app-wide "i" explainer dialog: a heading and a body, one behaviour everywhere. */
+    export function openInfo(input: {
+        title: string;
+        body: ReactNode;
+        width?: number;
+    }): Promise<unknown>;
     /** Request the enclosing Dialog's guarded close (the unsaved-changes prompt included). */
     export function useDialogClose(): () => void;
     /** Register `fn` as the enclosing Dialog's primary action (Enter triggers it); `null` clears it. */
@@ -118,6 +158,46 @@ declare module 'deveye-sdk-client' {
     }>;
     /** The canonical settings row classes (channelRow, field, sectionHint...). */
     export const settingsStyles: Readonly<Record<string, string>>;
+    /** A plain count on a home card: a big number, a noun, a secondary line. */
+    export type CountState = { kind: 'loading' } | { kind: 'ready'; count: number };
+    export const CountWidget: ComponentType<{
+        state: CountState;
+        /** Singular noun, pluralized with a trailing "s" unless `plural` says otherwise. */
+        noun: string;
+        plural?: string;
+        /** Secondary line when there is at least one item. */
+        hint: string;
+        /** Secondary line when the count is zero. */
+        empty: string;
+        tone?: 'neutral' | 'danger';
+    }>;
+    /**
+     * A workspace count over one of YOUR `.count` commands, re-fetched on
+     * reconnect and on invalidation of that key. Never gated by the
+     * password-encryption unlock: the command must answer while locked.
+     */
+    export function useWorkspaceCount(command: `x-${string}.count`): CountState;
+    /**
+     * Reorder a list by drag-and-drop, the app's one gesture for it (Pointer
+     * Events, a handle per row, an insertion bar the hook positions itself).
+     * The list container must be `position: relative`; rows carry
+     * `rowSelector`; the handle wires `onGripPointerDown`.
+     */
+    export function useDragReorder<
+        L extends HTMLElement = HTMLElement,
+        B extends HTMLElement = HTMLElement
+    >(options: {
+        ids: (string | number)[];
+        rowSelector: string;
+        onReorder: (ids: (string | number)[]) => void;
+        onDragStateChange?: (dragging: boolean) => void;
+        layout?: 'rows' | 'grid';
+    }): {
+        listRef: RefObject<L | null>;
+        barRef: RefObject<B | null>;
+        onGripPointerDown: (e: ReactPointerEvent, id: string | number) => void;
+        draggingId: string | number | null;
+    };
 
     // ── Server push events ─────────────────────────────────────────────────
     /** Typed push subscription: filters `event`, safeParses, drops mismatches. */

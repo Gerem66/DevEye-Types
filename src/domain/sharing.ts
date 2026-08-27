@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { featureAccessSchema, workspaceFeatureIdSchema } from './workspaceRole';
+import { featureAccessSchema, featureIdSchema } from './workspaceRole';
 
 /**
  * Rendre un élément visible depuis un autre espace, **sans le déplacer**.
@@ -139,8 +139,13 @@ export const itemGrantStateSchema = z.object({
 export type ItemGrantState = z.infer<typeof itemGrantStateSchema>;
 
 /** La cible d'un partage ou d'une restriction. */
+/**
+ * `featureIdSchema` and not the native enum: a module's items project like a
+ * native's (the server wires sharing from the manifest's `shareTier` and the
+ * module's `items` entry), so the commands must accept its id.
+ */
 export const itemRefSchema = z.object({
-    feature: workspaceFeatureIdSchema,
+    feature: featureIdSchema,
     itemId: z.number().int().positive()
 });
 export type ItemRef = z.infer<typeof itemRefSchema>;

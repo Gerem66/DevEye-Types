@@ -2,6 +2,9 @@ import type { z, ZodType } from 'zod';
 import type { ErrorCode } from '../protocol/error';
 import type { FeatureAccess } from '../domain/workspaceRole';
 import type { LogLevelName } from '../domain/logs';
+import type { ItemAccess } from '../domain/sharing';
+import type { AuthWindow, DeviceReport, IntegrityReport, ReportProcess } from '../domain/report';
+import type { MetricSnapshot } from '../domain/metrics';
 import type {
     AgentSyncAckPayload,
     AgentSyncApplyChunkPayload,
@@ -134,6 +137,43 @@ export interface SdkQueryable {
 }
 
 /**
+ * An alert as the notify facade delivers it. `subject` and `body` are what every
+ * channel receives (mail, Slack, a custom webhook); `payload` adds structured
+ * fields for a custom endpoint; `embeds` is the optional Discord layout, used
+ * only on a Discord channel, where it replaces the plain text (see the app's
+ * `Services/notifications.ts`). Keep the text complete on its own: a channel
+ * that knows no embeds must lose nothing.
+ */
+export interface SdkAlert {
+    subject: string;
+    body: string;
+    payload?: Record<string, unknown>;
+    /** Discord embed objects, as the Discord webhook API takes them. */
+    embeds?: readonly Record<string, unknown>[];
+}
+
+/**
+ * One process-list instant next to its metric row: what a security engine
+ * needs to judge a device at a given timestamp. Capability `'telemetry.read'`.
+ */
+export interface SdkTelemetrySnapshot {
+    ts: number;
+    processes: ReportProcess[];
+    activeConnections: number | null;
+}
+
+/**
+ * Read access to the devices' telemetry (capability `'telemetry.read'`,
+ * reserved to native-id modules: the metric store is app infrastructure).
+ */
+export interface SdkTelemetry {
+    /** The instant nearest `ts` (process list plus the metric row), or null when nothing was recorded around it. */
+    snapshot(deviceId: string, ts: number): Promise<SdkTelemetrySnapshot | null>;
+    /** Pins the instant at `ts` so retention never prunes the evidence a finding rests on. */
+    pinInstant(deviceId: string, ts: number): Promise<void>;
+}
+
+/**
  * Native features, reachable only if declared in `manifest.nativeCapabilities`.
  * An undeclared call throws `forbidden`.
  */
@@ -143,10 +183,7 @@ export interface DevEyeFacade {
         /** Is at least one usable channel routed to this target? */
         hasRoute(itemId?: number): Promise<boolean>;
         /** Delivers to the configured channels. Resolves `true` if at least one accepted. */
-        send(
-            alert: { subject: string; body: string; payload?: Record<string, unknown> },
-            opts?: { itemId?: number }
-        ): Promise<boolean>;
+        send(alert: SdkAlert, opts?: { itemId?: number }): Promise<boolean>;
     };
     /** Requires capability `'mail.accounts'`. Open-tier accounts, metadata only, never credentials. */
     mail: {
@@ -160,11 +197,21 @@ export interface DevEyeFacade {
     };
     /** Requires capability `'devices.read'`. */
     devices: {
-        /** Throws `not_found` unless the device exists AND belongs to this workspace. */
+        /**
+         * Throws `not_found` unless the device exists AND belongs to this
+         * workspace (a global administrator passes the membership check).
+         */
         authorize(deviceId: string): Promise<SdkDevice>;
+        /**
+         * The devices this workspace sees: its own, or the whole fleet for a
+         * global administrator in their PERSONAL workspace (the app's own rule
+         * for its device list: that is where an admin watches their machines).
+         */
         list(): Promise<readonly SdkDevice[]>;
         isOnline(deviceId: string): boolean;
     };
+    /** Requires capability `'telemetry.read'` (native-id modules only). */
+    telemetry: SdkTelemetry;
     /** Requires capability `'agents'`. Same object as the service deps' `agents`. */
     agents: AgentsFacade;
 }
@@ -178,6 +225,20 @@ export interface DevEyeFacade {
  */
 export interface AgentsFacade {
     isOnline(deviceId: string): boolean;
+    /**
+     * Asks the agent for an immediate security scan (persistence manifest and
+     * authentication window). Distinct from the metric refresh on purpose: a
+     * scan fingerprints hundreds of files.
+     */
+    requestScan(deviceId: string): boolean;
+    /**
+     * Pushes the device's collection config to its agent, recomposed by the
+     * app from the device row and the installed modules' contributions (see
+     * `SENTINEL_AGENT_CONFIG_PROVIDER`). Call it after changing what your
+     * module contributes to that config. Resolves `false` when the agent is
+     * offline (it receives the config at its next connection anyway).
+     */
+    pushConfig(deviceId: string): Promise<boolean>;
     requestSyncConfig(deviceId: string, payload: AgentSyncConfigPayload): boolean;
     requestSyncScan(deviceId: string, payload: AgentSyncScanPayload): boolean;
     requestSyncPush(deviceId: string, payload: AgentSyncPushPayload): boolean;
@@ -214,6 +275,20 @@ export interface SdkSocketTransport {
 export interface FeatureAgentHooks {
     onAgentConnect?(deviceId: string): void | Promise<void>;
     onAgentOffline?(deviceId: string): void;
+    /**
+     * Telemetry, once the app has persisted it. Only for ACTIVE devices (an
+     * unapproved or revoked agent is acknowledged but never recorded, and never
+     * reaches a module). Whether the device is watched by YOUR feature is your
+     * decision: the app no longer gates telemetry on any feature's settings.
+     */
+    /** The OS/security report (`agent.report`), just written to the device row. */
+    onReport?(deviceId: string, report: DeviceReport): void;
+    /** A batch of metric instants, oldest first, just written to the metric store. */
+    onMetricsBatch?(deviceId: string, snapshots: readonly MetricSnapshot[]): void;
+    /** The persistence manifest (`agent.integrity`). Never stored by the app: it only exists here. */
+    onIntegrity?(deviceId: string, integrity: IntegrityReport): void;
+    /** An authentication window (`agent.authEvents`). Never stored by the app either. */
+    onAuthEvents?(deviceId: string, auth: AuthWindow): void;
     /** `deviceId` est l'identite AUTHENTIFIEE du socket ; le payload en porte une copie non fiable. */
     onSyncChanged?(deviceId: string, payload: AgentSyncChangedPayload): void;
     onSyncIndex?(deviceId: string, payload: AgentSyncIndexPayload): void;
@@ -238,6 +313,101 @@ export interface SdkDevice {
     id: string;
     name: string;
     online: boolean;
+    /** `active` is the only status whose telemetry the app records. */
+    status: string;
+    /** The account that enrolled the device (the actor of its audit lines). */
+    ownerUserId: number;
+    /** The workspace the device was paired in, or null once that workspace is gone. */
+    workspaceId: number | null;
+    /** The agent's metric cadence in seconds, null when it follows the default. */
+    metricIntervalSeconds: number | null;
+    /** The last OS/security report, null before the first one (or unreadable). */
+    report: DeviceReport | null;
+}
+
+/** The session's password-encryption lock, seen from a handler. */
+export interface SdkSecrecy {
+    /**
+     * True when the guarded tier is readable in this session: password-based
+     * encryption is off for the account, or the session was unlocked. A
+     * `'private'` read throws `locked` on its own; ask here when you need to
+     * decide BEFORE reading (list rows as masked, refuse an edit that would
+     * overwrite a body the session cannot see).
+     */
+    isUnlocked(): Promise<boolean>;
+}
+
+/**
+ * Your feature's items, as the workspace's roles see them. Items are the rows
+ * a module declares with `hasItems`; both members answer for THIS feature.
+ */
+export interface SdkItems {
+    /**
+     * The items the caller's role sees differently from the others: `'none'`
+     * hidden, `'read'` read-only. Restrictive only: it can lower what the
+     * feature grants, never raise it. Empty for the owner and for a member
+     * without a role. Listings filter with it.
+     */
+    restrictions(): Promise<ReadonlyMap<number, ItemAccess>>;
+    /**
+     * Throws `forbidden` unless THIS item is open to the caller at `level`
+     * (default `'read'`), role restriction included. Commands that target one
+     * item call it first.
+     */
+    assert(itemId: number, level?: FeatureAccess): Promise<void>;
+    /**
+     * The item no longer exists: drops its projections, its role restrictions
+     * and its notification route. Call it from your delete handler; nothing
+     * links those rows to your table (the item lives in a different table per
+     * feature), so without this call the next item to inherit the id would
+     * inherit them too.
+     */
+    forget(itemId: number): Promise<void>;
+}
+
+/**
+ * What is projected INTO the active workspace, for one listing or read.
+ *
+ * A shared item keeps a single home: it stays encrypted under its home
+ * workspace's key, and is read elsewhere with that workspace's OPEN cipher.
+ * `cipherFor` is the only path to it, and it only answers for items whose
+ * projection really exists: an invented id yields the active workspace's own
+ * cipher, never a foreign one.
+ */
+export interface SdkShareScope {
+    /** The ids of the items projected into the active workspace from elsewhere. */
+    readonly foreignIds: ReadonlySet<number>;
+    /** The home workspace of a projected item, or null when it is at home. */
+    homeOf(itemId: number): number | null;
+    /** The open cipher of the workspace the item lives in (the active one when it is at home). */
+    cipherFor(itemId: number): Promise<SdkCipher>;
+}
+
+/** Cross-workspace projection of your items (manifest `shareTier` other than `'never'`). */
+export interface SdkSharing {
+    /**
+     * Loads what is projected into the active workspace. Once per listing or
+     * read command; the result does not outlive the command.
+     */
+    scope(): Promise<SdkShareScope>;
+}
+
+/** Live invalidation from a background service, which writes without a command. */
+export interface SdkLive {
+    /**
+     * Something of YOUR feature changed in this workspace: every member's
+     * client re-fetches your declared resources (and, for a share-wired
+     * feature, so do the workspaces linked by projections). Call it on state
+     * transitions, never on every tick: each call re-fetches for everyone.
+     */
+    changed(workspaceId: number): void;
+}
+
+/** The whole fleet, sessionless (capability `'devices.read'`), for services. */
+export interface SdkFleetDevices {
+    /** One device by id, whatever its workspace, or null. */
+    find(deviceId: string): Promise<SdkDevice | null>;
+    isOnline(deviceId: string): boolean;
 }
 
 /** What a handler receives. One request, one workspace, rights pre-resolved. */
@@ -262,6 +432,12 @@ export interface SdkFeatureContext<Repo = unknown> {
     deveye: DevEyeFacade;
     /** The caller's socket (capability `'agents'`); every method throws `forbidden` otherwise. */
     transport: SdkSocketTransport;
+    /** The session's password-encryption lock. */
+    secrecy: SdkSecrecy;
+    /** Your items as the roles see them (restrictions), and their removal bookkeeping. */
+    items: SdkItems;
+    /** Projections into the active workspace. Throws `forbidden` when the manifest says `shareTier: 'never'`. */
+    sharing: SdkSharing;
     /** Fire-and-forget audit line; actor, IP and workspace are pre-bound. */
     audit(entry: {
         action: string;
@@ -337,6 +513,12 @@ export interface FeatureServiceDeps<Repo = unknown> {
     deveyeFor(workspaceId: number): Pick<DevEyeFacade, 'notify'>;
     /** Devices of one workspace, sessionless (capability `'devices.read'`). */
     devicesFor(workspaceId: number): Pick<DevEyeFacade['devices'], 'list' | 'isOnline'>;
+    /** The whole fleet by id, sessionless (capability `'devices.read'`). */
+    devices: SdkFleetDevices;
+    /** The devices' telemetry, sessionless (capability `'telemetry.read'`). */
+    telemetry: SdkTelemetry;
+    /** Live invalidation of your feature's resources, from a service. */
+    live: SdkLive;
     /**
      * Audit line recorded as the SYSTEM (no session). `userId` attributes the
      * line to a user when the work concerns their data.
@@ -375,4 +557,37 @@ export interface FeatureServer<Repo = unknown> {
      */
     migrationsDir?: string;
     createService?(deps: FeatureServiceDeps<Repo>): FeatureService;
+    /**
+     * What the app needs to know about your items without opening your
+     * feature: required for a `shareTier` other than `'never'` (the sharing
+     * commands must find an item's home), useful to any `hasItems` feature that
+     * notifies (the channels screen names the item a route points to).
+     */
+    items?: FeatureItemsEntry<Repo>;
+}
+
+/**
+ * Your items, seen from the app's transversal commands (sharing, notification
+ * routes). Both calls are sessionless as far as you are concerned: the repo is
+ * yours, the cipher is the OPEN cipher of the calling workspace.
+ */
+export interface FeatureItemsEntry<Repo = unknown> {
+    /**
+     * The workspace an item lives in, when it is visible from `workspaceId`
+     * (its own, or one it is projected into); null when it does not exist
+     * there. The sharing commands rely on it to tell a home from a window.
+     */
+    homeOf(repo: Repo, itemId: number, workspaceId: number): Promise<number | null>;
+    /**
+     * The item's display name, decrypted with `cipher` (the open cipher of
+     * `workspaceId`), or null when the item is gone or unreadable. Names the
+     * target a notification route points to; null reads as "a target that
+     * disappeared", which is exactly what the screen must show then.
+     */
+    labelOf(
+        repo: Repo,
+        cipher: SdkCipher,
+        itemId: number,
+        workspaceId: number
+    ): Promise<string | null>;
 }

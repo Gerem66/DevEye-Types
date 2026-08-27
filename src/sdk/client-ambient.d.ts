@@ -155,6 +155,8 @@ declare module 'deveye-sdk-client' {
             | { kind: 'item'; feature: FeatureId; itemId: number; itemLabel: string };
         variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
         label?: string;
+        /** The tab a click opens (one of the manifest's tab ids); the first by default. */
+        initialSection?: string;
     }>;
     /** The canonical settings row classes (channelRow, field, sectionHint...). */
     export const settingsStyles: Readonly<Record<string, string>>;

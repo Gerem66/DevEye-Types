@@ -643,64 +643,6 @@ export type {
     AudienceVisitorMode,
     ProjectAudienceLinkRow
 } from './domain/audience';
-export {
-    FINANCE_AMOUNT_MAX,
-    FINANCE_COLORS,
-    FINANCE_COUNTERPARTY_MAX_LENGTH,
-    FINANCE_LABEL_MAX_LENGTH,
-    FINANCE_NAME_MAX_LENGTH,
-    FINANCE_NOTE_MAX_LENGTH,
-    financeAccountKindSchema,
-    financeAccountSchema,
-    financeAmountSchema,
-    financeBalanceSchema,
-    financeBudgetPeriodSchema,
-    financeBudgetSchema,
-    financeCategorySchema,
-    financeCategoryShareSchema,
-    financeColorSchema,
-    financeConfigSchema,
-    financeCurrencySchema,
-    financeDateSchema,
-    financeFlowSchema,
-    financeFrequencySchema,
-    financeMonthPointSchema,
-    financeMonthSchema,
-    financeOverviewSchema,
-    financeRangeSchema,
-    financeRecurringSchema,
-    financeSummarySchema,
-    financeTransactionKindSchema,
-    financeTransactionSchema,
-    financeUpcomingSchema
-} from './domain/finance';
-export type {
-    FinanceAccount,
-    FinanceAccountBalanceRow,
-    FinanceAccountKind,
-    FinanceAccountRow,
-    FinanceBudget,
-    FinanceBudgetPeriod,
-    FinanceBudgetRow,
-    FinanceCategory,
-    FinanceCategoryRow,
-    FinanceCategoryShare,
-    FinanceColor,
-    FinanceConfig,
-    FinanceConfigRow,
-    FinanceFlow,
-    FinanceFrequency,
-    FinanceMonthPoint,
-    FinanceOverview,
-    FinanceRange,
-    FinanceRecurring,
-    FinanceRecurringRow,
-    FinanceSummary,
-    FinanceTransaction,
-    FinanceTransactionKind,
-    FinanceTransactionRow,
-    FinanceUpcoming
-} from './domain/finance';
 export { myTaskSchema, projectLinkCountsSchema } from './domain/projectLink';
 export type { MyTask, ProjectLinkCounts, ProjectUptimeLinkRow } from './domain/projectLink';
 export type {
@@ -1387,37 +1329,6 @@ export {
     audienceSiteRotateKey,
     audienceSiteUpdate
 } from './features/audience';
-export {
-    financeAccountAdd,
-    financeAccountList,
-    financeAccountRemove,
-    financeAccountReorder,
-    financeAccountUpdate,
-    financeBudgetList,
-    financeBudgetRemove,
-    financeBudgetSet,
-    financeCategoryAdd,
-    financeCategoryList,
-    financeCategoryRemove,
-    financeCategoryReorder,
-    financeCategoryUpdate,
-    financeCommands,
-    financeConfig,
-    financeConfigUpdate,
-    financeOverview,
-    financeRecurringAdd,
-    financeRecurringList,
-    financeRecurringPost,
-    financeRecurringRemove,
-    financeRecurringSkip,
-    financeRecurringUpdate,
-    financeSummary,
-    financeTransactionAdd,
-    financeTransactionList,
-    financeTransactionRemove,
-    financeTransactionSetCleared,
-    financeTransactionUpdate
-} from './features/finance';
 
 export { homeCommands, homeSetLayout, homeShortcutPreview } from './features/home';
 export {

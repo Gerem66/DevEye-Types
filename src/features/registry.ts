@@ -16,7 +16,6 @@ import { metricsCommands } from './metrics';
 import { noteCommands } from './note';
 import { notifyCommands } from './notify';
 import { sharingCommands } from './sharing';
-import { passwordCommands } from './password';
 import { projectCommands } from './project';
 import { secrecyCommands } from './secrecy';
 import { sentinelCommands } from './sentinel';
@@ -36,7 +35,6 @@ export const featureCommands = [
     ...workspaceCommands,
     ...adminCommands,
     ...userCommands,
-    ...passwordCommands,
     ...noteCommands,
     ...projectCommands,
     ...gitCommands,

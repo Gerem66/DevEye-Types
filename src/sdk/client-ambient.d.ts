@@ -264,6 +264,12 @@ declare module 'deveye-sdk-client' {
     export function ensureSecrecyUnlocked(): Promise<void>;
     /** Runs `run`; on a `locked` error, opens the unlock prompt and retries once. */
     export function withSecrecy<T>(run: () => Promise<T>): Promise<T>;
+    /**
+     * The rejection of `ensureSecrecyUnlocked` / `withSecrecy` when the user
+     * dismisses the unlock prompt: a deliberate cancel, not a failure (close a
+     * view that has nothing to show, rather than reporting an error).
+     */
+    export class UnlockCancelledError extends Error {}
 
     // ── Live ───────────────────────────────────────────────────────────────
     export type LiveSegmentKind = 'view' | 'l1' | 'l2' | 'l3' | 'l4';

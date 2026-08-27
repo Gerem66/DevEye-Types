@@ -310,17 +310,6 @@ export type {
     FileUsageEntry
 } from './domain/deviceFiles';
 export {
-    passwordEntryMaskedSchema,
-    passwordEntrySchema,
-    passwordStatusSchema
-} from './domain/password';
-export type {
-    PasswordEntry,
-    PasswordEntryMasked,
-    PasswordRow,
-    PasswordStatus
-} from './domain/password';
-export {
     NOTE_BLOCK_TEXT_MAX_LENGTH,
     NOTE_FOLDER_MAX_LENGTH,
     NOTE_MAX_BLOCKS,
@@ -1141,16 +1130,6 @@ export type {
 } from './domain/twoFactor';
 
 // Features
-export {
-    passwordAdd,
-    passwordCommands,
-    passwordCount,
-    passwordDelete,
-    passwordEdit,
-    passwordGet,
-    passwordList,
-    passwordUnlock
-} from './features/password';
 export {
     folderAdd,
     folderDelete,

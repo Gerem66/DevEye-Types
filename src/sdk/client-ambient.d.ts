@@ -157,6 +157,13 @@ declare module 'deveye-sdk-client' {
         label?: string;
         /** The tab a click opens (one of the manifest's tab ids); the first by default. */
         initialSection?: string;
+        /**
+         * The shell opened or closed (unmount counts as closed). For the one
+         * component that owns the item's presence (`useLiveSegment`) when
+         * nothing else announces the item, such as a card without a detail
+         * pane. The shell never declares the level itself.
+         */
+        onOpenChange?: (open: boolean) => void;
     }>;
     /** The canonical settings row classes (channelRow, field, sectionHint...). */
     export const settingsStyles: Readonly<Record<string, string>>;

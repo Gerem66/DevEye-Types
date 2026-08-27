@@ -39,8 +39,8 @@ export interface FeatureClient {
     Full: ComponentType<FeatureViewProps>;
     /**
      * Panels for the manifest's settings tabs that need one: `'general'`,
-     * `'sources'`, and any custom tab id. Generic tabs (`'notifications'`,
-     * `'permissions'`) need no panel.
+     * `'sources'`, `'encryption'`, and any custom tab id. Generic tabs
+     * (`'notifications'`, `'permissions'`) need no panel.
      */
     settingsPanels?: Readonly<Record<string, ComponentType<SettingsPanelProps>>>;
     /**

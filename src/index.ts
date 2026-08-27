@@ -417,44 +417,6 @@ export {
 } from './domain/credential';
 export type { Credential, CredentialProvider, CredentialRow } from './domain/credential';
 export {
-    BACKUP_ACCESS_KEY_MAX,
-    BACKUP_BUCKET_MAX,
-    BACKUP_DESTINATION_NAME_MAX,
-    BACKUP_ENDPOINT_MAX,
-    BACKUP_JOB_NAME_MAX,
-    BACKUP_PATH_MAX,
-    BACKUP_SECRET_MAX,
-    backupDestinationKindSchema,
-    backupDestinationProbeSchema,
-    backupDestinationSchema,
-    backupDestinationStatusSchema,
-    backupEncryptionSchema,
-    backupJobSchema,
-    backupRunSchema,
-    backupRunStatusSchema,
-    backupScheduleKindSchema,
-    backupSourceCandidateSchema,
-    backupSourceKindSchema
-} from './domain/backup';
-export type {
-    BackupDestination,
-    BackupDestinationKind,
-    BackupEncryption,
-    BackupDestinationProbe,
-    BackupDestinationRow,
-    BackupDestinationStatus,
-    BackupDestinationWithUsageRow,
-    BackupJob,
-    BackupJobRow,
-    BackupJobWithStateRow,
-    BackupRun,
-    BackupRunRow,
-    BackupRunStatus,
-    BackupScheduleKind,
-    BackupSourceCandidate,
-    BackupSourceKind
-} from './domain/backup';
-export {
     DEPLOY_DESCRIPTION_MAX_LENGTH,
     DEPLOY_EXTERNAL_ID_MAX_LENGTH,
     DEPLOY_TARGET_NAME_MAX_LENGTH,
@@ -1137,23 +1099,6 @@ export {
     databaseTestDraft,
     databaseUpdate
 } from './features/database';
-export {
-    backupCommands,
-    backupCount,
-    backupDestinationAdd,
-    backupDestinationList,
-    backupDestinationRemove,
-    backupDestinationTest,
-    backupDestinationUpdate,
-    backupJobAdd,
-    backupJobGet,
-    backupJobList,
-    backupJobRemove,
-    backupJobRun,
-    backupJobUpdate,
-    backupRuns,
-    backupSources
-} from './features/backup';
 export {
     audienceActivity,
     audienceBreakdown,

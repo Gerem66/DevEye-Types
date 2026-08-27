@@ -48,6 +48,49 @@ export interface CloudSyncBackupProvider {
 }
 
 /**
+ * Key of the database access the Backup module consumes: a logical dump goes
+ * through the SAME access as the monitoring (SSH tunnel or SOCKS proxy
+ * included), and only the Databases feature knows how to decrypt a
+ * connection. Offered by the app while Databases is native
+ * (`registerNativeProvider`), by its module once migrated: Backup does not
+ * know the difference.
+ */
+export const DATABASE_BACKUP_PROVIDER = 'database.backup' as const;
+
+/** A database of the workspace, as the source picker lists it. */
+export interface DatabaseBackupCandidate {
+    id: number;
+    name: string;
+    engine: 'mysql' | 'postgres';
+    host: string;
+    database: string;
+}
+
+/**
+ * An OPEN access to a database: what a dump tool needs, reachable from the
+ * server (the tunnel's local listener when there is one). `close()` releases
+ * the tunnel; call it whatever happens, a forgotten tunnel keeps an SSH
+ * session and a listener alive.
+ */
+export interface DatabaseBackupAccess {
+    engine: 'mysql' | 'postgres';
+    host: string;
+    port: number;
+    database: string;
+    username: string;
+    password: string | null;
+    close(): Promise<void>;
+}
+
+export interface DatabaseBackupProvider {
+    /** The databases of the workspace, its own only (a projection is not a source). */
+    listDatabases(workspaceId: number): Promise<readonly DatabaseBackupCandidate[]>;
+    findDatabase(databaseId: number, workspaceId: number): Promise<DatabaseBackupCandidate | null>;
+    /** null when the database is unknown to this workspace. */
+    openAccess(databaseId: number, workspaceId: number): Promise<DatabaseBackupAccess | null>;
+}
+
+/**
  * Key under `FeatureService.providers` for the Uptime items the app's Projects
  * feature links to. Projects stores only identifiers; before linking one it
  * asks the module whether the service exists in the workspace, so a foreign

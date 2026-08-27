@@ -97,10 +97,13 @@ export type NativeCapability =
  * Settings tabs the shell can render for you.
  *  - `'notifications'` and `'permissions'` are fully generic: DevEye renders
  *    them from the manifest alone, you write no component.
- *  - `'general'` and `'sources'` need a panel component, provided by your
- *    client entry (`settingsPanels`), keyed by the tab id.
+ *  - `'general'`, `'sources'` and `'encryption'` need a panel component,
+ *    provided by your client entry (`settingsPanels`), keyed by the tab id.
+ *    `'encryption'` (item scope only) is where an item chooses the form of
+ *    its own data, when the feature leaves the choice: the shell names and
+ *    places the tab, the module owns the choice.
  */
-export type SettingsTab = 'general' | 'sources' | 'notifications' | 'permissions';
+export type SettingsTab = 'general' | 'sources' | 'notifications' | 'permissions' | 'encryption';
 
 /** A custom settings tab. Needs a matching panel in `settingsPanels`. */
 export interface CustomTabRef {
@@ -347,6 +350,9 @@ export function validateManifest(m: FeatureManifest): void {
                 if (tab === 'sources' && !m.sources) fail(m.id, 'sources tab requires sources');
                 if (tab === 'sources' && scope === 'item') {
                     fail(m.id, 'sources is a feature-scope tab');
+                }
+                if (tab === 'encryption' && scope === 'feature') {
+                    fail(m.id, 'encryption is an item-scope tab');
                 }
             } else {
                 if (!CUSTOM_TAB_PATTERN.test(tab.id) || BUILTIN_TABS.includes(tab.id)) {

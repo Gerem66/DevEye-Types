@@ -20,6 +20,8 @@ import type {
     AgentSyncOpResultPayload,
     AgentSyncPushPayload,
     AgentSyncScanPayload,
+    AgentFilesMutatePayload,
+    AgentFilesUploadPayload,
     CloudSyncChunkPush,
     CloudSyncProgressPush,
     CloudSyncStatePush
@@ -251,6 +253,27 @@ export interface AgentsFacade {
     /** Fan-out to the browsers subscribed to the payload's share. */
     publishSyncProgress(payload: CloudSyncProgressPush): void;
     publishSyncState(payload: CloudSyncStatePush): void;
+    /**
+     * File orders on a device, the ones the file explorer already speaks
+     * (`files.mutate`: mkdir, rename, delete; `files.upload`: a chunk at an
+     * offset, `done` on the last one). What makes an enrolled machine a
+     * backup target without changing the agent. The agent answers ONE
+     * `files.op` frame per `opId`: arm `awaitFilesOp` before sending, and
+     * for an upload before the FIRST chunk (the answer comes with the last
+     * one, or with the first write failure).
+     */
+    requestFilesMutate(deviceId: string, payload: AgentFilesMutatePayload): boolean;
+    requestFilesUpload(deviceId: string, payload: AgentFilesUploadPayload): boolean;
+    awaitFilesOp(opId: string, timeoutMs: number): Promise<{ ok: boolean; error?: string }>;
+    /** Forgets a pending `awaitFilesOp` (the frame was never sent, or the caller gave up). */
+    cancelFilesOp(opId: string): void;
+    /**
+     * Bytes queued on the agent's socket, not yet on the wire. A sender that
+     * streams towards an agent must watch it: the socket accepts everything,
+     * and without backpressure the server's memory follows the size of what
+     * is sent.
+     */
+    buffered(deviceId: string): number;
 }
 
 /**
@@ -298,6 +321,18 @@ export interface FeatureAgentHooks {
 }
 
 /**
+ * The named contracts the host holds (`sdk/providers.ts`): what a module
+ * offers on its service, or what the app offers for a feature still native.
+ * Looked up at call time, `undefined` when nobody offers the key, and it is
+ * the caller's job to degrade cleanly (a missing source kind, a run that
+ * fails with a clean message). A module cannot tell a native offerer from a
+ * module one, on purpose: the day the native migrates, nothing changes here.
+ */
+export interface SdkProviders {
+    get<T>(key: string): T | undefined;
+}
+
+/**
  * Raw bytes under the SERVER key (the `Encryption.encryptWithKey` wire format,
  * byte-compatible with what native code wrote). For wrapping module-owned key
  * material; never for user data, which goes through ciphers and the store.
@@ -306,6 +341,14 @@ export interface SdkServerKeys {
     sealBytes(plain: Uint8Array): string;
     /** null when the sealed blob cannot be opened (tampered, or server keys changed). */
     openBytes(sealed: string): Uint8Array | null;
+    /**
+     * A key DERIVED from the server key (HKDF-SHA256 over the same material
+     * as `sealBytes`), never stored anywhere. For material that must survive
+     * the database: a key kept in a table would sit inside the very backup it
+     * protects. The same (salt, info) always yields the same key, as long as
+     * `CRYPT_KEY_A`/`CRYPT_KEY_B` do not change.
+     */
+    derive(salt: string, info: string, length: number): Uint8Array;
 }
 
 /** A workspace device, as the devices facade reveals it. */
@@ -438,6 +481,8 @@ export interface SdkFeatureContext<Repo = unknown> {
     items: SdkItems;
     /** Projections into the active workspace. Throws `forbidden` when the manifest says `shareTier: 'never'`. */
     sharing: SdkSharing;
+    /** The named contracts the host holds, see `SdkProviders`. */
+    providers: SdkProviders;
     /** Fire-and-forget audit line; actor, IP and workspace are pre-bound. */
     audit(entry: {
         action: string;
@@ -532,8 +577,10 @@ export interface FeatureServiceDeps<Repo = unknown> {
     }): void;
     /** The agent-fleet transport (capability `'agents'`). */
     agents: AgentsFacade;
-    /** Raw key wrapping under the server key. */
+    /** Raw key wrapping under the server key, and derived keys. */
     keys: SdkServerKeys;
+    /** The named contracts the host holds, see `SdkProviders`. */
+    providers: SdkProviders;
     /**
      * The app's standard loop: setInterval + reentrancy guard + unref, the
      * exact pattern of every native service. Use it instead of rolling your own.
@@ -591,3 +638,18 @@ export interface FeatureItemsEntry<Repo = unknown> {
         workspaceId: number
     ): Promise<string | null>;
 }
+
+// Le conteneur chiffré que CloudSync et Backup partagent (voir `devb.ts`).
+export {
+    BLOB_CHUNK_BYTES,
+    BLOB_CHUNK_SEALED,
+    BLOB_HEADER_LEN,
+    BLOB_TAG_LEN,
+    BLOB_VERSION_CHUNKED,
+    BLOB_VERSION_STREAM,
+    createBlobHeader,
+    openChunk,
+    openStreamDecipher,
+    parseBlobHeader,
+    sealChunk
+} from './devb';

@@ -10,6 +10,7 @@ import {
     type SdkDevice,
     type SdkFeatureContext,
     type SdkLogger,
+    type SdkProviders,
     type SdkTelemetry,
     type SdkTelemetrySnapshot,
     type StorageEncryption
@@ -181,8 +182,33 @@ function recordingAgents(recorded: RecordedCalls): DevEyeFacade['agents'] {
         requestSyncMove: req('requestSyncMove'),
         requestSyncDelete: req('requestSyncDelete'),
         publishSyncProgress: () => undefined,
-        publishSyncState: () => undefined
+        publishSyncState: () => undefined,
+        requestFilesMutate: req('requestFilesMutate'),
+        requestFilesUpload: req('requestFilesUpload'),
+        // Every file order succeeds at once: a test of what a module does
+        // with a refusal injects its own facade through `deveye`.
+        awaitFilesOp: () => Promise.resolve({ ok: true }),
+        cancelFilesOp: () => undefined,
+        buffered: () => 0
     };
+}
+
+/**
+ * A deterministic stand-in for `keys.derive`: the same (salt, info) yields
+ * the same bytes, distinct pairs distinct bytes, and nothing here is secret.
+ */
+function fakeDerive(salt: string, info: string, length: number): Uint8Array {
+    const out = new Uint8Array(length);
+    const seed = `${salt}|${info}`;
+    for (let i = 0; i < length; i += 1) {
+        out[i] = (seed.charCodeAt(i % seed.length) * (i + 1)) & 0xff;
+    }
+    return out;
+}
+
+/** The named contracts a test hands to the module (`providers` override). */
+function fakeProviders(table: Readonly<Record<string, unknown>>): SdkProviders {
+    return { get: <T>(key: string) => table[key] as T | undefined };
 }
 
 export interface TestContext<Repo> extends SdkFeatureContext<Repo> {
@@ -232,6 +258,8 @@ export interface TestContextOverrides<Repo> {
      * identity cipher either way.
      */
     shares?: Readonly<Record<number, number>>;
+    /** The named contracts the host holds (`ctx.providers.get(key)`). */
+    providers?: Readonly<Record<string, unknown>>;
 }
 
 export function createTestContext<Repo = undefined>(
@@ -320,6 +348,7 @@ export function createTestContext<Repo = undefined>(
             sendSyncChunk: () => 0,
             syncChunkBuffered: () => 0
         },
+        providers: fakeProviders(overrides.providers ?? {}),
         audit: (entry) => {
             recorded.audits.push({ action: entry.action, description: entry.description });
         },
@@ -353,6 +382,8 @@ export interface TestServiceOverrides<Repo> {
     notifyAccepted?: boolean;
     /** Instants `telemetry.snapshot` answers (matched within a second). Default none. */
     snapshots?: readonly SdkTelemetrySnapshot[];
+    /** The named contracts the host holds (`deps.providers.get(key)`). */
+    providers?: Readonly<Record<string, unknown>>;
 }
 
 /**
@@ -418,8 +449,10 @@ export function createTestServiceDeps<Repo = undefined>(
                 sealedBytes.set(handle, Uint8Array.from(plain));
                 return handle;
             },
-            openBytes: (sealed) => sealedBytes.get(sealed) ?? null
+            openBytes: (sealed) => sealedBytes.get(sealed) ?? null,
+            derive: fakeDerive
         },
+        providers: fakeProviders(overrides.providers ?? {}),
         createTicker({ intervalMs, tick }) {
             recorded.tickers.push({ intervalMs, tick });
             return { start: () => undefined, stop: () => undefined };

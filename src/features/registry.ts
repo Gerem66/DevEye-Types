@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { audienceCommands } from './audience';
-import { backupCommands } from './backup';
 import { deviceCommands } from './device';
 import { deviceFilesCommands } from './deviceFiles';
 import { deviceLogCommands } from './deviceLogs';
@@ -35,7 +34,6 @@ export const featureCommands = [
     ...projectCommands,
     ...gitCommands,
     ...deployCommands,
-    ...backupCommands,
     ...databaseCommands,
     ...audienceCommands,
     ...deviceCommands,

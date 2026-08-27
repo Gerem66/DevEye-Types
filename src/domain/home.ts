@@ -56,16 +56,14 @@ export type HomeFeatureId = NativeHomeFeatureId | ExternalFeatureId;
  *  - `weather`  → current temperature of the primary city.
  *  - `devices`  → online / total device count.
  *  - `secrecy`  → password-encryption lock state + re-validation countdown.
- *  - `uptime`   → services up / total monitored.
  *  - `live`     → qui d'autre est dans l'espace, et où (bulles cliquables).
+ *
+ * Le widget d'Uptime (services en ligne / surveillés) n'est plus natif : son
+ * module le déclare (`manifest.topbarWidget`), et son id reste valide dans les
+ * dispositions persistées par `homeTopbarWidgetIdSchema`, qui accepte tout id
+ * de feature.
  */
-export const nativeHomeTopbarWidgetIdSchema = z.enum([
-    'weather',
-    'devices',
-    'secrecy',
-    'uptime',
-    'live'
-]);
+export const nativeHomeTopbarWidgetIdSchema = z.enum(['weather', 'devices', 'secrecy', 'live']);
 export type NativeHomeTopbarWidgetId = z.infer<typeof nativeHomeTopbarWidgetIdSchema>;
 
 /**

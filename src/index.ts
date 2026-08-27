@@ -649,41 +649,6 @@ export type {
     ProjectEventRow
 } from './domain/projectHistory';
 export {
-    UPTIME_INTERVAL_MAX,
-    UPTIME_INTERVAL_MIN,
-    UPTIME_KEYWORD_MAX_LENGTH,
-    UPTIME_NAME_MAX_LENGTH,
-    UPTIME_THRESHOLD_MAX,
-    UPTIME_TIMEOUT_MAX,
-    UPTIME_TIMEOUT_MIN,
-    UPTIME_URL_MAX_LENGTH,
-    uptimeCheckSchema,
-    uptimeCheckStatsSchema,
-    uptimeIncidentSchema,
-    uptimeMethodSchema,
-    uptimePointSchema,
-    uptimeRangeSchema,
-    uptimeResolutionSchema,
-    uptimeRetentionSchema,
-    uptimeServiceSchema,
-    uptimeStatusSchema
-} from './domain/uptime';
-export type {
-    UptimeCheck,
-    UptimeCheckRow,
-    UptimeCheckStats,
-    UptimeDayRow,
-    UptimeIncident,
-    UptimeIncidentRow,
-    UptimeMethod,
-    UptimePoint,
-    UptimeRange,
-    UptimeResolution,
-    UptimeService,
-    UptimeServiceRow,
-    UptimeStatus
-} from './domain/uptime';
-export {
     MAIL_DISPLAY_NAME_MAX_LENGTH,
     MAIL_EMAIL_MAX_LENGTH,
     MAIL_HOST_MAX_LENGTH,
@@ -1390,21 +1355,6 @@ export {
     sentinelScanNow,
     sentinelSetConfig
 } from './features/sentinel';
-export {
-    uptimeAdd,
-    uptimeCheckNow,
-    uptimeChecks,
-    uptimeCheckStats,
-    uptimeCommands,
-    uptimeCount,
-    uptimeHistory,
-    uptimeIncidents,
-    uptimeList,
-    uptimeRemove,
-    uptimeReorder,
-    uptimeSetEnabled,
-    uptimeUpdate
-} from './features/uptime';
 export {
     notifyChannelAdd,
     notifyChannelDelete,

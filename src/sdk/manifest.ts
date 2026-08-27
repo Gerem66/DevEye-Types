@@ -133,6 +133,22 @@ export interface CrossTopicInvalidation {
 /** Where a feature's card can live on the home grid. */
 export type FeatureCategory = 'supervision' | 'security' | 'dev' | 'work' | 'daily' | 'analysis';
 
+/**
+ * A data link from this feature to another one, as the "About" card of the
+ * home grid reads it (in both directions): a real coupling (an alert sender
+ * goes through a Mail account, a project points its repositories), not a
+ * thematic neighbourhood.
+ */
+export interface FeatureLink {
+    /** The feature linked to. Never your own id. */
+    to: FeatureId;
+    /** What the link allows, said from this feature's point of view. */
+    what: string;
+}
+
+/** Hard cap on `links`: the "About" card stays a card. */
+export const MAX_FEATURE_LINKS = 6;
+
 export interface FeatureManifest<Id extends FeatureId = FeatureId> {
     /** External modules: `x-<slug>`. Native features keep their enum id. */
     id: Id;
@@ -172,6 +188,9 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
 
     /** Card rendering on the home grid. `compact` halves the minimum height. */
     tile?: { compact?: boolean };
+
+    /** See {@link FeatureLink}. At most {@link MAX_FEATURE_LINKS}. */
+    links?: readonly FeatureLink[];
 
     /**
      * The feature offers a compact TOPBAR widget (pinned top-right of the
@@ -275,6 +294,13 @@ export function validateManifest(m: FeatureManifest): void {
         if (!m.resources.includes(key)) {
             fail(m.id, `invalidatedByTopic « ${key} » is not in resources`);
         }
+    }
+
+    const links = m.links ?? [];
+    if (links.length > MAX_FEATURE_LINKS) fail(m.id, `more than ${MAX_FEATURE_LINKS} links`);
+    for (const link of links) {
+        if (link.to === m.id) fail(m.id, 'links must name ANOTHER feature');
+        if (!link.what.trim()) fail(m.id, `link to « ${link.to} »: empty what`);
     }
 
     const cross = m.alsoInvalidatedBy ?? [];

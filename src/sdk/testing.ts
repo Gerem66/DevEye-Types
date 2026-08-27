@@ -103,7 +103,11 @@ export interface RecordedCalls {
     pinnedInstants: { deviceId: string; ts: number }[];
 }
 
-function recordingNotify(recorded: RecordedCalls, hasRoute: boolean): DevEyeFacade['notify'] {
+function recordingNotify(
+    recorded: RecordedCalls,
+    hasRoute: boolean,
+    accepted: boolean
+): DevEyeFacade['notify'] {
     return {
         hasRoute: () => Promise.resolve(hasRoute),
         send(alert, opts) {
@@ -115,7 +119,9 @@ function recordingNotify(recorded: RecordedCalls, hasRoute: boolean): DevEyeFaca
                 // deep-equals the plain record must not see the key appear.
                 ...(alert.embeds ? { embeds: alert.embeds.length } : {})
             });
-            return Promise.resolve(true);
+            // Recorded either way (the module did try), but a refused delivery
+            // answers false, so a test sees what the module does with it.
+            return Promise.resolve(accepted);
         }
     };
 }
@@ -203,6 +209,8 @@ export interface TestContextOverrides<Repo> {
     manifest?: Pick<FeatureManifest, 'extraPermissions'>;
     /** What `deveye.notify.hasRoute` answers. Default true. */
     hasRoute?: boolean;
+    /** What `deveye.notify.send` resolves (no usable channel: false). Default true; recorded either way. */
+    notifyAccepted?: boolean;
     /** Devices `deveye.devices` reveals. Default none listed, any id authorized. */
     devices?: readonly SdkDevice[];
     /** Instants `deveye.telemetry.snapshot` answers (matched within a second). Default none. */
@@ -239,7 +247,11 @@ export function createTestContext<Repo = undefined>(
     const workspaceId = overrides.workspaceId ?? 1;
     const canWrite = overrides.canWrite ?? true;
     const deveye: DevEyeFacade = {
-        notify: recordingNotify(recorded, overrides.hasRoute ?? true),
+        notify: recordingNotify(
+            recorded,
+            overrides.hasRoute ?? true,
+            overrides.notifyAccepted ?? true
+        ),
         mail: { listAccounts: () => Promise.resolve([]) },
         members: {
             list: () =>
@@ -337,6 +349,8 @@ export interface TestServiceOverrides<Repo> {
     devices?: readonly SdkDevice[];
     /** What `deveyeFor(...).notify.hasRoute` answers. Default true. */
     hasRoute?: boolean;
+    /** What `deveyeFor(...).notify.send` resolves. Default true; recorded either way. */
+    notifyAccepted?: boolean;
     /** Instants `telemetry.snapshot` answers (matched within a second). Default none. */
     snapshots?: readonly SdkTelemetrySnapshot[];
 }
@@ -359,7 +373,11 @@ export function createTestServiceDeps<Repo = undefined>(
     };
     const stores = new Map<number, TestFeatureStore>();
     const sealedBytes = new Map<string, Uint8Array>();
-    const notify = recordingNotify(recorded, overrides.hasRoute ?? true);
+    const notify = recordingNotify(
+        recorded,
+        overrides.hasRoute ?? true,
+        overrides.notifyAccepted ?? true
+    );
     const devices = recordingDevices(overrides.devices ?? []);
     return {
         recorded,

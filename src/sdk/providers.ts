@@ -56,7 +56,11 @@ export interface CloudSyncBackupProvider {
 export const UPTIME_ITEMS_PROVIDER = 'uptime.items' as const;
 
 export interface UptimeItemsProvider {
-    /** Does this service exist in this workspace (own, or projected into it)? */
+    /**
+     * Does this service live in this workspace? Its home only, never a
+     * projection: a project links what its workspace owns, the same rule the
+     * native code applied before the module.
+     */
     exists(serviceId: number, workspaceId: number): Promise<boolean>;
 }
 

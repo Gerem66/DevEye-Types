@@ -376,9 +376,12 @@ export const SHAREABLE_FEATURES: readonly WorkspaceFeatureId[] = FEATURE_REGISTR
  *
  * Brancher une fonctionnalité de plus : `listVisible` / `findVisible` dans son
  * dépôt, le codec par ligne dans son listage, une entrée ici.
+ *
+ * Les natives seulement : un module (Uptime, rapatrié) se déclare par
+ * son manifest (`shareTier` autre que `'never'`), et le boot exige alors son
+ * entrée `items`. Il n'a rien à inscrire ici.
  */
 export const SHARE_WIRED_FEATURES: readonly WorkspaceFeatureId[] = [
-    'uptime',
     'database',
     'deploy',
     'git',

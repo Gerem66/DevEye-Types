@@ -31,7 +31,6 @@ test('validateManifest rejects the classic mistakes', () => {
         assert.throws(() => validateManifest({ ...base, ...patch }), new RegExp(fragment));
     rejects({ label: '  ' }, 'empty label');
     rejects({ hasItems: true }, 'itemNoun');
-    rejects({ itemSegment: (id) => `item:${id}` }, 'itemSegment');
     rejects({ shareTier: 'open' }, "shareTier 'never'");
     rejects({ commandPrefix: 'x-demo.' }, 'commandPrefix');
     rejects(

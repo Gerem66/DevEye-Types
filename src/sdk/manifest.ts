@@ -234,13 +234,6 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
      */
     commandPrefix?: string;
 
-    /**
-     * Builds the live/teleport segment for one item, e.g. `(id) => `job:${id}``.
-     * MUST return byte-for-byte what your view declares via `useLiveSegment('l1', ...)`:
-     * it is a rendezvous, not a convention. Requires `hasItems`.
-     */
-    itemSegment?: (itemId: number | string) => string;
-
     /** Settings tabs, per scope. Omit a scope to render no settings there. */
     settings?: {
         feature?: readonly (SettingsTab | CustomTabRef)[];
@@ -265,7 +258,6 @@ export function validateManifest(m: FeatureManifest): void {
     if (!m.label.trim()) fail(m.id, 'empty label');
     if (!m.description.trim()) fail(m.id, 'empty description');
     if (m.hasItems && !m.itemNoun?.trim()) fail(m.id, 'hasItems requires itemNoun');
-    if (!m.hasItems && m.itemSegment) fail(m.id, 'itemSegment requires hasItems');
     if (external && m.shareTier !== 'never') {
         fail(m.id, "external modules must declare shareTier 'never' for now");
     }

@@ -282,13 +282,13 @@ export interface FeatureAgentHooks {
      * decision: the app no longer gates telemetry on any feature's settings.
      */
     /** The OS/security report (`agent.report`), just written to the device row. */
-    onReport?(deviceId: string, report: DeviceReport): void;
+    onReport?(deviceId: string, report: DeviceReport): void | Promise<void>;
     /** A batch of metric instants, oldest first, just written to the metric store. */
-    onMetricsBatch?(deviceId: string, snapshots: readonly MetricSnapshot[]): void;
+    onMetricsBatch?(deviceId: string, snapshots: readonly MetricSnapshot[]): void | Promise<void>;
     /** The persistence manifest (`agent.integrity`). Never stored by the app: it only exists here. */
-    onIntegrity?(deviceId: string, integrity: IntegrityReport): void;
+    onIntegrity?(deviceId: string, integrity: IntegrityReport): void | Promise<void>;
     /** An authentication window (`agent.authEvents`). Never stored by the app either. */
-    onAuthEvents?(deviceId: string, auth: AuthWindow): void;
+    onAuthEvents?(deviceId: string, auth: AuthWindow): void | Promise<void>;
     /** `deviceId` est l'identite AUTHENTIFIEE du socket ; le payload en porte une copie non fiable. */
     onSyncChanged?(deviceId: string, payload: AgentSyncChangedPayload): void;
     onSyncIndex?(deviceId: string, payload: AgentSyncIndexPayload): void;

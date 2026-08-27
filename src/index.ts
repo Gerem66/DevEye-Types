@@ -916,57 +916,6 @@ export type {
     TcpConnection
 } from './domain/report';
 export {
-    allowEntrySchema,
-    allowScopeSchema,
-    BASELINE_RULES,
-    baselineAttrsSchema,
-    baselineEntrySchema,
-    baselineKindSchema,
-    DEFAULT_SENTINEL_FINDING_RETENTION_DAYS,
-    DEFAULT_SENTINEL_INTEGRITY_MINUTES,
-    DEFAULT_SENTINEL_LEARNING_DAYS,
-    devicePostureSchema,
-    deviceSentinelStateSchema,
-    evidenceItemSchema,
-    findingSchema,
-    findingSeveritySchema,
-    findingStateSchema,
-    postureCheckSchema,
-    postureStatusSchema,
-    ruleProbeSchema,
-    SENTINEL_INTEGRITY_MINUTES_MAX,
-    SENTINEL_INTEGRITY_MINUTES_MIN,
-    SENTINEL_LEARNING_DAYS_MAX,
-    SENTINEL_LEARNING_DAYS_MIN,
-    SENTINEL_NOTIFY_FROM,
-    SENTINEL_RULES,
-    sentinelConfigSchema,
-    sentinelRuleIdSchema,
-    SEVERITY_BY_RANK,
-    SEVERITY_RANK,
-    severityCountsSchema
-} from './domain/sentinel';
-export type {
-    AllowEntry,
-    AllowScope,
-    BaselineAttrs,
-    BaselineEntry,
-    BaselineKind,
-    DevicePosture,
-    DeviceSentinelState,
-    EvidenceItem,
-    Finding,
-    FindingSeverity,
-    FindingState,
-    PostureCheck,
-    PostureStatus,
-    RuleProbe,
-    SentinelConfig,
-    SentinelRuleId,
-    SentinelRuleMeta,
-    SeverityCounts
-} from './domain/sentinel';
-export {
     NOTIFICATION_CHANNEL_KINDS,
     NOTIFICATION_EMAIL_MAX,
     NOTIFICATION_LABEL_MAX,
@@ -1338,23 +1287,6 @@ export {
     metricsSubscribe,
     metricsUnsubscribe
 } from './features/metrics';
-export {
-    SENTINEL_PAGE_MAX,
-    sentinelAcknowledge,
-    sentinelAllowlist,
-    sentinelBaseline,
-    sentinelCommands,
-    sentinelCount,
-    sentinelFindings,
-    sentinelOverview,
-    sentinelPosture,
-    sentinelRemoveAllow,
-    sentinelReopen,
-    sentinelResetBaseline,
-    sentinelResolve,
-    sentinelScanNow,
-    sentinelSetConfig
-} from './features/sentinel';
 export {
     notifyChannelAdd,
     notifyChannelDelete,

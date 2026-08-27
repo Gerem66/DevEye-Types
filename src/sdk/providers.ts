@@ -81,6 +81,14 @@ export const UPTIME_CLIENT_PROVIDER = 'uptime.client' as const;
  */
 export const SENTINEL_AGENT_CONFIG_PROVIDER = 'sentinel.agentConfig' as const;
 
+/**
+ * Cadence du manifeste de persistance quand rien n'est réglé, en minutes.
+ * Vit ici et non dans le domaine du module parce que l'app l'applique
+ * elle-même : sans module installé, ou sans ligne de config pour l'appareil,
+ * la config poussée à l'agent porte ce défaut (sondes éteintes).
+ */
+export const DEFAULT_SENTINEL_INTEGRITY_MINUTES = 360;
+
 export interface SentinelAgentConfig {
     enabled: boolean;
     /** Cadence of the persistence manifest, in minutes. */

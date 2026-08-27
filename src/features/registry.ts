@@ -17,7 +17,6 @@ import { notifyCommands } from './notify';
 import { sharingCommands } from './sharing';
 import { projectCommands } from './project';
 import { secrecyCommands } from './secrecy';
-import { sentinelCommands } from './sentinel';
 import { twoFactorCommands } from './twoFactor';
 import { userCommands } from './user';
 import { adminCommands } from './admin';
@@ -44,7 +43,6 @@ export const featureCommands = [
     ...deviceTerminalCommands,
     ...deviceFilesCommands,
     ...metricsCommands,
-    ...sentinelCommands,
     ...twoFactorCommands,
     ...secrecyCommands,
     ...logsCommands,

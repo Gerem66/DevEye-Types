@@ -104,6 +104,12 @@ export const DATABASE_ITEMS_PROVIDER = 'database.items' as const;
 export interface DatabaseItemsProvider {
     /** Does this database live in this workspace? Its home only, never a projection. */
     exists(databaseId: number, workspaceId: number): Promise<boolean>;
+    /**
+     * The item's display name under the OPEN cipher of `workspaceId`, its home;
+     * `null` when it is gone or unreadable. What a window onto a projected
+     * project shows for a link it cannot open: a name, never an id.
+     */
+    labelOf(databaseId: number, workspaceId: number): Promise<string | null>;
 }
 
 /**
@@ -157,6 +163,12 @@ export const AUDIENCE_ITEMS_PROVIDER = 'audience.items' as const;
 export interface AudienceItemsProvider {
     /** Does this site live in this workspace? Its home only, never a projection. */
     exists(siteId: number, workspaceId: number): Promise<boolean>;
+    /**
+     * The item's display name under the OPEN cipher of `workspaceId`, its home;
+     * `null` when it is gone or unreadable. What a window onto a projected
+     * project shows for a link it cannot open: a name, never an id.
+     */
+    labelOf(siteId: number, workspaceId: number): Promise<string | null>;
 }
 
 /**
@@ -177,6 +189,12 @@ export const GIT_ITEMS_PROVIDER = 'git.items' as const;
 export interface GitItemsProvider {
     /** Does this repository live in this workspace? Its home only, never a projection. */
     exists(repoId: number, workspaceId: number): Promise<boolean>;
+    /**
+     * The item's display name under the OPEN cipher of `workspaceId`, its home;
+     * `null` when it is gone or unreadable. What a window onto a projected
+     * project shows for a link it cannot open: a name, never an id.
+     */
+    labelOf(repoId: number, workspaceId: number): Promise<string | null>;
 }
 
 /**
@@ -197,6 +215,12 @@ export const DEPLOY_ITEMS_PROVIDER = 'deploy.items' as const;
 export interface DeployItemsProvider {
     /** Does this target live in this workspace? Its home only, never a projection. */
     exists(targetId: number, workspaceId: number): Promise<boolean>;
+    /**
+     * The item's display name under the OPEN cipher of `workspaceId`, its home;
+     * `null` when it is gone or unreadable. What a window onto a projected
+     * project shows for a link it cannot open: a name, never an id.
+     */
+    labelOf(targetId: number, workspaceId: number): Promise<string | null>;
 }
 
 /**
@@ -290,6 +314,12 @@ export interface UptimeItemsProvider {
      * native code applied before the module.
      */
     exists(serviceId: number, workspaceId: number): Promise<boolean>;
+    /**
+     * The item's display name under the OPEN cipher of `workspaceId`, its home;
+     * `null` when it is gone or unreadable. What a window onto a projected
+     * project shows for a link it cannot open: a name, never an id.
+     */
+    labelOf(serviceId: number, workspaceId: number): Promise<string | null>;
 }
 
 /**

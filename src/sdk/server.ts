@@ -5,6 +5,7 @@ import type { LogLevelName } from '../domain/logs';
 import type { ItemAccess } from '../domain/sharing';
 import type { AuthWindow, DeviceReport, IntegrityReport, ReportProcess } from '../domain/report';
 import type { MetricSnapshot } from '../domain/metrics';
+import type { UserColor } from '../domain/user';
 import type {
     AgentSyncAckPayload,
     AgentSyncApplyChunkPayload,
@@ -154,6 +155,17 @@ export interface SdkAlert {
     embeds?: readonly Record<string, unknown>[];
 }
 
+/** A routed channel that can carry a live message (see `notify.liveChannels`). */
+export interface SdkLiveChannel {
+    id: number;
+}
+
+/** A rich message for a live channel: what the Discord webhook API takes. */
+export interface SdkRichMessage {
+    content?: string;
+    embeds?: readonly Record<string, unknown>[];
+}
+
 /**
  * One process-list instant next to its metric row: what a security engine
  * needs to judge a device at a given timestamp. Capability `'telemetry.read'`.
@@ -184,8 +196,33 @@ export interface DevEyeFacade {
     notify: {
         /** Is at least one usable channel routed to this target? */
         hasRoute(itemId?: number): Promise<boolean>;
-        /** Delivers to the configured channels. Resolves `true` if at least one accepted. */
-        send(alert: SdkAlert, opts?: { itemId?: number }): Promise<boolean>;
+        /**
+         * Delivers to the configured channels. Resolves `true` if at least one
+         * accepted. `except`: channel ids to skip, those a live message
+         * (`postLive`) already concluded on, so a channel never hears the
+         * same news twice.
+         */
+        send(
+            alert: SdkAlert,
+            opts?: { itemId?: number; except?: readonly number[] }
+        ): Promise<boolean>;
+        /**
+         * The routed channels able to carry a LIVE message: a rich message
+         * posted once and edited until it concludes (Discord webhooks today).
+         * Empty when none is routed to this target. Same routing as `send`.
+         */
+        liveChannels(opts?: { itemId?: number }): Promise<readonly SdkLiveChannel[]>;
+        /**
+         * Posts a rich message on one live channel of YOUR feature, or edits
+         * it when `messageId` is given. Resolves the message id to keep for
+         * the next edit, `null` when the channel refused (a message deleted
+         * by hand, a revoked webhook): stop there, never repost.
+         */
+        postLive(
+            channelId: number,
+            message: SdkRichMessage,
+            messageId?: string | null
+        ): Promise<string | null>;
     };
     /** Requires capability `'mail.accounts'`. Open-tier accounts, metadata only, never credentials. */
     mail: {
@@ -195,7 +232,20 @@ export interface DevEyeFacade {
     };
     /** Requires capability `'members.read'`. */
     members: {
-        list(): Promise<ReadonlyArray<{ userId: number; name: string; isOwner: boolean }>>;
+        /**
+         * The workspace's members, owner included. `color` is the account's
+         * colour, the one its live presence wears everywhere; null for an
+         * account never coloured (fall back to `defaultUserColor(userId)`,
+         * exactly like the app does).
+         */
+        list(): Promise<
+            ReadonlyArray<{
+                userId: number;
+                name: string;
+                isOwner: boolean;
+                color: UserColor | null;
+            }>
+        >;
     };
     /** Requires capability `'devices.read'`. */
     devices: {
@@ -492,6 +542,14 @@ export interface SdkFeatureContext<Repo = unknown> {
     }): void;
     logger: SdkLogger;
     requestId: string;
+    /**
+     * Where DevEye lives, as URLs without a trailing slash: `app` is the
+     * origin members use (`PUBLIC_ORIGIN`), `public` the one reachable
+     * without the VPN when the host has a public surface (else the same).
+     * For what a module hands to the outside world (an install snippet, a
+     * callback URL): never derive it from the browser's location.
+     */
+    origins: { app: string; public: string };
 }
 
 /**
@@ -530,6 +588,38 @@ export function defineSdkFeature<Repo, Cmd extends string, I extends ZodType, O 
  * A background worker. Started during boot (awaited, before the agent socket
  * layer registers), stopped on shutdown.
  */
+/** The request a public route sees: headers, decoded body, client address. Nothing of a session. */
+export interface SdkPublicRequest {
+    headers: Readonly<Record<string, string | string[] | undefined>>;
+    /** The JSON body, already decoded (`undefined` when absent or unreadable). */
+    body: unknown;
+    ip: string;
+}
+
+/** The reply of a public route, the minimal chainable surface the host maps onto its HTTP server. */
+export interface SdkPublicReply {
+    header(name: string, value: string): SdkPublicReply;
+    code(status: number): SdkPublicReply;
+    send(payload?: unknown): unknown;
+}
+
+export interface SdkPublicRouteOptions {
+    /** A ceiling per client address, on top of the host's own: `{ max, timeWindow: '1 minute' }`. */
+    rateLimit?: { max: number; timeWindow: string };
+}
+
+export type SdkPublicHandler = (req: SdkPublicRequest, reply: SdkPublicReply) => Promise<unknown>;
+
+/**
+ * Where a module declares its public routes (capability `'routes.public'`).
+ * Paths are absolute (`/t.js`, `/api/t/b`); a path the host already serves
+ * is refused at boot. Every route is registered on every public listener.
+ */
+export interface SdkPublicApp {
+    get(path: string, opts: SdkPublicRouteOptions, handler: SdkPublicHandler): void;
+    post(path: string, opts: SdkPublicRouteOptions, handler: SdkPublicHandler): void;
+}
+
 export interface FeatureService {
     start(): void | Promise<void>;
     stop(): void | Promise<void>;
@@ -541,6 +631,12 @@ export interface FeatureService {
      * provider up at call time and degrades cleanly when the module is absent.
      */
     providers?: Readonly<Record<string, unknown>>;
+    /**
+     * Your public HTTP routes, declared once at boot (capability
+     * `'routes.public'`). Called by the host for each listener it exposes to
+     * the outside; register the same routes each time.
+     */
+    publicRoutes?(app: SdkPublicApp): void;
 }
 
 /**

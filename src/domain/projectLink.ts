@@ -101,3 +101,25 @@ export interface ProjectDatabaseLinkRow {
     workspace_id: number;
     created: number;
 }
+
+/** Ligne SQL (serveur uniquement) : la liaison projet → cible. */
+export interface ProjectDeployLinkRow {
+    project_id: number;
+    target_id: number;
+    workspace_id: number;
+    created: number;
+}
+
+export interface ProjectRepoLinkRow {
+    project_id: number;
+    workspace_id: number;
+    repo_id: number;
+    created: number;
+}
+
+export interface ProjectAudienceLinkRow {
+    project_id: number;
+    site_id: number;
+    workspace_id: number;
+    created: number;
+}

@@ -96,7 +96,15 @@ function memoryStore(): TestFeatureStore {
 }
 
 export interface RecordedCalls {
-    notifications: { subject: string; body: string; itemId?: number; embeds?: number }[];
+    notifications: {
+        subject: string;
+        body: string;
+        itemId?: number;
+        embeds?: number;
+        except?: readonly number[];
+    }[];
+    /** Live messages posted (`messageId: null`) or edited through `notify.postLive`. */
+    liveMessages: { channelId: number; messageId: string | null; embeds?: number }[];
     audits: { action: string; description: string }[];
     /** Outbound agent frames, as `{ method, deviceId }` (payloads dropped for brevity). */
     agentRequests: { method: string; deviceId: string }[];
@@ -107,8 +115,10 @@ export interface RecordedCalls {
 function recordingNotify(
     recorded: RecordedCalls,
     hasRoute: boolean,
-    accepted: boolean
+    accepted: boolean,
+    liveChannels: readonly number[]
 ): DevEyeFacade['notify'] {
+    let posted = 0;
     return {
         hasRoute: () => Promise.resolve(hasRoute),
         send(alert, opts) {
@@ -118,11 +128,24 @@ function recordingNotify(
                 itemId: opts?.itemId,
                 // Only when the alert carries a layout: a test that
                 // deep-equals the plain record must not see the key appear.
-                ...(alert.embeds ? { embeds: alert.embeds.length } : {})
+                ...(alert.embeds ? { embeds: alert.embeds.length } : {}),
+                ...(opts?.except ? { except: opts.except } : {})
             });
             // Recorded either way (the module did try), but a refused delivery
             // answers false, so a test sees what the module does with it.
             return Promise.resolve(accepted);
+        },
+        liveChannels: () => Promise.resolve(liveChannels.map((id) => ({ id }))),
+        postLive(channelId, message, messageId) {
+            recorded.liveMessages.push({
+                channelId,
+                messageId: messageId ?? null,
+                ...(message.embeds ? { embeds: message.embeds.length } : {})
+            });
+            // A post mints an id (`live-1`, `live-2`...), an edit keeps the
+            // one it was given; a refusing host answers null either way.
+            if (!accepted) return Promise.resolve(null);
+            return Promise.resolve(messageId ?? `live-${++posted}`);
         }
     };
 }
@@ -237,6 +260,10 @@ export interface TestContextOverrides<Repo> {
     hasRoute?: boolean;
     /** What `deveye.notify.send` resolves (no usable channel: false). Default true; recorded either way. */
     notifyAccepted?: boolean;
+    /** What `ctx.origins` answers. Default `https://deveye.test` / `https://public.deveye.test`. */
+    origins?: { app: string; public: string };
+    /** The channel ids `deveye.notify.liveChannels` lists. Default none. */
+    liveChannels?: readonly number[];
     /** Devices `deveye.devices` reveals. Default none listed, any id authorized. */
     devices?: readonly SdkDevice[];
     /** Instants `deveye.telemetry.snapshot` answers (matched within a second). Default none. */
@@ -267,6 +294,7 @@ export function createTestContext<Repo = undefined>(
 ): TestContext<Repo> {
     const recorded: RecordedCalls = {
         notifications: [],
+        liveMessages: [],
         audits: [],
         agentRequests: [],
         pinnedInstants: []
@@ -278,12 +306,15 @@ export function createTestContext<Repo = undefined>(
         notify: recordingNotify(
             recorded,
             overrides.hasRoute ?? true,
-            overrides.notifyAccepted ?? true
+            overrides.notifyAccepted ?? true,
+            overrides.liveChannels ?? []
         ),
         mail: { listAccounts: () => Promise.resolve([]) },
         members: {
             list: () =>
-                Promise.resolve([{ userId: overrides.userId ?? 1, name: 'Test', isOwner: true }])
+                Promise.resolve([
+                    { userId: overrides.userId ?? 1, name: 'Test', isOwner: true, color: null }
+                ])
         },
         devices: recordingDevices(overrides.devices ?? []),
         telemetry: recordingTelemetry(recorded, overrides.snapshots ?? []),
@@ -353,7 +384,11 @@ export function createTestContext<Repo = undefined>(
             recorded.audits.push({ action: entry.action, description: entry.description });
         },
         logger: silentLogger,
-        requestId: 'test'
+        requestId: 'test',
+        origins: overrides.origins ?? {
+            app: 'https://deveye.test',
+            public: 'https://public.deveye.test'
+        }
     };
 }
 
@@ -380,6 +415,8 @@ export interface TestServiceOverrides<Repo> {
     hasRoute?: boolean;
     /** What `deveyeFor(...).notify.send` resolves. Default true; recorded either way. */
     notifyAccepted?: boolean;
+    /** The channel ids `deveyeFor(...).notify.liveChannels` lists. Default none. */
+    liveChannels?: readonly number[];
     /** Instants `telemetry.snapshot` answers (matched within a second). Default none. */
     snapshots?: readonly SdkTelemetrySnapshot[];
     /** The named contracts the host holds (`deps.providers.get(key)`). */
@@ -396,6 +433,7 @@ export function createTestServiceDeps<Repo = undefined>(
 ): TestServiceDeps<Repo> {
     const recorded: RecordedServiceCalls = {
         notifications: [],
+        liveMessages: [],
         audits: [],
         agentRequests: [],
         pinnedInstants: [],
@@ -407,7 +445,8 @@ export function createTestServiceDeps<Repo = undefined>(
     const notify = recordingNotify(
         recorded,
         overrides.hasRoute ?? true,
-        overrides.notifyAccepted ?? true
+        overrides.notifyAccepted ?? true,
+        overrides.liveChannels ?? []
     );
     const devices = recordingDevices(overrides.devices ?? []);
     return {

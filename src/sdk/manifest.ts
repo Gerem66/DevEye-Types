@@ -91,7 +91,16 @@ export type NativeCapability =
      * pinning). Reserved for native-id modules like `'agents'`: the metric
      * store is app infrastructure.
      */
-    | 'telemetry.read';
+    | 'telemetry.read'
+    /**
+     * Public HTTP routes: endpoints reachable WITHOUT a session, from
+     * browsers and machines that know nothing of DevEye (an analytics
+     * beacon). Mounted by the host on every listener it exposes to the
+     * outside (the app, and the public surface when it has one), with open
+     * CORS. Declared, because opening a door is the one thing a module must
+     * not do quietly. See `FeatureService.publicRoutes`.
+     */
+    | 'routes.public';
 
 /**
  * Settings tabs the shell can render for you.

@@ -17,20 +17,20 @@
 declare module 'deveye-sdk-client' {
     import type {
         ButtonHTMLAttributes,
+        CSSProperties,
         ChangeEvent,
         ComponentType,
-        CSSProperties,
         InputHTMLAttributes,
         ReactNode,
+        RefObject,
         SelectHTMLAttributes
     } from 'react';
     import type { z, ZodType } from 'zod';
     import type {
         ButtonHTMLAttributes as DialogButtonAttributes,
-        PointerEvent as ReactPointerEvent,
-        RefObject
+        PointerEvent as ReactPointerEvent
     } from 'react';
-    import type { FeatureAccess, FeatureId, WorkspaceCapability } from '@deveye/types';
+    import type { FeatureAccess, FeatureId, MinimalUser, WorkspaceCapability } from '@deveye/types';
     import type { FeatureManifest } from '@deveye/types/sdk';
 
     // ── UI kit ─────────────────────────────────────────────────────────────
@@ -342,6 +342,29 @@ declare module 'deveye-sdk-client' {
         name: string;
     } | null;
     export function useFeatureLifecycle(hooks: { onUnmount?: () => void }): void;
+    /** The members of the active workspace, as the session lists them (empty before it answers). */
+    export function useWorkspaceMembers(): readonly MinimalUser[];
+    /**
+     * A member's identity dot: their avatar, or their initial on their account
+     * colour (the same one as the live presence). `user` may be undefined: a
+     * deleted account must not break a row.
+     */
+    export const Avatar: ComponentType<{
+        user: MinimalUser | undefined;
+        size?: number;
+        title?: string;
+    }>;
+    /** The CSS variable of an account colour, the one the live presence paints with. */
+    export function userColorVar(color: MinimalUser['color']): string;
+    /**
+     * Two sticky bands, one under the other: measure the top one and hand the
+     * ancestor a `--sticky-head` variable the lower band offsets itself by.
+     */
+    export interface StickyOffset<T extends HTMLElement> {
+        ref: RefObject<T | null>;
+        style: CSSProperties;
+    }
+    export function useStickyOffset<T extends HTMLElement>(): StickyOffset<T>;
     /**
      * Open another feature of the active workspace, on one of its items when
      * `itemId` is given (the item's presence segment is its bare id): the

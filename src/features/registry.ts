@@ -1,11 +1,8 @@
 import { z } from 'zod';
-import { audienceCommands } from './audience';
 import { deviceCommands } from './device';
 import { deviceFilesCommands } from './deviceFiles';
 import { deviceLogCommands } from './deviceLogs';
 import { deviceTerminalCommands } from './deviceTerminal';
-import { deployCommands } from './deploy';
-import { gitCommands } from './git';
 import { homeCommands } from './home';
 import { liveCommands } from './live';
 import { logsCommands } from './logs';
@@ -31,9 +28,6 @@ export const featureCommands = [
     ...adminCommands,
     ...userCommands,
     ...projectCommands,
-    ...gitCommands,
-    ...deployCommands,
-    ...audienceCommands,
     ...deviceCommands,
     ...deviceLogCommands,
     ...deviceTerminalCommands,

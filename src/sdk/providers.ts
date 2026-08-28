@@ -106,6 +106,66 @@ export interface DatabaseItemsProvider {
 }
 
 /**
+ * Key under `FeatureService.providers` for the Audience sites the app's
+ * Projects feature links to: same shape and same reason as
+ * `UPTIME_ITEMS_PROVIDER` (`project_audience_links` is Projects' table).
+ */
+export const AUDIENCE_ITEMS_PROVIDER = 'audience.items' as const;
+
+export interface AudienceItemsProvider {
+    /** Does this site live in this workspace? Its home only, never a projection. */
+    exists(siteId: number, workspaceId: number): Promise<boolean>;
+}
+
+/**
+ * Key under `FeatureClient.providers` for the Audience pieces the app's
+ * Projects screens compose: the list of the workspace's sites, a linked site
+ * shown in full inside a project's tab, and the feature's own site dialog.
+ * The contract types live in `@deveye/types/sdk/client`.
+ */
+export const AUDIENCE_CLIENT_PROVIDER = 'audience.client' as const;
+
+/**
+ * Key under `FeatureService.providers` for the Git repositories the app's
+ * Projects feature links to: same shape and same reason as
+ * `UPTIME_ITEMS_PROVIDER` (`project_repo_links` is Projects' table).
+ */
+export const GIT_ITEMS_PROVIDER = 'git.items' as const;
+
+export interface GitItemsProvider {
+    /** Does this repository live in this workspace? Its home only, never a projection. */
+    exists(repoId: number, workspaceId: number): Promise<boolean>;
+}
+
+/**
+ * Key under `FeatureClient.providers` for the Git pieces the app's Projects
+ * screens compose: the list of the workspace's repositories, a linked
+ * repository shown in full inside a project's tab, and the feature's own
+ * repository dialog. The contract types live in `@deveye/types/sdk/client`.
+ */
+export const GIT_CLIENT_PROVIDER = 'git.client' as const;
+
+/**
+ * Key under `FeatureService.providers` for the Deploy targets the app's
+ * Projects feature links to: same shape and same reason as
+ * `UPTIME_ITEMS_PROVIDER` (`project_deploy_links` is Projects' table).
+ */
+export const DEPLOY_ITEMS_PROVIDER = 'deploy.items' as const;
+
+export interface DeployItemsProvider {
+    /** Does this target live in this workspace? Its home only, never a projection. */
+    exists(targetId: number, workspaceId: number): Promise<boolean>;
+}
+
+/**
+ * Key under `FeatureClient.providers` for the Deploy pieces the app's
+ * Projects screens compose: the list of the workspace's targets, a linked
+ * target shown in full inside a project's tab, and the feature's own target
+ * dialog. The contract types live in `@deveye/types/sdk/client`.
+ */
+export const DEPLOY_CLIENT_PROVIDER = 'deploy.client' as const;
+
+/**
  * Key under `FeatureClient.providers` for the Databases pieces the app's
  * Projects screens compose: the list of the workspace's databases, a linked
  * database shown in full inside a project's tab, and the feature's own
@@ -144,6 +204,33 @@ export interface ProjectsUsageProvider {
     usageOf(feature: string, itemId: number, workspaceId: number): Promise<readonly ProjectUsage[]>;
     /** How many projects of the workspace link each item of this feature (absent = zero). */
     countByItem(feature: string, workspaceId: number): Promise<ReadonlyMap<number, number>>;
+    /**
+     * Writes one line in a project's timeline: the only thing a module has to
+     * TELL Projects (a deployment triggered from a project's tab). Open tier
+     * only: a guarded project cannot link a workspace item, so an event aimed
+     * at one is dropped silently (the caller is looking at the wrong project).
+     * Rejects when the write itself fails; the caller decides whether the
+     * gesture that already happened must be reported as a failure (it must
+     * not: a lost timeline line never turns a deployment into an error).
+     */
+    recordEvent(
+        projectId: number,
+        workspaceId: number,
+        event: { kind: string; label: string; actorUserId: number | null }
+    ): Promise<void>;
+    /**
+     * Reports a version on the projects linking this item that asked to
+     * follow it (Projects' `versionSource`, `'github_release'` for a git
+     * repository): the field then belongs to the item, and the project's
+     * screen shows it read-only. All linked projects of the workspace, open
+     * tier only; the others are left untouched.
+     */
+    applyVersion(
+        feature: string,
+        itemId: number,
+        workspaceId: number,
+        version: string
+    ): Promise<void>;
 }
 
 /**

@@ -180,3 +180,104 @@ export interface DatabaseClientProvider {
         onSaved: (databaseId: number) => void;
     }>;
 }
+
+/**
+ * A deploy target of the workspace, as the Deploy client provider lists it
+ * for a project's "add a target" picker.
+ */
+export interface DeployLinkedCandidate {
+    id: number;
+    name: string;
+    /** The instance host, as the module labels it (« dokploy.example.com »). */
+    host: string;
+}
+
+/**
+ * What the Deploy module offers the host's screens under
+ * `DEPLOY_CLIENT_PROVIDER`: the workspace's targets, a linked target rendered
+ * in full inside a project's tab, and the feature's own dialog.
+ */
+export interface DeployClientProvider {
+    /** The workspace's targets, as `deploy.list` returns them. */
+    listTargets(): Promise<readonly DeployLinkedCandidate[]>;
+    /**
+     * A target linked to a project, shown in full: identity, last deployment,
+     * trigger, its own settings button. Loads itself by `deploy.get`, follows
+     * the feature's invalidations, and renders the host's "unlink" as its
+     * trailing action. `projectId` files a trigger in that project's timeline.
+     */
+    LinkedTarget: ComponentType<{
+        targetId: number;
+        projectId: number;
+        canWrite: boolean;
+        onUnlink: () => void;
+    }>;
+    /** The feature's target form, to declare a new target from a project. */
+    TargetDialog: ComponentType<{
+        open: boolean;
+        onClose: () => void;
+        onSaved: (targetId: number) => void;
+    }>;
+}
+
+/**
+ * A git repository of the workspace, as the Git client provider lists it for
+ * a project's "add a repository" picker.
+ */
+export interface GitLinkedCandidate {
+    id: number;
+    owner: string;
+    repo: string;
+}
+
+/**
+ * What the Git module offers the host's screens under `GIT_CLIENT_PROVIDER`:
+ * the workspace's repositories, a linked repository rendered in full inside a
+ * project's tab, and the feature's own dialog.
+ */
+export interface GitClientProvider {
+    /** The workspace's repositories, as `git.repoList` returns them. */
+    listRepos(): Promise<readonly GitLinkedCandidate[]>;
+    /**
+     * A repository linked to a project, shown in full: header (name, sync
+     * state, actions, its own settings button), graph and panels. Loads
+     * itself by `git.repoGet`, follows the feature's invalidations and the
+     * sync progress, and renders the host's "unlink" as its trailing action.
+     */
+    LinkedRepo: ComponentType<{ repoId: number; canWrite: boolean; onUnlink: () => void }>;
+    /** The feature's repository form, to declare a new repository from a project. */
+    RepoDialog: ComponentType<{
+        open: boolean;
+        onClose: () => void;
+        onSaved: (repoId: number) => void;
+    }>;
+}
+
+/** A tracked site of the workspace, as the Audience client provider lists it for a project's picker. */
+export interface AudienceLinkedCandidate {
+    id: number;
+    name: string;
+}
+
+/**
+ * What the Audience module offers the host's screens under
+ * `AUDIENCE_CLIENT_PROVIDER`: the workspace's sites, a linked site rendered
+ * in full inside a project's tab, and the feature's own dialog.
+ */
+export interface AudienceClientProvider {
+    /** The workspace's sites, as `audience.list` returns them. */
+    listSites(): Promise<readonly AudienceLinkedCandidate[]>;
+    /**
+     * A site linked to a project, shown in full: its sticky heading, actions
+     * (install, its own settings button), stats, funnels. Loads itself by
+     * `audience.get`, follows the feature's invalidations and the live beat,
+     * and renders the host's "unlink" as its trailing action.
+     */
+    LinkedSite: ComponentType<{ siteId: number; canWrite: boolean; onUnlink: () => void }>;
+    /** The feature's site form, to declare a new site from a project. */
+    SiteDialog: ComponentType<{
+        open: boolean;
+        onClose: () => void;
+        onSaved: (siteId: number) => void;
+    }>;
+}

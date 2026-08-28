@@ -381,12 +381,7 @@ export const SHAREABLE_FEATURES: readonly WorkspaceFeatureId[] = FEATURE_REGISTR
  * son manifest (`shareTier` autre que `'never'`), et le boot exige alors son
  * entrée `items`. Il n'a rien à inscrire ici.
  */
-export const SHARE_WIRED_FEATURES: readonly WorkspaceFeatureId[] = [
-    'deploy',
-    'git',
-    'audience',
-    'backup'
-];
+export const SHARE_WIRED_FEATURES: readonly WorkspaceFeatureId[] = ['backup'];
 
 /** Les fonctionnalités qui savent prévenir, dans l'ordre du registre. */
 export const NOTIFYING_FEATURES: readonly WorkspaceFeatureId[] = FEATURE_REGISTRY.filter(

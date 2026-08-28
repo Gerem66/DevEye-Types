@@ -159,7 +159,13 @@ declare module 'deveye-sdk-client' {
     export const FeatureSettingsButton: ComponentType<{
         scope:
             | { kind: 'feature'; feature: FeatureId }
-            | { kind: 'item'; feature: FeatureId; itemId: number; itemLabel: string };
+            | {
+                  kind: 'item';
+                  feature: FeatureId;
+                  itemId: number;
+                  itemLabel: string;
+                  shareable?: boolean;
+              };
         variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
         label?: string;
         /** The tab a click opens (one of the manifest's tab ids); the first by default. */

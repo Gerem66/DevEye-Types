@@ -781,6 +781,15 @@ export interface FeatureItemsEntry<Repo = unknown> {
         itemId: number,
         workspaceId: number
     ): Promise<string | null>;
+    /**
+     * May this item be projected into another workspace? Omit when every item
+     * of yours can (an open-tier feature). A `'perItem'` feature answers
+     * `false` for an item encrypted under the caller's password (its guarded
+     * tier): no other workspace could read it, so the share is refused at the
+     * moment it is asked, with a message that says why. Called with the item's
+     * HOME workspace.
+     */
+    shareable?(repo: Repo, itemId: number, workspaceId: number): Promise<boolean>;
 }
 
 // Le conteneur chiffré que CloudSync et Backup partagent (voir `devb.ts`).

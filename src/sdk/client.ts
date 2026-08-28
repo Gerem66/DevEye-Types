@@ -11,11 +11,18 @@ import type { ComponentType, ReactNode } from 'react';
  */
 
 /** The scope a settings panel is opened for. */
-export type SdkSettingsScope =
-    { kind: 'feature' } | { kind: 'item'; itemId: number; itemLabel: string };
+/**
+ * An item id is a number for every row-keyed feature (the default), a string
+ * for a device (a UUID): a module whose items are strings types its panels
+ * `SettingsPanelProps<string>`. The shell's own sections (sharing,
+ * permissions, notifications) key their tables on the number and never see a
+ * string, because a feature whose items are strings is not wired to them.
+ */
+export type SdkSettingsScope<Id extends number | string = number> =
+    { kind: 'feature' } | { kind: 'item'; itemId: Id; itemLabel: string };
 
-export interface SettingsPanelProps {
-    scope: SdkSettingsScope;
+export interface SettingsPanelProps<Id extends number | string = number> {
+    scope: SdkSettingsScope<Id>;
     /** Caller has `write` on the feature. Render read-only when false. */
     canWrite: boolean;
 }
@@ -42,7 +49,10 @@ export interface FeatureClient {
      * `'sources'`, `'encryption'`, and any custom tab id. Generic tabs
      * (`'notifications'`, `'permissions'`) need no panel.
      */
-    settingsPanels?: Readonly<Record<string, ComponentType<SettingsPanelProps>>>;
+    // `never` as the id: a panel typed for numbers and one typed for strings
+    // are both assignable here (props are contravariant), and the shell, which
+    // holds a `number | string`, casts once at that boundary.
+    settingsPanels?: Readonly<Record<string, ComponentType<SettingsPanelProps<never>>>>;
     /**
      * The compact topbar widget declared by `manifest.topbarWidget`.
      *
@@ -108,6 +118,29 @@ export type UptimeHistoryResolution = 'raw' | 'hour' | 'day';
  * hook feeding the strip, the list of the workspace's services, and the
  * feature's own service dialog.
  */
+/**
+ * What the Devices module offers the app's own screens (`DEVICES_CLIENT_PROVIDER`):
+ * the workspace's devices as a live store, the panel of one device (the home
+ * renders one view per placed device), and its compact tile. Without the
+ * module the home places no device and the topbar counts none.
+ */
+export interface DevicesClientProvider {
+    /** The active workspace's devices, refreshed by the `devices` live topic. */
+    useDevices(): { devices: readonly SdkDeviceSummary[]; loading: boolean; error: string | null };
+    refreshDevices(): void;
+    DevicePanel: ComponentType<{ deviceId: string }>;
+    DeviceWidget: ComponentType<{ deviceId: string; hideStatus?: boolean }>;
+}
+
+/** What the app's screens need of a device: identity and liveness, never the report. */
+export interface SdkDeviceSummary {
+    id: string;
+    name: string;
+    online: boolean;
+    status: string;
+    platform: string;
+}
+
 export interface UptimeClientProvider {
     /** The workspace's services, as `uptime.list` returns them. */
     listServices(): Promise<readonly UptimeLinkedService[]>;

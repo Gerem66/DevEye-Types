@@ -670,62 +670,60 @@ export {
 } from './features/user';
 export type { ThemeStateDTO } from './features/user';
 export {
-    deviceCancelDelete,
+    agentCollect,
+    agentCommands,
+    agentDropPrivileges,
+    agentElevate,
+    agentFilesAnalyze,
+    agentFilesDownload,
+    agentFilesList,
+    agentFilesMutate,
+    agentFilesSearch,
+    agentFilesUpload,
+    agentLifecycle,
+    agentListPackages,
+    agentLogQuery,
+    agentLogSources,
+    agentPower,
+    agentSetAutostart,
+    agentSubscribe,
+    agentTermClose,
+    agentTermInput,
+    agentTermOpen,
+    agentTermResize,
+    agentUnsubscribe,
+    agentUpdate,
+    agentUpgradePackages,
+    terminalUser
+} from './features/agent';
+export {
     deviceCommands,
-    deviceConfirm,
-    deviceDelete,
-    deviceDropPrivileges,
-    deviceElevate,
-    deviceForceDelete,
-    deviceList,
-    deviceListPackages,
-    deviceAgentLifecycle,
-    devicePower,
-    deviceReactivate,
-    deviceRename,
-    deviceReorder,
-    deviceRequestDelete,
-    deviceRevoke,
-    deviceSetAutostart,
-    deviceSetConfig,
-    deviceSetWorkspaces,
+    devicesCancelDelete,
+    devicesConfirm,
+    devicesDelete,
+    devicesForceDelete,
     deviceShareTargetSchema,
-    deviceUpdateAgent,
-    deviceUpgradePackages,
-    deviceWorkspaceList
+    devicesList,
+    devicesReactivate,
+    devicesRename,
+    devicesReorder,
+    devicesRequestDelete,
+    devicesRevoke,
+    devicesSetConfig,
+    devicesSetWorkspaces,
+    devicesWorkspaceList
 } from './features/device';
 export type { DeviceShareTarget } from './features/device';
-export { deviceLogCommands, deviceLogQuery, deviceLogSources } from './features/deviceLogs';
 export {
-    deviceFilesAnalyze,
-    deviceFilesCommands,
-    deviceFilesDownload,
-    deviceFilesList,
-    deviceFilesMutate,
-    deviceFilesSearch,
-    deviceFilesUpload
-} from './features/deviceFiles';
-export {
-    deviceTerminalCommands,
-    deviceTermClose,
-    deviceTermInput,
-    deviceTermOpen,
-    deviceTermResize,
-    terminalUser
-} from './features/deviceTerminal';
-export {
-    metricsAvailability,
-    metricsCommands,
-    metricsDeleteSnapshots,
-    metricsPresence,
-    metricsProcessesAt,
-    metricsQuery,
-    metricsRefresh,
-    metricsSetSnapshotsPinned,
-    metricsSnapshots,
-    metricsStorage,
-    metricsSubscribe,
-    metricsUnsubscribe
+    devicesAvailability,
+    devicesDeleteSnapshots,
+    devicesMetrics,
+    devicesPresence,
+    devicesProcessesAt,
+    devicesSetSnapshotsPinned,
+    devicesSnapshots,
+    devicesStorage,
+    metricsCommands
 } from './features/metrics';
 export {
     notifyChannelAdd,

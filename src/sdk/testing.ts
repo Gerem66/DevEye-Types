@@ -206,6 +206,9 @@ function recordingAgents(recorded: RecordedCalls): DevEyeFacade['agents'] {
         requestSyncDelete: req('requestSyncDelete'),
         publishSyncProgress: () => undefined,
         publishSyncState: () => undefined,
+        requestDestroy: req('requestDestroy'),
+        disconnectAgent: req('disconnectAgent'),
+        resetAgentSession: req('resetAgentSession'),
         requestFilesMutate: req('requestFilesMutate'),
         requestFilesUpload: req('requestFilesUpload'),
         // Every file order succeeds at once: a test of what a module does
@@ -247,6 +250,8 @@ export interface TestContextOverrides<Repo> {
     workspaceId?: number;
     kind?: 'personal' | 'shared';
     isOwner?: boolean;
+    /** Global administrator. Default false. */
+    isAdmin?: boolean;
     canWrite?: boolean;
     /** Extra permissions the caller holds, as the grant would carry them. */
     extras?: Record<string, boolean | string>;
@@ -379,6 +384,7 @@ export function createTestContext<Repo = undefined>(
         workspaceId,
         workspace: { id: workspaceId, kind: overrides.kind ?? 'personal', name: 'Test' },
         isOwner,
+        isAdmin: overrides.isAdmin ?? false,
         canWrite: overrides.canWrite ?? true,
         ...resolveExtras(overrides.manifest?.extraPermissions, isOwner, overrides.extras ?? {}),
         repo: overrides.repo as Repo,

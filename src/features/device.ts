@@ -1,15 +1,21 @@
 import { z } from 'zod';
 import { deviceSchema } from '../domain/device';
-import { packageManagerIdSchema } from '../domain/packages';
-import { agentLifecycleActionSchema, agentPowerActionSchema } from '../protocol/agent';
 import { processCaptureSchema } from '../domain/report';
 import { workspaceKindSchema } from '../domain/workspace';
+
+/**
+ * La feature Appareils (pages Appareils et Monitoring) : le cycle de vie d'un
+ * appareil, sa configuration de collecte et son partage entre espaces. Tout ce
+ * qui relaie un ordre à l'agent lui-même est du transport, dans
+ * `features/agent.ts` (`agent.*`) ; l'historique lu en base est dans
+ * `features/metrics.ts`, sous le même préfixe `devices.*`.
+ */
 
 const deviceId = z.uuid();
 
 /** List devices visible to the caller (own devices; all devices for admins). */
-export const deviceList = {
-    command: 'device.list' as const,
+export const devicesList = {
+    command: 'devices.list' as const,
     input: z.object({
         /**
          * `workspace` (défaut) : les appareils de l'espace actif — ce qu'affichent
@@ -23,15 +29,15 @@ export const deviceList = {
 };
 
 /** Confirm a `pending` device, moving it to `active`. */
-export const deviceConfirm = {
-    command: 'device.confirm' as const,
+export const devicesConfirm = {
+    command: 'devices.confirm' as const,
     input: z.object({ deviceId }),
     output: z.object({ device: deviceSchema })
 };
 
 /** Revoke a device: its token is rejected and it can no longer push metrics. */
-export const deviceRevoke = {
-    command: 'device.revoke' as const,
+export const devicesRevoke = {
+    command: 'devices.revoke' as const,
     input: z.object({ deviceId }),
     output: z.object({ device: deviceSchema })
 };
@@ -45,14 +51,14 @@ export const deviceRevoke = {
  * `admin: true` like the rest of this module: arranging a list one's own
  * workspace displays is not fleet management. Touches no agent state.
  */
-export const deviceReorder = {
-    command: 'device.reorder' as const,
+export const devicesReorder = {
+    command: 'devices.reorder' as const,
     input: z.object({ ids: z.array(deviceId).min(1) }),
     output: z.object({ ids: z.array(deviceId) })
 };
 
-export const deviceRename = {
-    command: 'device.rename' as const,
+export const devicesRename = {
+    command: 'devices.rename' as const,
     input: z.object({ deviceId, name: z.string().min(1).max(128) }),
     output: z.object({ device: deviceSchema })
 };
@@ -62,8 +68,8 @@ export const deviceRename = {
  * provided ones change. `null` resets a field to the server default. Interval
  * or capture changes are pushed live to a connected agent.
  */
-export const deviceSetConfig = {
-    command: 'device.setConfig' as const,
+export const devicesSetConfig = {
+    command: 'devices.setConfig' as const,
     input: z
         .object({
             deviceId,
@@ -99,8 +105,8 @@ export type DeviceShareTarget = z.infer<typeof deviceShareTargetSchema>;
  * Réservé aux administrateurs : c'est la seule commande qui énumère des espaces
  * dont l'appelant n'est pas membre, et elle n'existe que pour la page Appareils.
  */
-export const deviceWorkspaceList = {
-    command: 'device.workspaceList' as const,
+export const devicesWorkspaceList = {
+    command: 'devices.workspaceList' as const,
     input: z.object({ deviceId }),
     output: z.object({
         /**
@@ -117,8 +123,8 @@ export const deviceWorkspaceList = {
  * Fixe l'ensemble des espaces ayant accès à un appareil. La liste est complète :
  * un espace absent perd l'accès. L'espace d'appairage est réintégré d'office.
  */
-export const deviceSetWorkspaces = {
-    command: 'device.setWorkspaces' as const,
+export const devicesSetWorkspaces = {
+    command: 'devices.setWorkspaces' as const,
     input: z.object({
         deviceId,
         workspaceIds: z.array(z.number().int().positive())
@@ -127,101 +133,10 @@ export const deviceSetWorkspaces = {
 };
 
 /** Reactivate a revoked device, moving it back to `active`. */
-export const deviceReactivate = {
-    command: 'device.reactivate' as const,
+export const devicesReactivate = {
+    command: 'devices.reactivate' as const,
     input: z.object({ deviceId }),
     output: z.object({ device: deviceSchema })
-};
-
-/**
- * Push a self-update to a connected device's agent: the server resolves the newer
- * signed binary for the device's build target and sends `agent.update`. Admin-only
- * (Appareils page). Fails if the agent is offline, has no known target, the binary
- * is missing/unsigned, or it's already up to date.
- */
-export const deviceUpdateAgent = {
-    command: 'device.updateAgent' as const,
-    input: z.object({ deviceId }),
-    output: z.object({ device: deviceSchema })
-};
-
-/**
- * Enable/disable the agent's per-user autostart (survives reboot, no privilege).
- * Pushes `agent.service` to the connected agent (`install-user`/`uninstall-user`).
- */
-export const deviceSetAutostart = {
-    command: 'device.setAutostart' as const,
-    input: z.object({ deviceId, enabled: z.boolean() }),
-    output: z.object({ device: deviceSchema })
-};
-
-/**
- * Ask the agent to become a root/system service. Hybrid: the agent pops an OS auth
- * prompt if it has an interactive session, else replies `needsManualCommand` and the
- * UI shows `manualCommand` (always returned, deterministic per platform) to run on
- * the device. The new privilege/scope is observed on the agent's next report.
- */
-export const deviceElevate = {
-    command: 'device.elevate' as const,
-    input: z.object({ deviceId }),
-    output: z.object({ device: deviceSchema, manualCommand: z.string() })
-};
-
-/** Ask a root/system agent to drop back to a per-user service. */
-export const deviceDropPrivileges = {
-    command: 'device.dropPrivileges' as const,
-    input: z.object({ deviceId }),
-    output: z.object({ device: deviceSchema, manualCommand: z.string() })
-};
-
-/**
- * Ask the agent to enumerate its package managers + pending updates. The result
- * arrives asynchronously as a `package.list` push event (the caller must be
- * subscribed to the device). The command itself only acknowledges the request.
- */
-export const deviceListPackages = {
-    command: 'device.listPackages' as const,
-    input: z.object({ deviceId }),
-    output: z.object({ ok: z.boolean() })
-};
-
-/**
- * Apply all pending updates of one manager. Progress streams as `package.progress`
- * events, ending with `package.done`. Fails if the agent is offline or the manager
- * needs root and the agent isn't privileged (elevate it first — see device.elevate).
- */
-export const deviceUpgradePackages = {
-    command: 'device.upgradePackages' as const,
-    input: z.object({ deviceId, manager: packageManagerIdSchema }),
-    output: z.object({ ok: z.boolean() })
-};
-
-/**
- * Run a system power action on the device (shutdown / reboot / suspend / hibernate
- * / lock). Owner-or-admin; the agent must be online. The command only acknowledges
- * the request — the agent applies it best-effort and the outcome streams back as a
- * `device.powerResult` push event (the caller must be subscribed to the device).
- */
-export const devicePower = {
-    command: 'device.power' as const,
-    input: z.object({ deviceId, action: agentPowerActionSchema }),
-    output: z.object({ ok: z.boolean() })
-};
-
-/**
- * Stop or cleanly restart the agent *process* on the device (not the machine).
- * - `stop`: the agent exits. With autostart (supervised service) the manager
- *   relaunches it within seconds; standalone, the device stays offline — and
- *   unmanageable remotely — until someone relaunches it on the machine.
- * - `restart`: exit-and-relaunch (manager or self-respawn), e.g. to pick up a
- *   clean state.
- * Owner-or-admin; the agent must be online. Fire-and-forget: the command only
- * acknowledges the push — the outcome is observed through presence.
- */
-export const deviceAgentLifecycle = {
-    command: 'device.agentLifecycle' as const,
-    input: z.object({ deviceId, action: agentLifecycleActionSchema }),
-    output: z.object({ ok: z.boolean() })
 };
 
 /**
@@ -231,15 +146,15 @@ export const deviceAgentLifecycle = {
  * monitoring history is kept and stays browsable, but it's gone from management.
  * If the agent is online the destroy signal is sent immediately.
  */
-export const deviceRequestDelete = {
-    command: 'device.requestDelete' as const,
+export const devicesRequestDelete = {
+    command: 'devices.requestDelete' as const,
     input: z.object({ deviceId }),
     output: z.object({ device: deviceSchema })
 };
 
 /** Cancel a `pending_deletion` (only effective while the agent hasn't reconnected). */
-export const deviceCancelDelete = {
-    command: 'device.cancelDelete' as const,
+export const devicesCancelDelete = {
+    command: 'devices.cancelDelete' as const,
     input: z.object({ deviceId }),
     output: z.object({ device: deviceSchema })
 };
@@ -250,8 +165,8 @@ export const deviceCancelDelete = {
  * cleans itself up). A still-connected agent is told to self-destruct best-effort,
  * but the device is archived regardless; if it ever reconnects it's refused.
  */
-export const deviceForceDelete = {
-    command: 'device.forceDelete' as const,
+export const devicesForceDelete = {
+    command: 'devices.forceDelete' as const,
     input: z.object({ deviceId }),
     output: z.object({ device: deviceSchema })
 };
@@ -261,32 +176,24 @@ export const deviceForceDelete = {
  * page to remove an archived — or any — device and reset its data). Works
  * whether the agent is online or not; it does not self-destruct the agent.
  */
-export const deviceDelete = {
-    command: 'device.delete' as const,
+export const devicesDelete = {
+    command: 'devices.delete' as const,
     input: z.object({ deviceId }),
     output: z.object({ deviceId })
 };
 
 export const deviceCommands = [
-    deviceList,
-    deviceConfirm,
-    deviceRevoke,
-    deviceReactivate,
-    deviceRename,
-    deviceReorder,
-    deviceSetConfig,
-    deviceWorkspaceList,
-    deviceSetWorkspaces,
-    deviceUpdateAgent,
-    deviceSetAutostart,
-    deviceElevate,
-    deviceDropPrivileges,
-    deviceListPackages,
-    deviceUpgradePackages,
-    devicePower,
-    deviceAgentLifecycle,
-    deviceRequestDelete,
-    deviceCancelDelete,
-    deviceForceDelete,
-    deviceDelete
+    devicesList,
+    devicesConfirm,
+    devicesRevoke,
+    devicesReactivate,
+    devicesRename,
+    devicesReorder,
+    devicesSetConfig,
+    devicesWorkspaceList,
+    devicesSetWorkspaces,
+    devicesRequestDelete,
+    devicesCancelDelete,
+    devicesForceDelete,
+    devicesDelete
 ] as const;

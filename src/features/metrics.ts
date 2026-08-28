@@ -3,11 +3,19 @@ import { metricSeriesPointSchema, metricsResolutionSchema } from '../domain/metr
 import { presenceEventSchema } from '../domain/presence';
 import { processSampleSchema } from '../domain/report';
 
+/**
+ * L'historique d'un appareil, lu et entretenu en base : métriques, présence,
+ * processus, instants épinglés. C'est la part de la feature Appareils
+ * (`devices.*`) qui ne parle jamais à l'agent ; l'abonnement en direct et la
+ * collecte à la demande sont du transport (`agent.subscribe`, `agent.collect`,
+ * dans `features/agent.ts`).
+ */
+
 const deviceId = z.uuid();
 
 /** Fetch a time-series window for graphs, optionally downsampled. */
-export const metricsQuery = {
-    command: 'metrics.query' as const,
+export const devicesMetrics = {
+    command: 'devices.metrics' as const,
     input: z.object({
         deviceId,
         from: z.number().int().nonnegative(),
@@ -20,30 +28,9 @@ export const metricsQuery = {
     })
 };
 
-/** Subscribe to live metric pushes for one or more devices. */
-export const metricsSubscribe = {
-    command: 'metrics.subscribe' as const,
-    input: z.object({ deviceIds: z.array(deviceId).min(1).max(50) }),
-    output: z.object({ deviceIds: z.array(deviceId) })
-};
-
-export const metricsUnsubscribe = {
-    command: 'metrics.unsubscribe' as const,
-    input: z.object({ deviceIds: z.array(deviceId).min(1).max(50) }),
-    output: z.object({ deviceIds: z.array(deviceId) })
-};
-
-/** Ask an online device to push a fresh sample + report right now. */
-export const metricsRefresh = {
-    command: 'metrics.refresh' as const,
-    input: z.object({ deviceId }),
-    /** `requested` is false when the device isn't currently connected. */
-    output: z.object({ deviceId, requested: z.boolean() })
-};
-
 /** Agent connectivity over a window, to draw the uptime timeline. */
-export const metricsPresence = {
-    command: 'metrics.presence' as const,
+export const devicesPresence = {
+    command: 'devices.presence' as const,
     input: z.object({
         deviceId,
         from: z.number().int().nonnegative(),
@@ -58,15 +45,15 @@ export const metricsPresence = {
 };
 
 /** Processes captured nearest to a given instant (null if none in range). */
-export const metricsProcessesAt = {
-    command: 'metrics.processesAt' as const,
+export const devicesProcessesAt = {
+    command: 'devices.processesAt' as const,
     input: z.object({ deviceId, at: z.number().int().positive() }),
     output: z.object({ deviceId, sample: processSampleSchema.nullable() })
 };
 
 /** Distinct local days (YYYY-MM-DD) that have metric data, for the calendar. */
-export const metricsAvailability = {
-    command: 'metrics.availability' as const,
+export const devicesAvailability = {
+    command: 'devices.availability' as const,
     input: z.object({
         deviceId,
         /** Client UTC offset (`Date.getTimezoneOffset()`), to bucket by local day. */
@@ -87,8 +74,8 @@ export const metricsAvailability = {
  * arrows — silently vanish whenever a device chose not to record processes.
  * `withProcesses` is the subset that additionally carries a process list.
  */
-export const metricsSnapshots = {
-    command: 'metrics.snapshots' as const,
+export const devicesSnapshots = {
+    command: 'devices.snapshots' as const,
     input: z.object({
         deviceId,
         from: z.number().int().nonnegative(),
@@ -116,8 +103,8 @@ export const metricsSnapshots = {
  * Unpinning lets them expire again: rows already past their retention deadline are
  * deleted immediately, the rest at the next retention sweep.
  */
-export const metricsSetSnapshotsPinned = {
-    command: 'metrics.setSnapshotsPinned' as const,
+export const devicesSetSnapshotsPinned = {
+    command: 'devices.setSnapshotsPinned' as const,
     input: z
         .object({
             deviceId,
@@ -136,8 +123,8 @@ export const metricsSetSnapshotsPinned = {
 };
 
 /** Storage footprint of a device's stored process snapshots (count + bytes). */
-export const metricsStorage = {
-    command: 'metrics.storage' as const,
+export const devicesStorage = {
+    command: 'devices.storage' as const,
     input: z.object({ deviceId }),
     output: z.object({
         deviceId,
@@ -154,8 +141,8 @@ export const metricsStorage = {
  * Delete the process snapshots within `[from, to]` (inclusive). A single snapshot
  * is removed by passing `from === to === ts`; a dragged zone passes its bounds.
  */
-export const metricsDeleteSnapshots = {
-    command: 'metrics.deleteSnapshots' as const,
+export const devicesDeleteSnapshots = {
+    command: 'devices.deleteSnapshots' as const,
     input: z
         .object({
             deviceId,
@@ -171,15 +158,12 @@ export const metricsDeleteSnapshots = {
 };
 
 export const metricsCommands = [
-    metricsQuery,
-    metricsSubscribe,
-    metricsUnsubscribe,
-    metricsRefresh,
-    metricsPresence,
-    metricsProcessesAt,
-    metricsAvailability,
-    metricsSnapshots,
-    metricsStorage,
-    metricsDeleteSnapshots,
-    metricsSetSnapshotsPinned
+    devicesMetrics,
+    devicesPresence,
+    devicesProcessesAt,
+    devicesAvailability,
+    devicesSnapshots,
+    devicesStorage,
+    devicesDeleteSnapshots,
+    devicesSetSnapshotsPinned
 ] as const;

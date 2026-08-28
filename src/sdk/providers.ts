@@ -332,6 +332,14 @@ export interface UptimeItemsProvider {
 export const UPTIME_CLIENT_PROVIDER = 'uptime.client' as const;
 
 /**
+ * The client twin of the Devices module (`DevicesClientProvider`,
+ * `sdk/client.ts`): the workspace's devices as a store, one device's panel
+ * and tile. The app's home and topbar compose them; without the module they
+ * render nothing device-related.
+ */
+export const DEVICES_CLIENT_PROVIDER = 'devices.client' as const;
+
+/**
  * Key under `FeatureService.providers` for what Sentinel contributes to the
  * collection config the app pushes to an agent (`agent.config`): whether the
  * security probes run, and at which cadence. Absent module: the app pushes the

@@ -1,8 +1,6 @@
 import { z } from 'zod';
+import { agentCommands } from './agent';
 import { deviceCommands } from './device';
-import { deviceFilesCommands } from './deviceFiles';
-import { deviceLogCommands } from './deviceLogs';
-import { deviceTerminalCommands } from './deviceTerminal';
 import { homeCommands } from './home';
 import { liveCommands } from './live';
 import { logsCommands } from './logs';
@@ -25,10 +23,8 @@ export const featureCommands = [
     ...workspaceCommands,
     ...adminCommands,
     ...userCommands,
+    ...agentCommands,
     ...deviceCommands,
-    ...deviceLogCommands,
-    ...deviceTerminalCommands,
-    ...deviceFilesCommands,
     ...metricsCommands,
     ...twoFactorCommands,
     ...secrecyCommands,

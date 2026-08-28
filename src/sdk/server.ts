@@ -278,6 +278,17 @@ export interface DevEyeFacade {
 export interface AgentsFacade {
     isOnline(deviceId: string): boolean;
     /**
+     * The three orders a device's lifecycle gives the hub. `requestDestroy`
+     * asks the agent to uninstall itself (deletion path); `disconnectAgent`
+     * closes its socket now (a revoked or force-deleted device);
+     * `resetAgentSession` drops what the hub remembered of it (a device
+     * confirmed or reactivated starts clean). All three answer `false` when
+     * the agent is not connected, which is not an error.
+     */
+    requestDestroy(deviceId: string): boolean;
+    disconnectAgent(deviceId: string): boolean;
+    resetAgentSession(deviceId: string): boolean;
+    /**
      * Asks the agent for an immediate security scan (persistence manifest and
      * authentication window). Distinct from the metric refresh on purpose: a
      * scan fingerprints hundreds of files.
@@ -522,6 +533,12 @@ export interface SdkFeatureContext<Repo = unknown> {
     workspaceId: number;
     workspace: { id: number; kind: 'personal' | 'shared'; name: string };
     isOwner: boolean;
+    /**
+     * The caller is a global administrator of this DevEye. What a fleet-wide
+     * view keys on (the admin in their personal workspace sees every device);
+     * a command that must REQUIRE it declares `access: { admin: true }`.
+     */
+    isAdmin: boolean;
     /** Caller's level on THIS feature. `read` is already guaranteed by the dispatcher. */
     canWrite: boolean;
     /** Extra permission of type `toggle`. Absent from the grant = false; owner = true. */
@@ -586,7 +603,13 @@ export interface SdkFeatureDefinition<
      * `level` defaults to `'read'`; `extras` are ALL required. Your feature id
      * is implied: you cannot gate on another feature's rights.
      */
-    access?: { level?: FeatureAccess; extras?: readonly string[] };
+    /**
+     * `level`: the caller's level on your feature (`read` by default).
+     * `extras`: the extra permissions the caller must hold. `admin`: the
+     * caller must be a global administrator (fleet management: enrolling,
+     * revoking, deleting a device); the feature check still applies.
+     */
+    access?: { level?: FeatureAccess; extras?: readonly string[]; admin?: boolean };
     /**
      * This command changes data other members can see. `true` beats your
      * feature's own live topic (its id); a list names the topics to beat

@@ -37,7 +37,7 @@ declare module 'deveye-sdk-client' {
         User,
         WorkspaceCapability
     } from '@deveye/types';
-    import type { FeatureManifest } from '@deveye/types/sdk';
+    import type { FeatureManifest, ManifestCommand } from '@deveye/types/sdk';
 
     // ── UI kit ─────────────────────────────────────────────────────────────
     export const Button: ComponentType<
@@ -162,7 +162,7 @@ declare module 'deveye-sdk-client' {
             | {
                   kind: 'item';
                   feature: FeatureId;
-                  itemId: number;
+                  itemId: number | string;
                   itemLabel: string;
                   shareable?: boolean;
               };
@@ -261,6 +261,23 @@ declare module 'deveye-sdk-client' {
         readonly code: string;
         readonly details?: unknown;
     }
+    /**
+     * The typed sender of any list of contracts (`featureApi` is it on a
+     * manifest's commands). `commandsApi(agentCommands)` is how a module talks
+     * to a device: the native agent transport (`agent.*`: files, terminal,
+     * logs, packages, power, live metrics subscription), under the active
+     * workspace's `devices` right; deferred answers arrive through
+     * `onServerEvent`.
+     */
+    export function commandsApi<const C extends readonly ManifestCommand[]>(
+        commands: C
+    ): {
+        send<N extends C[number]['command']>(
+            name: N,
+            input: z.input<Extract<C[number], { command: N }>['input'] & ZodType>,
+            opts?: { timeoutMs?: number }
+        ): Promise<z.output<Extract<C[number], { command: N }>['output'] & ZodType>>;
+    };
     export function featureApi<const M extends FeatureManifest>(
         manifest: M
     ): {
@@ -342,6 +359,14 @@ declare module 'deveye-sdk-client' {
         error: string | null;
         refresh: () => Promise<void>;
     };
+    /**
+     * Acquires a live metrics subscription to a device and returns its release;
+     * consumers of one socket are counted so that none unsubscribes another.
+     */
+    export function acquireMetrics(deviceId: string): () => void;
+    /** Device paths as the agent reports them: Windows or POSIX, joined accordingly. */
+    export function isWinPath(p: string): boolean;
+    export function joinPath(base: string, name: string): string;
     export interface LiveOutlineProps {
         'data-live-peer'?: true;
         style?: CSSProperties;

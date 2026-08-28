@@ -78,6 +78,12 @@ export type NativeCapability =
     | 'notify'
     | 'mail.accounts'
     | 'members.read'
+    /**
+     * List every workspace of this DevEye (id, name, kind, owner). A global
+     * administrator's surface only: the call refuses anyone else. What a
+     * fleet needs to attach a device to workspaces.
+     */
+    | 'workspaces.read'
     /** Read/authorize the workspace's devices. */
     | 'devices.read'
     /**

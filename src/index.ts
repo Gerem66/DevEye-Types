@@ -311,6 +311,8 @@ export type {
 } from './domain/deviceFiles';
 export { projectStatusSchema } from './domain/project';
 export type { ProjectStatus } from './domain/project';
+export { presenceEventSchema } from './domain/presence';
+export type { PresenceEvent, PresenceRow } from './domain/presence';
 export { userRoleSchema } from './domain/role';
 export type { UserRole } from './domain/role';
 export {
@@ -589,8 +591,6 @@ export {
     sharingCommands
 } from './features/sharing';
 export { SHAREABLE_FEATURES, SHARE_WIRED_FEATURES } from './domain/featureRegistry';
-export { presenceEventSchema } from './domain/presence';
-export type { PresenceEvent, PresenceRow } from './domain/presence';
 export {
     metricSeriesPointSchema,
     metricSnapshotSchema,
@@ -696,35 +696,6 @@ export {
     agentUpgradePackages,
     terminalUser
 } from './features/agent';
-export {
-    deviceCommands,
-    devicesCancelDelete,
-    devicesConfirm,
-    devicesDelete,
-    devicesForceDelete,
-    deviceShareTargetSchema,
-    devicesList,
-    devicesReactivate,
-    devicesRename,
-    devicesReorder,
-    devicesRequestDelete,
-    devicesRevoke,
-    devicesSetConfig,
-    devicesSetWorkspaces,
-    devicesWorkspaceList
-} from './features/device';
-export type { DeviceShareTarget } from './features/device';
-export {
-    devicesAvailability,
-    devicesDeleteSnapshots,
-    devicesMetrics,
-    devicesPresence,
-    devicesProcessesAt,
-    devicesSetSnapshotsPinned,
-    devicesSnapshots,
-    devicesStorage,
-    metricsCommands
-} from './features/metrics';
 export {
     notifyChannelAdd,
     notifyChannelDelete,

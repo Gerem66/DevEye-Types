@@ -4,6 +4,7 @@ import type { FeatureAccess } from '../domain/workspaceRole';
 import type { LogLevelName } from '../domain/logs';
 import type { ItemAccess } from '../domain/sharing';
 import type { AuthWindow, DeviceReport, IntegrityReport, ReportProcess } from '../domain/report';
+import type { AgentManifest } from '../http/device';
 import type { MetricSnapshot } from '../domain/metrics';
 import type { UserColor } from '../domain/user';
 import type {
@@ -230,6 +231,13 @@ export interface DevEyeFacade {
             ReadonlyArray<{ id: number; label: string; address: string | null }>
         >;
     };
+    /**
+     * Requires capability `'workspaces.read'` AND a global administrator as
+     * caller (`forbidden` otherwise): every workspace of this DevEye.
+     */
+    workspaces: {
+        list(): Promise<readonly SdkWorkspaceSummary[]>;
+    };
     /** Requires capability `'members.read'`. */
     members: {
         /**
@@ -275,6 +283,14 @@ export interface DevEyeFacade {
  * else. Outbound calls return `false` when the agent is offline (frame
  * dropped, never queued).
  */
+/** A workspace as the fleet sees it: enough to attach a device to it. */
+export interface SdkWorkspaceSummary {
+    id: number;
+    name: string;
+    kind: 'personal' | 'shared';
+    ownerUserId: number;
+}
+
 export interface AgentsFacade {
     isOnline(deviceId: string): boolean;
     /**
@@ -288,6 +304,13 @@ export interface AgentsFacade {
     requestDestroy(deviceId: string): boolean;
     disconnectAgent(deviceId: string): boolean;
     resetAgentSession(deviceId: string): boolean;
+    /**
+     * The manifest of the agent binaries the app serves (the build version and,
+     * per target, whether the binary is signed), or null while nothing is
+     * synced. What a fleet screen needs to flag an agent able to self-update
+     * (`agent.update`); the binaries and their distribution stay the app's.
+     */
+    servedManifest(): Promise<AgentManifest | null>;
     /**
      * Asks the agent for an immediate security scan (persistence manifest and
      * authentication window). Distinct from the metric refresh on purpose: a

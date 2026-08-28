@@ -13,7 +13,8 @@ import {
     type SdkProviders,
     type SdkTelemetry,
     type SdkTelemetrySnapshot,
-    type StorageEncryption
+    type StorageEncryption,
+    SdkWorkspaceSummary
 } from './server';
 
 /**
@@ -209,6 +210,9 @@ function recordingAgents(recorded: RecordedCalls): DevEyeFacade['agents'] {
         requestDestroy: req('requestDestroy'),
         disconnectAgent: req('disconnectAgent'),
         resetAgentSession: req('resetAgentSession'),
+        // Nothing synced: a test of the self-update flag feeds a manifest to
+        // the module's own pure helper.
+        servedManifest: () => Promise.resolve(null),
         requestFilesMutate: req('requestFilesMutate'),
         requestFilesUpload: req('requestFilesUpload'),
         // Every file order succeeds at once: a test of what a module does
@@ -252,6 +256,8 @@ export interface TestContextOverrides<Repo> {
     isOwner?: boolean;
     /** Global administrator. Default false. */
     isAdmin?: boolean;
+    /** What `deveye.workspaces.list()` answers. Default none. */
+    workspaces?: readonly SdkWorkspaceSummary[];
     canWrite?: boolean;
     /** Extra permissions the caller holds, as the grant would carry them. */
     extras?: Record<string, boolean | string>;
@@ -321,6 +327,7 @@ export function createTestContext<Repo = undefined>(
                     { userId: overrides.userId ?? 1, name: 'Test', isOwner: true, color: null }
                 ])
         },
+        workspaces: { list: () => Promise.resolve(overrides.workspaces ?? []) },
         devices: recordingDevices(overrides.devices ?? []),
         telemetry: recordingTelemetry(recorded, overrides.snapshots ?? []),
         agents: recordingAgents(recorded),

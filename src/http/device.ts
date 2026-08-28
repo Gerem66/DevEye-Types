@@ -30,8 +30,10 @@ export const linkCodeRequestSchema = z.object({
     autoApprove: z.boolean().default(false),
     /**
      * Espace dans lequel la machine sera rangée à l'enrôlement. Omis → l'espace
-     * personnel de l'émetteur. L'émetteur doit en être membre : appairer une
-     * machine dans un espace où l'on n'entre pas n'aurait aucun sens.
+     * actif de l'émetteur (`devices.linkCodeCreate` est une commande de
+     * session). Explicite, n'importe quel espace existant : la commande est
+     * réservée à l'administrateur global, qui rattache déjà un appareil à tout
+     * espace par `devices.setWorkspaces`.
      */
     workspaceId: z.number().int().positive().optional()
 });

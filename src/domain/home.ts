@@ -19,9 +19,13 @@ import {
  * thème), jamais de charge zero-knowledge.
  */
 
-/** Les seize tuiles de fonctionnalités natives. */
+/**
+ * Les seize tuiles de fonctionnalités natives. Une tuile porte l'id de sa
+ * feature : la tuile Monitoring est celle de la feature `devices`, dont le
+ * module fournit la carte et la vue.
+ */
 export const nativeHomeFeatureIdSchema = z.enum([
-    'monitoring',
+    'devices',
     'sentinel',
     'weather',
     'password',
@@ -54,16 +58,15 @@ export type HomeFeatureId = NativeHomeFeatureId | ExternalFeatureId;
  * grid features they are individually add/remove/reorderable; the default set is
  * empty (the navbar shows none until the user adds some).
  *  - `weather`  → current temperature of the primary city.
- *  - `devices`  → online / total device count.
  *  - `secrecy`  → password-encryption lock state + re-validation countdown.
  *  - `live`     → qui d'autre est dans l'espace, et où (bulles cliquables).
  *
- * Le widget d'Uptime (services en ligne / surveillés) n'est plus natif : son
- * module le déclare (`manifest.topbarWidget`), et son id reste valide dans les
- * dispositions persistées par `homeTopbarWidgetIdSchema`, qui accepte tout id
- * de feature.
+ * Les widgets d'Uptime (services en ligne / surveillés) et des Appareils
+ * (appareils en ligne / enrôlés) ne sont plus natifs : leur module les déclare
+ * (`manifest.topbarWidget`), et leur id reste valide dans les dispositions
+ * persistées par `homeTopbarWidgetIdSchema`, qui accepte tout id de feature.
  */
-export const nativeHomeTopbarWidgetIdSchema = z.enum(['weather', 'devices', 'secrecy', 'live']);
+export const nativeHomeTopbarWidgetIdSchema = z.enum(['weather', 'secrecy', 'live']);
 export type NativeHomeTopbarWidgetId = z.infer<typeof nativeHomeTopbarWidgetIdSchema>;
 
 /**

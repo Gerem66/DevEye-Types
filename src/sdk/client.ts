@@ -128,6 +128,8 @@ export interface DevicesClientProvider {
     /** The active workspace's devices, refreshed by the `devices` live topic. */
     useDevices(): { devices: readonly SdkDeviceSummary[]; loading: boolean; error: string | null };
     refreshDevices(): void;
+    /** Forgets every loaded device (the app calls it when the session ends). */
+    resetDevices(): void;
     DevicePanel: ComponentType<{ deviceId: string }>;
     DeviceWidget: ComponentType<{ deviceId: string; hideStatus?: boolean }>;
 }

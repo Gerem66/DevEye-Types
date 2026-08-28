@@ -38,6 +38,7 @@ declare module 'deveye-sdk-client' {
         WorkspaceCapability
     } from '@deveye/types';
     import type { FeatureManifest, ManifestCommand } from '@deveye/types/sdk';
+    import type { SdkDeviceSummary } from '@deveye/types/sdk/client';
 
     // ── UI kit ─────────────────────────────────────────────────────────────
     export const Button: ComponentType<
@@ -352,12 +353,15 @@ declare module 'deveye-sdk-client' {
         /** What the folder is for, said by the caller. */
         description?: string;
     }>;
-    /** The workspace's enrolled devices, live (a polled store, not a bare list). */
+    /**
+     * The workspace's enrolled devices, live: what the Devices module offers
+     * the app (`DEVICES_CLIENT_PROVIDER`), refreshed by the `devices` topic.
+     * Empty, loaded and without error when that module is not installed.
+     */
     export function useDevices(): {
-        devices: { id: string; name: string; online: boolean }[];
+        devices: readonly SdkDeviceSummary[];
         loading: boolean;
         error: string | null;
-        refresh: () => Promise<void>;
     };
     /**
      * Acquires a live metrics subscription to a device and returns its release;
@@ -367,6 +371,19 @@ declare module 'deveye-sdk-client' {
     /** Device paths as the agent reports them: Windows or POSIX, joined accordingly. */
     export function isWinPath(p: string): boolean;
     export function joinPath(base: string, name: string): string;
+    /**
+     * The DevEye version this interface was built from: what an agent's
+     * reported version is compared against to offer a self-update.
+     */
+    export const APP_VERSION: string;
+    /**
+     * A validated GET on one of the app's HTTP routes (the session cookie
+     * rides along; an expired access token is renewed and the call replayed
+     * once). For the routes that stay HTTP because they serve binaries.
+     */
+    export function httpGet<T>(path: string, outputSchema?: ZodType<T>): Promise<T>;
+    /** Renews the access cookie before a raw `fetch` that bypasses the client (a download). */
+    export function ensureFreshAccess(): Promise<void>;
     export interface LiveOutlineProps {
         'data-live-peer'?: true;
         style?: CSSProperties;

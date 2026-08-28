@@ -281,3 +281,19 @@ export interface AudienceClientProvider {
         onSaved: (siteId: number) => void;
     }>;
 }
+
+/**
+ * What the Mail module offers the host's screens under `MAIL_CLIENT_PROVIDER`:
+ * the ready senders (open tier, enabled) an email notification channel picks
+ * from, and the feature's own account dialog.
+ */
+export interface MailClientProvider {
+    /** The workspace's ready senders, as the module lists them. */
+    listSenders(): Promise<readonly { id: number; label: string; address: string }[]>;
+    /**
+     * The feature's account form (manual connection or OAuth consent), to
+     * declare a mailbox from the channel form. `onSaved` fires when a mailbox
+     * came out of it; the host re-lists to find which.
+     */
+    AccountDialog: ComponentType<{ open: boolean; onClose: () => void; onSaved: () => void }>;
+}

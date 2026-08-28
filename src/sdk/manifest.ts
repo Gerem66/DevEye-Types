@@ -106,13 +106,16 @@ export type NativeCapability =
  * Settings tabs the shell can render for you.
  *  - `'notifications'` and `'permissions'` are fully generic: DevEye renders
  *    them from the manifest alone, you write no component.
- *  - `'general'`, `'sources'` and `'encryption'` need a panel component,
- *    provided by your client entry (`settingsPanels`), keyed by the tab id.
+ *  - `'general'`, `'sources'`, `'sync'` and `'encryption'` need a panel
+ *    component, provided by your client entry (`settingsPanels`), keyed by
+ *    the tab id. `'sync'` (item scope only) is the cadence and maintenance of
+ *    an item the module keeps fresh in the background (a mailbox).
  *    `'encryption'` (item scope only) is where an item chooses the form of
  *    its own data, when the feature leaves the choice: the shell names and
  *    places the tab, the module owns the choice.
  */
-export type SettingsTab = 'general' | 'sources' | 'notifications' | 'permissions' | 'encryption';
+export type SettingsTab =
+    'general' | 'sources' | 'notifications' | 'permissions' | 'sync' | 'encryption';
 
 /** A custom settings tab. Needs a matching panel in `settingsPanels`. */
 export interface CustomTabRef {
@@ -231,6 +234,15 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
     invalidatedByTopic?: readonly string[];
 
     /**
+     * Secondary live topics of your own, beaten separately from your id so a
+     * frequent write does not refresh everything (a chat thread that must not
+     * re-fetch the board). Each names the keys it re-fetches (a subset of
+     * `resources`); its id starts with yours. A handler beats it with
+     * `mutates: ['<topic>']`, a service with `live.changed(ws, ['<topic>'])`.
+     */
+    topics?: readonly { id: string; keys: readonly string[] }[];
+
+    /**
      * Keys ALSO re-fetched when another feature's topic fires. The escape
      * hatch for real data coupling (CloudSync's share rows carry device names:
      * a device rename must refresh the share list). Native topics only, and
@@ -297,6 +309,20 @@ export function validateManifest(m: FeatureManifest): void {
     for (const key of m.invalidatedByTopic ?? []) {
         if (!m.resources.includes(key)) {
             fail(m.id, `invalidatedByTopic « ${key} » is not in resources`);
+        }
+    }
+    for (const topic of m.topics ?? []) {
+        if (
+            !/^[a-z][a-zA-Z0-9-]{1,31}$/.test(topic.id) ||
+            !topic.id.startsWith(m.id) ||
+            topic.id === m.id
+        ) {
+            fail(m.id, `topic « ${topic.id} » must start with the feature id and differ from it`);
+        }
+        for (const key of topic.keys) {
+            if (!m.resources.includes(key)) {
+                fail(m.id, `topic « ${topic.id} » key « ${key} » is not in resources`);
+            }
         }
     }
 

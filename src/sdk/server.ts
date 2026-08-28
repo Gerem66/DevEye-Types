@@ -428,6 +428,15 @@ export interface SdkSecrecy {
      * overwrite a body the session cannot see).
      */
     isUnlocked(): Promise<boolean>;
+    /**
+     * A short-lived ticket, signed by the host and bound to the caller (their
+     * session, this workspace, YOUR module), carrying `payload`. Hand it to
+     * the browser (a download URL, an OAuth `state`); a public route of your
+     * service redeems it (`deps.secrecy.redeem`) into the caller's ciphers,
+     * private tier included while the session is unlocked. The module never
+     * sees a session id nor a key. Default life: two minutes.
+     */
+    ticket(payload: unknown, opts?: { ttlSeconds?: number }): Promise<string>;
 }
 
 /**
@@ -492,8 +501,11 @@ export interface SdkLive {
      * client re-fetches your declared resources (and, for a share-wired
      * feature, so do the workspaces linked by projections). Call it on state
      * transitions, never on every tick: each call re-fetches for everyone.
+     * `topics` beats those instead of your id: your own secondary topics
+     * (`manifest.topics`), or another feature's topic whose screens mirror
+     * this data.
      */
-    changed(workspaceId: number): void;
+    changed(workspaceId: number, topics?: readonly string[]): void;
 }
 
 /** The whole fleet, sessionless (capability `'devices.read'`), for services. */
@@ -542,6 +554,8 @@ export interface SdkFeatureContext<Repo = unknown> {
     }): void;
     logger: SdkLogger;
     requestId: string;
+    /** The server key derivations, the same `keys` a service gets. */
+    keys: SdkServerKeys;
     /**
      * Where DevEye lives, as URLs without a trailing slash: `app` is the
      * origin members use (`PUBLIC_ORIGIN`), `public` the one reachable
@@ -572,8 +586,14 @@ export interface SdkFeatureDefinition<
      * is implied: you cannot gate on another feature's rights.
      */
     access?: { level?: FeatureAccess; extras?: readonly string[] };
-    /** This command changes data other members can see. */
-    mutates?: boolean;
+    /**
+     * This command changes data other members can see. `true` beats your
+     * feature's own live topic (its id); a list names the topics to beat
+     * instead: your id, one of your `manifest.topics`, or another feature's
+     * topic (native or module) whose screens mirror this data (Projects when a
+     * linked item goes away). An unknown topic is refused at boot.
+     */
+    mutates?: boolean | readonly string[];
     handler(ctx: SdkFeatureContext<Repo>, input: z.output<I>): Promise<z.input<O>>;
 }
 
@@ -593,6 +613,12 @@ export interface SdkPublicRequest {
     headers: Readonly<Record<string, string | string[] | undefined>>;
     /** The JSON body, already decoded (`undefined` when absent or unreadable). */
     body: unknown;
+    /**
+     * The query string, decoded by the host into an object (`?a=1&b=2` reads
+     * `{ a: '1', b: '2' }`). `unknown` like `body`: read it through a schema.
+     * What a ticketed GET (a download URL, an OAuth callback) carries.
+     */
+    query?: unknown;
     ip: string;
 }
 
@@ -606,6 +632,23 @@ export interface SdkPublicReply {
 export interface SdkPublicRouteOptions {
     /** A ceiling per client address, on top of the host's own: `{ max, timeWindow: '1 minute' }`. */
     rateLimit?: { max: number; timeWindow: string };
+    /**
+     * Which listeners serve the route. `'everywhere'` (default): the app and
+     * the public surface, for what the outside world calls (a beacon).
+     * `'app'`: the app's own origin only, for what the logged-in browser
+     * fetches without a session header (a ticketed download, an OAuth
+     * callback that lands back in the app).
+     */
+    exposure?: 'everywhere' | 'app';
+}
+
+/** What a redeemed ticket gives a public route back (see `SdkSecrecy.ticket`). */
+export interface SdkRedeemedTicket {
+    userId: number;
+    workspaceId: number;
+    payload: unknown;
+    /** The caller's ciphers: the open tier always, the private tier while their session is unlocked. */
+    cipher: { server: SdkCipher; private: SdkCipher | null };
 }
 
 export type SdkPublicHandler = (req: SdkPublicRequest, reply: SdkPublicReply) => Promise<unknown>;
@@ -675,6 +718,10 @@ export interface FeatureServiceDeps<Repo = unknown> {
     agents: AgentsFacade;
     /** Raw key wrapping under the server key, and derived keys. */
     keys: SdkServerKeys;
+    /** Redeems a ticket minted by `ctx.secrecy.ticket` of THIS module; `null` when invalid, expired or another module's. */
+    secrecy: { redeem(ticket: string): Promise<SdkRedeemedTicket | null> };
+    /** Where DevEye lives (the same `origins` a request context gets): for a page or a link a route hands to the browser. */
+    origins: { app: string; public: string };
     /** The named contracts the host holds, see `SdkProviders`. */
     providers: SdkProviders;
     /**

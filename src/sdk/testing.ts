@@ -331,7 +331,20 @@ export function createTestContext<Repo = undefined>(
     return {
         recorded,
         forgotten,
-        secrecy: { isUnlocked: () => Promise.resolve(overrides.unlocked ?? true) },
+        secrecy: {
+            isUnlocked: () => Promise.resolve(overrides.unlocked ?? true),
+            // Un ticket lisible tel quel : le harnais ne signe rien, il
+            // sérialise, et `createTestServiceDeps().secrecy.redeem` relit.
+            ticket: (payload) =>
+                Promise.resolve(
+                    `ticket:${JSON.stringify({ userId: overrides.userId ?? 1, workspaceId, payload, unlocked: overrides.unlocked ?? true })}`
+                )
+        },
+        keys: {
+            sealBytes: (plain) => `sealed:${Buffer.from(plain).toString('base64')}`,
+            openBytes: () => null,
+            derive: fakeDerive
+        },
         items: {
             restrictions: () => Promise.resolve(restrictions),
             // The exact rule of the app's dispatcher: the feature first (a
@@ -397,6 +410,8 @@ export interface RecordedServiceCalls extends RecordedCalls {
     tickers: { intervalMs: number; tick(): Promise<void> }[];
     /** Workspaces passed to `live.changed`, in order. */
     liveChanges: number[];
+    /** `live.changed` calls that named topics, as `{ workspaceId, topics }` (a bare beat is not listed here). */
+    liveTopicChanges: { workspaceId: number; topics: readonly string[] }[];
 }
 
 export interface TestServiceDeps<Repo> extends FeatureServiceDeps<Repo> {
@@ -417,6 +432,8 @@ export interface TestServiceOverrides<Repo> {
     notifyAccepted?: boolean;
     /** The channel ids `deveyeFor(...).notify.liveChannels` lists. Default none. */
     liveChannels?: readonly number[];
+    /** What `deps.origins` answers. Default `https://deveye.test` / `https://public.deveye.test`. */
+    origins?: { app: string; public: string };
     /** Instants `telemetry.snapshot` answers (matched within a second). Default none. */
     snapshots?: readonly SdkTelemetrySnapshot[];
     /** The named contracts the host holds (`deps.providers.get(key)`). */
@@ -438,7 +455,8 @@ export function createTestServiceDeps<Repo = undefined>(
         agentRequests: [],
         pinnedInstants: [],
         tickers: [],
-        liveChanges: []
+        liveChanges: [],
+        liveTopicChanges: []
     };
     const stores = new Map<number, TestFeatureStore>();
     const sealedBytes = new Map<string, Uint8Array>();
@@ -464,6 +482,30 @@ export function createTestServiceDeps<Repo = undefined>(
         },
         cipherFor: () => identityCipher,
         deveyeFor: () => ({ notify }),
+        origins: overrides.origins ?? {
+            app: 'https://deveye.test',
+            public: 'https://public.deveye.test'
+        },
+        secrecy: {
+            redeem: (ticket) => {
+                if (!ticket.startsWith('ticket:')) return Promise.resolve(null);
+                const parsed = JSON.parse(ticket.slice('ticket:'.length)) as {
+                    userId: number;
+                    workspaceId: number;
+                    payload: unknown;
+                    unlocked: boolean;
+                };
+                return Promise.resolve({
+                    userId: parsed.userId,
+                    workspaceId: parsed.workspaceId,
+                    payload: parsed.payload,
+                    cipher: {
+                        server: identityCipher,
+                        private: parsed.unlocked ? identityCipher : null
+                    }
+                });
+            }
+        },
         devicesFor: () => ({ list: devices.list, isOnline: devices.isOnline }),
         devices: {
             find: (id) =>
@@ -472,8 +514,9 @@ export function createTestServiceDeps<Repo = undefined>(
         },
         telemetry: recordingTelemetry(recorded, overrides.snapshots ?? []),
         live: {
-            changed(workspaceId) {
+            changed(workspaceId, topics) {
                 recorded.liveChanges.push(workspaceId);
+                if (topics) recorded.liveTopicChanges.push({ workspaceId, topics });
             }
         },
         audit: (entry) => {

@@ -30,7 +30,13 @@ declare module 'deveye-sdk-client' {
         ButtonHTMLAttributes as DialogButtonAttributes,
         PointerEvent as ReactPointerEvent
     } from 'react';
-    import type { FeatureAccess, FeatureId, MinimalUser, WorkspaceCapability } from '@deveye/types';
+    import type {
+        FeatureAccess,
+        FeatureId,
+        MinimalUser,
+        User,
+        WorkspaceCapability
+    } from '@deveye/types';
     import type { FeatureManifest } from '@deveye/types/sdk';
 
     // ── UI kit ─────────────────────────────────────────────────────────────
@@ -41,7 +47,7 @@ declare module 'deveye-sdk-client' {
         }
     >;
     export const TextInput: ComponentType<
-        InputHTMLAttributes<HTMLInputElement> & { enableShowHideButton?: boolean }
+        InputHTMLAttributes<HTMLInputElement> & { enableShowHideButton?: boolean; error?: string }
     >;
     export const SelectInput: ComponentType<SelectHTMLAttributes<HTMLSelectElement>>;
     export const Checkbox: ComponentType<{
@@ -50,6 +56,7 @@ declare module 'deveye-sdk-client' {
         onChange: (checked: boolean) => void;
         children?: ReactNode;
         disabled?: boolean;
+        className?: string;
         /** Required when there is no visible label. */
         'aria-label'?: string;
     }>;
@@ -185,7 +192,10 @@ declare module 'deveye-sdk-client' {
      * reconnect and on invalidation of that key. Never gated by the
      * password-encryption unlock: the command must answer while locked.
      */
-    export function useWorkspaceCount(command: `x-${string}.count`): CountState;
+    /** A `.count` command of your own, or any `...Count` command that answers `{ count }`. */
+    export function useWorkspaceCount(
+        command: `x-${string}.count` | `${string}.${string}Count`
+    ): CountState;
     /**
      * Reorder a list by drag-and-drop, the app's one gesture for it (Pointer
      * Events, a handle per row, an insertion bar the hook positions itself).
@@ -239,6 +249,12 @@ declare module 'deveye-sdk-client' {
     /** Imperative subscription to one resource key's invalidations. Returns the unsubscribe. */
     export function onResourceChange(key: ExternalResourceKey, cb: () => void): () => void;
     export function humanizeError(error: unknown, fallback: string): string;
+    /** The error a command rejects with: the server's code (or the socket's), its message, and the validation details when any. */
+    export class WsError extends Error {
+        constructor(code: string, message: string, details?: unknown);
+        readonly code: string;
+        readonly details?: unknown;
+    }
     export function featureApi<const M extends FeatureManifest>(
         manifest: M
     ): {
@@ -271,6 +287,8 @@ declare module 'deveye-sdk-client' {
     export function ensureSecrecyUnlocked(): Promise<void>;
     /** Runs `run`; on a `locked` error, opens the unlock prompt and retries once. */
     export function withSecrecy<T>(run: () => Promise<T>): Promise<T>;
+    /** Keep the unlocked session alive during a long operation (a mailbox sync the user is watching). */
+    export function touchSecrecy(): void;
     /**
      * The rejection of `ensureSecrecyUnlocked` / `withSecrecy` when the user
      * dismisses the unlock prompt: a deliberate cancel, not a failure (close a
@@ -365,6 +383,23 @@ declare module 'deveye-sdk-client' {
         style: CSSProperties;
     }
     export function useStickyOffset<T extends HTMLElement>(): StickyOffset<T>;
+    /**
+     * The client contract another module offers (`FeatureClient.providers`,
+     * keys in `@deveye/types/sdk`): how a module composes another's screens
+     * (Projects renders the linked items of Git, Uptime...). `undefined` when
+     * that module is not installed: degrade, never assume.
+     */
+    export function moduleClientProvider<T>(key: string): T | undefined;
+    /** The signed-in user, `null` before the session answers. */
+    export function useCurrentUser(): User | null;
+    /** Image inputs accepted by `fileToSquareDataUrl`. */
+    export const ACCEPTED_TYPES: readonly string[];
+    export const MAX_INPUT_BYTES: number;
+    /** A picked image, resized to a square data URL under `maxLength` characters; throws a readable message. */
+    export function fileToSquareDataUrl(
+        file: File,
+        opts: { size: number; maxLength: number }
+    ): Promise<string>;
     /**
      * Open another feature of the active workspace, on one of its items when
      * `itemId` is given (the item's presence segment is its bare id): the

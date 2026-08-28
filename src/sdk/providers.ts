@@ -106,6 +106,47 @@ export interface DatabaseItemsProvider {
 }
 
 /**
+ * Key under `FeatureService.providers` for the workspace's outgoing mail: the
+ * transport the app's notification channels of kind `email` send through.
+ * Offered by the Mail module; absent, an email channel cannot be readied and
+ * the settings screen says so. Senders are the module's OPEN-tier, enabled
+ * accounts: a guarded mailbox needs a session unlock no background job has.
+ */
+export const MAIL_TRANSPORT_PROVIDER = 'mail.transport' as const;
+
+/** A mailbox able to send without anyone unlocking anything. */
+export interface MailSender {
+    id: number;
+    label: string;
+    address: string;
+}
+
+export interface MailTransportProvider {
+    /** The workspace's ready senders (open tier, enabled). */
+    listSenders(workspaceId: number): Promise<readonly MailSender[]>;
+    /** Is this account a ready sender of this workspace right now? */
+    isReady(accountId: number, workspaceId: number): Promise<boolean>;
+    /**
+     * Sends one plain-text message from this account. Resolves `true` when the
+     * provider accepted it; `false` (never a throw) when the account is not a
+     * ready sender or the send failed, the failure logged by the module.
+     */
+    send(
+        accountId: number,
+        workspaceId: number,
+        message: { to: string; subject: string; text: string }
+    ): Promise<boolean>;
+}
+
+/**
+ * Key under `FeatureClient.providers` for the Mail pieces the app's settings
+ * shell composes: the ready senders an email channel picks from, and the
+ * feature's own account dialog (the "+" of the channel form). The contract
+ * types live in `@deveye/types/sdk/client`.
+ */
+export const MAIL_CLIENT_PROVIDER = 'mail.client' as const;
+
+/**
  * Key under `FeatureService.providers` for the Audience sites the app's
  * Projects feature links to: same shape and same reason as
  * `UPTIME_ITEMS_PROVIDER` (`project_audience_links` is Projects' table).

@@ -6,7 +6,6 @@ import { deviceTerminalCommands } from './deviceTerminal';
 import { homeCommands } from './home';
 import { liveCommands } from './live';
 import { logsCommands } from './logs';
-import { mailCommands } from './mail';
 import { metricsCommands } from './metrics';
 import { notifyCommands } from './notify';
 import { sharingCommands } from './sharing';
@@ -37,7 +36,6 @@ export const featureCommands = [
     ...secrecyCommands,
     ...logsCommands,
     ...homeCommands,
-    ...mailCommands,
     ...notifyCommands,
     ...sharingCommands,
     ...liveCommands

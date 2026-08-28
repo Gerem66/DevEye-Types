@@ -141,16 +141,6 @@ export type LivePeer = z.infer<typeof livePeerSchema>;
  */
 export const nativeLiveTopicSchema = z.enum([
     ...workspaceFeatureIdSchema.options,
-    /**
-     * Les messages des projets, séparés de `projects` exprès.
-     *
-     * Une feature vaut normalement un sujet, mais un fil de discussion bat à une
-     * toute autre cadence que la structure qui le porte : sans cette coupure,
-     * chaque message ferait re-solliciter le tableau, la frise et le portefeuille
-     * entiers. `TOPIC_FEATURE` le rattache au même droit — c'est bien la même
-     * feature, vue à deux vitesses.
-     */
-    'projectsChat',
     /** Membres, rôles, nom, logo de l'espace. */
     'workspace',
     /**
@@ -181,10 +171,11 @@ export const nativeLiveTopicSchema = z.enum([
 export type NativeLiveTopic = z.infer<typeof nativeLiveTopicSchema>;
 
 /**
- * Un module externe vaut **un** sujet, qui est son id : la coupure fine de
- * `projectsChat` reste un privilège natif, un module re-sollicite tout ce qu'il
- * expose. Le préfixe `x-` garantit qu'un sujet externe ne percute ni une
- * feature native ni un sujet réservé.
+ * Un module vaut **un** sujet, qui est son id, plus les sujets secondaires que
+ * son manifest déclare (`topics`, validés au boot : `projectsChat` bat les
+ * messages sans faire re-solliciter le tableau). Ces sujets-là ne figurent pas
+ * ici : l'app les lit dans les manifests installés. Le préfixe `x-` garantit
+ * qu'un sujet externe ne percute ni une feature native ni un sujet réservé.
  */
 export const liveTopicSchema = z.union([nativeLiveTopicSchema, externalFeatureIdSchema]);
 export type LiveTopic = z.infer<typeof liveTopicSchema>;
@@ -218,7 +209,6 @@ export const TOPIC_FEATURE: Record<NativeLiveTopic, WorkspaceFeatureId | null> =
     uptime: 'uptime',
     mail: 'mail',
     projects: 'projects',
-    projectsChat: 'projects',
     git: 'git',
     deploy: 'deploy',
     database: 'database',

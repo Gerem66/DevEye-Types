@@ -9,7 +9,6 @@ import { logsCommands } from './logs';
 import { metricsCommands } from './metrics';
 import { notifyCommands } from './notify';
 import { sharingCommands } from './sharing';
-import { projectCommands } from './project';
 import { secrecyCommands } from './secrecy';
 import { twoFactorCommands } from './twoFactor';
 import { userCommands } from './user';
@@ -26,7 +25,6 @@ export const featureCommands = [
     ...workspaceCommands,
     ...adminCommands,
     ...userCommands,
-    ...projectCommands,
     ...deviceCommands,
     ...deviceLogCommands,
     ...deviceTerminalCommands,

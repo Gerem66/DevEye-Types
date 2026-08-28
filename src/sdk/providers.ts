@@ -1,12 +1,14 @@
 /**
- * Provider contracts: the inversion for PUBLIC app code that needs a MODULE's
- * data.
+ * Provider contracts: the inversion for code that needs a MODULE's data,
+ * whether it is the app or another module.
  *
  * A module exposes named contracts on its service (`FeatureService.providers`);
  * the app looks them up at call time (`moduleProvider(key)` in its SDK
- * assembly) and degrades cleanly when the module is absent. The contract types
- * live here, in the published package, because both sides must agree on them
- * while neither may import the other.
+ * assembly, `ctx.providers.get(key)` from a module) and degrades cleanly when
+ * the module is absent. The contract types live here, in the published
+ * package, because both sides must agree on them while neither may import the
+ * other. Every provider is offered by a module's service: the app offers none
+ * itself.
  */
 
 /** Key under `FeatureService.providers` for the CloudSync backup source. */
@@ -51,9 +53,8 @@ export interface CloudSyncBackupProvider {
  * Key of the database access the Backup module consumes: a logical dump goes
  * through the SAME access as the monitoring (SSH tunnel or SOCKS proxy
  * included), and only the Databases feature knows how to decrypt a
- * connection. Offered by the app while Databases was native
- * (`registerNativeProvider`), by its module since its migration: Backup never
- * saw the difference.
+ * connection. Offered by the app while Databases was native, by its module
+ * since its migration: Backup never saw the difference.
  */
 export const DATABASE_BACKUP_PROVIDER = 'database.backup' as const;
 
@@ -222,10 +223,10 @@ export const DATABASE_CLIENT_PROVIDER = 'database.client' as const;
  * (a module reading a native): the module's list shows how many projects use
  * each database, its detail lists them by title so the interconnection is
  * clickable both ways, and neither may read Projects' tables. Offered by the
- * app while Projects is native (`registerNativeProvider`), by its module once
- * migrated. Keyed by the linked feature's id so every linkable feature
- * (database today, git, deploy, audience, uptime as they migrate) reads the
- * same contract.
+ * app while Projects was native, by the Projects module's service since its
+ * migration: the readers never saw the difference. Keyed by the linked
+ * feature's id so every linkable feature (database, git, deploy, audience;
+ * uptime the day its links go through it) reads the same contract.
  */
 export const PROJECTS_USAGE_PROVIDER = 'projects.usage' as const;
 

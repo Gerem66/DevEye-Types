@@ -129,7 +129,7 @@ export const WORKSPACE_FEATURE_IDS = workspaceFeatureIdSchema.options;
  *
  * Le préfixe `x-` porte trois garanties d'un coup : aucune collision possible
  * avec les seize ids natifs ni avec les sujets réservés (`workspace`, `home`,
- * `account`, `notify`, `projectsChat`), aucune confusion avec un UUID
+ * `account`, `notify`, `home`), aucune confusion avec un UUID
  * d'appareil dans une disposition d'accueil (un UUID commence par un chiffre
  * hexadécimal, jamais par `x`), et un tri visuel immédiat dans un grant ou un
  * journal. Pas de tiret intérieur : l'id sert tel quel de préfixe de commande

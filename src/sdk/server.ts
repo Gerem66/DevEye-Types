@@ -371,12 +371,13 @@ export interface FeatureAgentHooks {
 }
 
 /**
- * The named contracts the host holds (`sdk/providers.ts`): what a module
- * offers on its service, or what the app offers for a feature still native.
- * Looked up at call time, `undefined` when nobody offers the key, and it is
- * the caller's job to degrade cleanly (a missing source kind, a run that
- * fails with a clean message). A module cannot tell a native offerer from a
- * module one, on purpose: the day the native migrates, nothing changes here.
+ * The named contracts the host holds (`sdk/providers.ts`): what the installed
+ * modules offer on their services. Looked up at call time, `undefined` when
+ * nobody offers the key, and it is the caller's job to degrade cleanly (a
+ * missing source kind, a run that fails with a clean message). A reader
+ * cannot tell who offers a key, on purpose: a contract can change hands (the
+ * app offered `PROJECTS_USAGE_PROVIDER` while Projects was native) without
+ * anything changing here.
  */
 export interface SdkProviders {
     get<T>(key: string): T | undefined;

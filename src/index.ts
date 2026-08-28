@@ -430,70 +430,6 @@ export {
     deploymentSchema
 } from './domain/deploy';
 export {
-    DATABASE_ALERT_MESSAGE_MAX_LENGTH,
-    DATABASE_ALERT_NAME_MAX_LENGTH,
-    DATABASE_HOST_MAX_LENGTH,
-    DATABASE_NAME_MAX_LENGTH,
-    DATABASE_SECRET_MAX_LENGTH,
-    DATABASE_SQL_MAX_LENGTH,
-    DATABASE_USER_MAX_LENGTH,
-    databaseAccessKindSchema,
-    databaseAccessSchema,
-    databaseAlertSchema,
-    databaseCellSchema,
-    databaseColumnSchema,
-    databaseCombinatorSchema,
-    databaseComparatorSchema,
-    databaseConditionSchema,
-    databaseEngineSchema,
-    databaseExecutionSchema,
-    databaseExportFormatSchema,
-    databaseFilterOperatorSchema,
-    databaseFilterSchema,
-    databaseForeignKeySchema,
-    databaseIdRangeSchema,
-    databaseIndexSchema,
-    databaseProbeSchema,
-    databaseRowsSchema,
-    databaseSchema,
-    databaseSortSchema,
-    databaseSshAuthSchema,
-    databaseStatusSchema,
-    databaseStructureSchema,
-    databaseTableSchema,
-    databaseUsageSchema
-} from './domain/database';
-export type {
-    Database,
-    DatabaseAccess,
-    DatabaseAccessKind,
-    DatabaseAlert,
-    DatabaseAlertRow,
-    DatabaseCell,
-    DatabaseColumn,
-    DatabaseCombinator,
-    DatabaseComparator,
-    DatabaseCondition,
-    DatabaseEngine,
-    DatabaseExecution,
-    DatabaseExportFormat,
-    DatabaseFilter,
-    DatabaseFilterOperator,
-    DatabaseForeignKey,
-    DatabaseIdRange,
-    DatabaseIndex,
-    DatabaseProbe,
-    DatabaseRow,
-    DatabaseRows,
-    DatabaseSort,
-    DatabaseSshAuth,
-    DatabaseStatus,
-    DatabaseStructure,
-    DatabaseTable,
-    DatabaseUsage,
-    ProjectDatabaseLinkRow
-} from './domain/database';
-export {
     AUDIENCE_BATCH_MAX,
     AUDIENCE_BREAKDOWN_MAX,
     AUDIENCE_DIMENSIONS,
@@ -563,7 +499,12 @@ export type {
     ProjectAudienceLinkRow
 } from './domain/audience';
 export { myTaskSchema, projectLinkCountsSchema } from './domain/projectLink';
-export type { MyTask, ProjectLinkCounts, ProjectUptimeLinkRow } from './domain/projectLink';
+export type {
+    MyTask,
+    ProjectDatabaseLinkRow,
+    ProjectLinkCounts,
+    ProjectUptimeLinkRow
+} from './domain/projectLink';
 export type {
     DeployCandidate,
     DeployHistoryEntry,
@@ -1072,33 +1013,6 @@ export {
     gitRepoUpdate,
     gitSyncStatuses
 } from './features/git';
-export {
-    databaseAdd,
-    databaseAlertAdd,
-    databaseAlertList,
-    databaseAlertRemove,
-    databaseAlertTest,
-    databaseAlertUpdate,
-    databaseCommands,
-    databaseCount,
-    databaseGet,
-    databaseInspect,
-    databaseList,
-    databaseQuery,
-    databaseRemove,
-    databaseReorder,
-    databaseExecute,
-    databaseExport,
-    databaseRowDelete,
-    databaseRowInsert,
-    databaseRowUpdate,
-    databaseTableList,
-    databaseTableRows,
-    databaseTableStructure,
-    databaseTest,
-    databaseTestDraft,
-    databaseUpdate
-} from './features/database';
 export {
     audienceActivity,
     audienceBreakdown,

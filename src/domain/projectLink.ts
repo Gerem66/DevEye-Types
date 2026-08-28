@@ -85,3 +85,19 @@ export interface ProjectUptimeLinkRow {
     workspace_id: number;
     created: number;
 }
+
+/**
+ * Ligne SQL (serveur uniquement) : la liaison projet → base.
+ *
+ * Même forme que la liaison à un service surveillé, et pour la même raison :
+ * la base est un objet d'espace que le projet ne fait que pointer. La table
+ * (`project_database_links`, migration 068) appartient à Projets, pas au
+ * module Bases de données, qui ne connaît ses projets que par le contrat
+ * `PROJECTS_USAGE_PROVIDER`.
+ */
+export interface ProjectDatabaseLinkRow {
+    project_id: number;
+    database_id: number;
+    workspace_id: number;
+    created: number;
+}

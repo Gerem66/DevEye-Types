@@ -142,3 +142,41 @@ export interface UptimeClientProvider {
         onSaved: (service: UptimeLinkedService) => void;
     }>;
 }
+
+/**
+ * A database of the workspace, as the Databases client provider lists it for
+ * a project's "add a database" picker. Deliberately a subset of the module's
+ * own contract: what a picker shows, and nothing the module may change later.
+ */
+export interface DatabaseLinkedCandidate {
+    id: number;
+    name: string;
+    /** The engine as the module labels it (« MySQL », « PostgreSQL »). */
+    engineLabel: string;
+    /** How many projects of the workspace already use it. */
+    projectCount: number;
+}
+
+/**
+ * What the Databases module offers the host's screens under
+ * `DATABASE_CLIENT_PROVIDER`: the workspace's databases, a linked database
+ * rendered in full inside a project's tab, and the feature's own dialog.
+ */
+export interface DatabaseClientProvider {
+    /** The workspace's databases, as `database.list` returns them. */
+    listDatabases(): Promise<readonly DatabaseLinkedCandidate[]>;
+    /**
+     * A database linked to a project, shown in full: header (name, address,
+     * actions, its own settings button), state, alerts, table explorer. Loads
+     * itself by `database.get`, follows the feature's invalidations, and
+     * renders the host's "unlink" as its trailing action. Handles the
+     * explorer's expanded mode on its own.
+     */
+    LinkedDatabase: ComponentType<{ databaseId: number; canWrite: boolean; onUnlink: () => void }>;
+    /** The feature's database form, to declare a new database from a project. */
+    DatabaseDialog: ComponentType<{
+        open: boolean;
+        onClose: () => void;
+        onSaved: (databaseId: number) => void;
+    }>;
+}

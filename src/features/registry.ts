@@ -4,7 +4,6 @@ import { deviceCommands } from './device';
 import { deviceFilesCommands } from './deviceFiles';
 import { deviceLogCommands } from './deviceLogs';
 import { deviceTerminalCommands } from './deviceTerminal';
-import { databaseCommands } from './database';
 import { deployCommands } from './deploy';
 import { gitCommands } from './git';
 import { homeCommands } from './home';
@@ -34,7 +33,6 @@ export const featureCommands = [
     ...projectCommands,
     ...gitCommands,
     ...deployCommands,
-    ...databaseCommands,
     ...audienceCommands,
     ...deviceCommands,
     ...deviceLogCommands,

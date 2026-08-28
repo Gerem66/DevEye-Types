@@ -51,9 +51,9 @@ export interface CloudSyncBackupProvider {
  * Key of the database access the Backup module consumes: a logical dump goes
  * through the SAME access as the monitoring (SSH tunnel or SOCKS proxy
  * included), and only the Databases feature knows how to decrypt a
- * connection. Offered by the app while Databases is native
- * (`registerNativeProvider`), by its module once migrated: Backup does not
- * know the difference.
+ * connection. Offered by the app while Databases was native
+ * (`registerNativeProvider`), by its module since its migration: Backup never
+ * saw the difference.
  */
 export const DATABASE_BACKUP_PROVIDER = 'database.backup' as const;
 
@@ -88,6 +88,62 @@ export interface DatabaseBackupProvider {
     findDatabase(databaseId: number, workspaceId: number): Promise<DatabaseBackupCandidate | null>;
     /** null when the database is unknown to this workspace. */
     openAccess(databaseId: number, workspaceId: number): Promise<DatabaseBackupAccess | null>;
+}
+
+/**
+ * Key under `FeatureService.providers` for the Databases items the app's
+ * Projects feature links to: same shape and same reason as
+ * `UPTIME_ITEMS_PROVIDER`. Projects stores only identifiers
+ * (`project_database_links`, its own table); before linking one it asks the
+ * module whether the database exists in the workspace, so a foreign id can
+ * neither be linked nor leak its existence.
+ */
+export const DATABASE_ITEMS_PROVIDER = 'database.items' as const;
+
+export interface DatabaseItemsProvider {
+    /** Does this database live in this workspace? Its home only, never a projection. */
+    exists(databaseId: number, workspaceId: number): Promise<boolean>;
+}
+
+/**
+ * Key under `FeatureClient.providers` for the Databases pieces the app's
+ * Projects screens compose: the list of the workspace's databases, a linked
+ * database shown in full inside a project's tab, and the feature's own
+ * database dialog (declaring a database from a project goes through the real
+ * form, never a reduced copy). The contract types live in
+ * `@deveye/types/sdk/client` (they are React components).
+ */
+export const DATABASE_CLIENT_PROVIDER = 'database.client' as const;
+
+/**
+ * Key of what Projects knows about the items of OTHER features: the projects
+ * of the workspace that link them. The inversion in the other direction
+ * (a module reading a native): the module's list shows how many projects use
+ * each database, its detail lists them by title so the interconnection is
+ * clickable both ways, and neither may read Projects' tables. Offered by the
+ * app while Projects is native (`registerNativeProvider`), by its module once
+ * migrated. Keyed by the linked feature's id so every linkable feature
+ * (database today, git, deploy, audience, uptime as they migrate) reads the
+ * same contract.
+ */
+export const PROJECTS_USAGE_PROVIDER = 'projects.usage' as const;
+
+/**
+ * A project that links an item. Open tier only: a guarded project cannot link
+ * a workspace item (its link row is plain, the item lives at the open tier),
+ * so every title here is readable without a session.
+ */
+export interface ProjectUsage {
+    projectId: number;
+    title: string;
+    status: 'draft' | 'active' | 'paused' | 'done';
+}
+
+export interface ProjectsUsageProvider {
+    /** The workspace's projects linking this item of this feature, in Projects' display order. */
+    usageOf(feature: string, itemId: number, workspaceId: number): Promise<readonly ProjectUsage[]>;
+    /** How many projects of the workspace link each item of this feature (absent = zero). */
+    countByItem(feature: string, workspaceId: number): Promise<ReadonlyMap<number, number>>;
 }
 
 /**

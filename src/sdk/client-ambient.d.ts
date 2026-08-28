@@ -342,6 +342,20 @@ declare module 'deveye-sdk-client' {
         name: string;
     } | null;
     export function useFeatureLifecycle(hooks: { onUnmount?: () => void }): void;
+    /**
+     * Open another feature of the active workspace, on one of its items when
+     * `itemId` is given (the item's presence segment is its bare id): the
+     * host's teleport, the same mechanism as "join someone". The access guard
+     * is the host's; a missing item is ignored after a short grace.
+     */
+    export function openFeature(feature: string, itemId?: number): void;
+    /**
+     * Ask the feature popup for a wider frame (px) while the calling
+     * component is mounted, `null` to ask for nothing. Several requests
+     * coexist; the widest wins. For a view that outgrows the default width
+     * (a table explorer in expanded mode).
+     */
+    export function useRequestPopupWidth(px: number | null): void;
 
     // Change events re-exported for convenience in handlers.
     export type InputChange = ChangeEvent<HTMLInputElement>;

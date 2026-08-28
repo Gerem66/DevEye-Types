@@ -382,7 +382,6 @@ export const SHAREABLE_FEATURES: readonly WorkspaceFeatureId[] = FEATURE_REGISTR
  * entrée `items`. Il n'a rien à inscrire ici.
  */
 export const SHARE_WIRED_FEATURES: readonly WorkspaceFeatureId[] = [
-    'database',
     'deploy',
     'git',
     'audience',

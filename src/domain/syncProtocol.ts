@@ -32,13 +32,10 @@ export const SYNC_FINGERPRINT_SEP = '\u0001';
 export const syncScanModeSchema = z.enum(['auto', 'full']);
 export type SyncScanMode = z.infer<typeof syncScanModeSchema>;
 /**
- * Empreinte d'un index : `{nombre}.{octets}.{sha256hex}`.
- *
- * Le pli est un XOR des hachages par ligne, donc INDÉPENDANT DE L'ORDRE, et
- * c'est délibéré : un tri obligerait Rust (ordre octet UTF-8) et TypeScript
- * (ordre unité UTF-16) à s'accorder sur les caractères hors BMP, ce qu'ils ne
- * font pas. Un seul emoji dans un nom de fichier aurait alors désactivé le
- * chemin rapide pour toujours, sans que rien ne le signale.
+ * Empreinte d'un index : `{nombre}.{octets}.{sha256hex}`. Le pli est un XOR des
+ * hachages par ligne, donc INDÉPENDANT DE L'ORDRE, à dessein : un tri obligerait
+ * Rust (ordre octet UTF-8) et TypeScript (ordre unité UTF-16) à s'accorder sur
+ * les caractères hors BMP, ce qu'ils ne font pas.
  */
 export const syncIndexFingerprintSchema = z.string().regex(/^\d+\.\d+\.[0-9a-f]{64}$/);
 /** SHA-256 hexadécimal (du clair d'un fichier, ou d'un chemin normalisé). */
@@ -93,11 +90,7 @@ export const cloudSyncProgressSchema = z.object({
     bytesDone: z.number().int().nonnegative(),
     /** Fichier en cours de transfert, pour la ligne discrète de l'UI. */
     currentPath: z.string().max(SYNC_REL_PATH_MAX).nullable(),
-    /**
-     * Avancement DANS le fichier en cours. Sans ça, un fichier de plusieurs Go
-     * laissait la barre parfaitement figée du début à la fin de son transfert :
-     * les octets n'étaient comptés qu'une fois le fichier terminé.
-     */
+    /** Avancement dans le fichier en cours, pour qu'un gros fichier ne fige pas la barre. */
     currentBytes: z.number().int().nonnegative(),
     currentTotal: z.number().int().nonnegative(),
     direction: syncDirectionSchema.nullable(),

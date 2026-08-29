@@ -30,14 +30,12 @@ export const userColorSchema = z.enum([
 ]);
 export type UserColor = z.infer<typeof userColorSchema>;
 
-/** L'ordre fait foi : `defaultUserColor` et la migration 059 l'indexent tous deux. */
+/** L'ordre fait foi : il est indexé par `defaultUserColor` et en base. */
 export const USER_COLORS = userColorSchema.options;
 
 /**
- * Teinte attribuée d'office à un compte, depuis son identifiant. Deux comptes
- * créés à la suite n'ont pas la même, et aucun compte n'existe sans couleur —
- * la migration 059 colorie l'existant, `usersRepo.create` fait de même à
- * l'inscription.
+ * Teinte attribuée d'office à un compte depuis son identifiant : deux comptes
+ * créés à la suite n'ont pas la même.
  */
 export function defaultUserColor(userId: number): UserColor {
     return USER_COLORS[Math.abs(userId) % USER_COLORS.length];
@@ -76,17 +74,13 @@ export const userSecuritySchema = z.object({
 export type UserSecurity = z.infer<typeof userSecuritySchema>;
 
 /**
- * Drapeaux de compte, rangés dans `users.settings` — un simple sac de chaînes.
- *
- * L'**absence** d'un drapeau est sa valeur par défaut : un compte créé avant
- * qu'un drapeau existe se comporte donc comme le reste, sans migration ni
- * rattrapage. C'est ce qui fait de cette colonne le bon endroit pour un réglage
- * booléen privé, là où une colonne dédiée (le modèle de `color`) se justifie
- * quand la valeur n'est pas binaire ou qu'elle intéresse d'autres comptes.
+ * Drapeaux de compte, rangés dans `users.settings` (un sac de chaînes).
+ * L'absence d'un drapeau est sa valeur par défaut : aucune migration quand un
+ * drapeau apparaît.
  *
  * - `hideLiveCursors` : ne pas afficher les curseurs des autres membres. La
- *   coupure est **réciproque** — le client cesse aussi d'émettre le sien (voir
- *   `live/LiveProvider.tsx`), si bien qu'on ne peut pas regarder sans être vu.
+ *   coupure est réciproque : le client cesse aussi d'émettre le sien, on ne
+ *   peut pas regarder sans être vu.
  */
 export const userSettingFlagSchema = z.enum(['hideLiveCursors']);
 export type UserSettingFlag = z.infer<typeof userSettingFlagSchema>;

@@ -1,19 +1,14 @@
 import { z } from 'zod';
 
 /**
- * "Latest known state" report for a device — distinct from the time-series
- * metric snapshots. It carries slow-moving signals (OS info, security posture)
- * that don't belong in the per-cycle metric stream.
+ * "Latest known state" report for a device, distinct from the metric snapshots:
+ * slow-moving signals (OS info, security posture). The agent emits one on
+ * connect and then periodically; the server keeps only the most recent per
+ * device (`devices.report_json`) and fans it out live.
  *
- * The agent emits one on connect and then periodically. The server persists only
- * the most recent report per device (`devices.report_json`) and fans it out live.
- *
- * Every security field is nullable: collectors are best-effort and shell out to
- * OS tools that may be absent or require privileges. `null` means "unknown".
- *
- * Processes are *not* in the report: they ride along with each metric snapshot
- * (`metricSnapshotSchema.processes`) so every graph point has the process list of
- * that exact instant, and are historised under the same `ts`.
+ * Every security field is nullable: collectors are best-effort, `null` means
+ * "unknown". Processes are not in the report: they ride along with each metric
+ * snapshot (`metricSnapshotSchema.processes`).
  */
 
 /**
@@ -30,25 +25,18 @@ import { z } from 'zod';
 export const reportProcessSchema = z.object({
     name: z.string().min(1).max(128),
     /**
-     * Chemin de l'exécutable, et **seconde moitié de la clé d'agrégation**.
-     *
-     * Agréger sur le seul nom fusionnait deux binaires homonymes rangés à des
-     * endroits différents — exactement ce derrière quoi un imposteur se cache.
-     * La clé est donc `(name, execPath)`, et deux `nginx` de chemins distincts
-     * forment désormais deux entrées, ce qui est l'information utile.
-     *
-     * `null` = inconnu : agent trop ancien pour le renvoyer, ou chemin illisible
-     * faute de droits. Les règles qui en dépendent restent alors muettes plutôt
-     * que de conclure dans le vide (invariant 6 de Monitoring).
+     * Chemin de l'exécutable, seconde moitié de la clé d'agrégation
+     * `(name, execPath)` : deux binaires homonymes de chemins distincts sont
+     * deux entrées, ce derrière quoi un imposteur se cache. `null` = inconnu
+     * (agent trop ancien, ou chemin illisible faute de droits) ; les règles qui
+     * en dépendent restent alors muettes.
      */
     execPath: z.string().max(512).nullable().default(null),
     /**
      * L'exécutable a été effacé du disque mais le processus tourne toujours
-     * (`/proc/<pid>/exe` pointe vers un chemin suffixé « (deleted) »).
-     *
-     * Un des indicateurs les plus francs d'un implant résident en mémoire, et il
-     * ne coûte rien : le lien symbolique est déjà lu pour `execPath`. `null` là
-     * où la plateforme ne l'expose pas (macOS, Windows).
+     * (`/proc/<pid>/exe` suffixé « (deleted) ») : un des indicateurs les plus
+     * francs d'un implant résident en mémoire. `null` là où la plateforme ne
+     * l'expose pas (macOS, Windows).
      */
     deleted: z.boolean().nullable().default(null),
     /** Number of PIDs aggregated under this name. */
@@ -98,9 +86,8 @@ export const processKindSchema = z.enum(['top', 'all']);
 export type ProcessKind = z.infer<typeof processKindSchema>;
 
 /**
- * A stored process list at one instant. **Read model only**: the agent no longer
- * emits it on its own — processes travel inside `metricSnapshotSchema.processes`
- * so a graph point and its process list always share one `ts`. This is what
+ * A stored process list at one instant. Read model only: processes travel
+ * inside `metricSnapshotSchema.processes`, and this is what
  * `metrics.processesAt` returns when reading history back.
  */
 export const processSampleSchema = z.object({
@@ -134,12 +121,9 @@ export const deviceSecuritySchema = z.object({
     /** Count of pending OS updates (null when not collected, e.g. macOS). */
     pendingUpdates: z.number().int().nonnegative().nullable(),
     /**
-     * Correctifs de **sécurité** en attente, distingués du total.
-     *
-     * La distinction porte toute la valeur du signal : quarante mises à jour
-     * dont aucune de sécurité n'est qu'un retard d'entretien, tandis qu'une
-     * seule faille non corrigée est une porte. Ces champs sont facultatifs et
-     * défaillent à `null` — un agent antérieur à Sentinelle n'en dit rien, et
+     * Correctifs de sécurité en attente, distingués du total : quarante mises à
+     * jour sans sécurité ne sont qu'un retard d'entretien, une seule faille non
+     * corrigée est une porte. `null` quand l'agent ne le dit pas, et
      * `posture.updates_stale` reste alors muette.
      */
     pendingSecurityUpdates: z.number().int().nonnegative().nullable().default(null),
@@ -226,20 +210,10 @@ export const agentInfoSchema = z.object({
     /** True when launched by a service manager (so a self-update just exits to be relaunched). */
     managed: z.boolean().default(false),
     /**
-     * Ce que cet agent sait relever, déclaré par lui-même.
-     *
-     * Sans cette liste, rien ne distingue « la sonde a échoué » d'« un agent
-     * trop ancien pour l'avoir ». Les deux rendent `null`, et l'interface
-     * afficherait le même vide pour deux situations qui n'appellent pas la même
-     * réaction — mettre l'agent à jour, ou aller regarder la machine.
-     *
-     * On ne peut pas s'en remettre à la version : elle est injectée à la
-     * compilation par la CI et vaut `0.0.0` sur une construction locale. Une
-     * capacité déclarée est de toute façon plus honnête qu'un numéro dont on
-     * déduirait ce qu'il contient.
-     *
-     * Vide par défaut : un agent antérieur à Sentinelle ne dit rien, et c'est
-     * exactement ce qu'il faut comprendre.
+     * Ce que cet agent sait relever, déclaré par lui-même : distingue « la
+     * sonde a échoué » d'« un agent trop ancien pour l'avoir », que la version
+     * ne dit pas (elle vaut `0.0.0` sur une construction locale). Vide par
+     * défaut : un agent qui ne dit rien n'a pas ces sondes.
      */
     probes: z.array(z.string().max(32)).max(16).default([])
 });
@@ -320,11 +294,9 @@ export const deviceHardwareSchema = z.object({
         .catch([])
         .default([]),
     /**
-     * Network interfaces (best-effort; may be empty). A container host can expose
-     * dozens of virtual `veth*`/`br-*` devices, so an over-long list is *truncated*
-     * (and any residual error degrades to `[]`) rather than rejecting the whole
-     * report — one noisy field must never drop the agent's entire posture, which is
-     * validated at the agent socket's ingress (`deviceReportSchema`).
+     * Network interfaces (best-effort). A container host can expose dozens of
+     * virtual `veth*`/`br-*` devices, so an over-long list is truncated (and a
+     * residual error degrades to `[]`) rather than rejecting the whole report.
      */
     network: z
         .preprocess(
@@ -352,15 +324,9 @@ export const deviceReportSchema = z.object({
     security: deviceSecuritySchema,
     /** Per-disk usage (deduped across shared APFS volumes). Empty if unknown. */
     disks: z.array(reportDiskSchema).default([]),
-    /**
-     * The agent's runtime identity (privilege level + account). `null` on legacy
-     * reports stored before this field existed; the agent always sends it now.
-     */
+    /** The agent's runtime identity. `null` on reports stored before this field existed. */
     agent: agentInfoSchema.nullable().default(null),
-    /**
-     * Static hardware inventory (CPU, RAM, GPU, network, bluetooth). `null` on
-     * legacy reports stored before this field existed; the agent always sends it.
-     */
+    /** Static hardware inventory. `null` on reports stored before this field existed. */
     hardware: deviceHardwareSchema.nullable().default(null),
     /**
      * Listening sockets, one entry per bind address. `null` = not collected
@@ -378,25 +344,16 @@ export const deviceReportSchema = z.object({
 
 export type DeviceReport = z.infer<typeof deviceReportSchema>;
 
-// ─────────────────────── relevés Sentinelle (persistance, auth) ──────────────
-//
-// Deux relevés de plus, volontairement **hors** de `deviceReportSchema`.
-//
-// Le rapport est un « dernier état connu » : le serveur n'en garde qu'un par
-// appareil, écrasé à chaque envoi. Cela convient à la posture, pas à ces
-// deux-là. Le manifeste de persistance est trop gros pour être réécrit en
-// entier chaque heure dans `devices.report_json`, et la fenêtre
-// d'authentification est **additive** — l'écraser perdrait des tentatives, ce
-// qui est précisément ce qu'on cherche à compter.
+// Relevés Sentinelle, volontairement hors de `deviceReportSchema` : le rapport
+// est un « dernier état connu » écrasé à chaque envoi, alors que le manifeste
+// de persistance est trop gros pour être réécrit chaque heure et que la
+// fenêtre d'authentification est additive (l'écraser perdrait des tentatives).
 
 /**
- * Une entrée d'une surface de persistance : l'endroit où un programme s'installe
- * pour survivre au redémarrage.
- *
- * **Jamais le contenu du fichier** — seulement son empreinte et ses métadonnées.
- * C'est ce qui rend la sonde acceptable sur une machine partagée : elle prouve
- * qu'un fichier a changé sans jamais révéler ce qu'il contient, et un `sha256`
- * suffit entièrement au diff que le serveur en fait.
+ * Une entrée d'une surface de persistance : l'endroit où un programme
+ * s'installe pour survivre au redémarrage. Jamais le contenu du fichier,
+ * seulement son empreinte et ses métadonnées : la sonde prouve qu'un fichier a
+ * changé sans révéler ce qu'il contient.
  */
 export const persistenceEntrySchema = z.object({
     /** Famille d'origine : `cron`, `systemd`, `launchd`, `authorized_keys`, `sudoers`, `run_key`, `scheduled_task`… */
@@ -430,11 +387,9 @@ export const integrityReportSchema = z.object({
 export type IntegrityReport = z.infer<typeof integrityReportSchema>;
 
 /**
- * Une adresse et ce qu'elle a tenté, sur la fenêtre écoulée.
- *
- * `users` porte les comptes **visés**, pas les comptes d'utilisateurs suivis :
- * savoir qu'une adresse chinoise a essayé `root`, `admin` puis `oracle` est ce
- * qui distingue un balayage automatique d'une erreur de frappe.
+ * Une adresse et ce qu'elle a tenté sur la fenêtre écoulée. `users` porte les
+ * comptes visés : `root`, `admin` puis `oracle` distingue un balayage d'une
+ * erreur de frappe.
  */
 export const authSourceSchema = z.object({
     address: z.string().min(1).max(64),
@@ -458,13 +413,10 @@ export const AUTH_SOURCE_LIMIT = 50;
 export const AUTH_LOGIN_LIMIT = 50;
 
 /**
- * Les issues d'authentification sur une fenêtre glissante.
- *
- * Des **compteurs**, pas un flux de journal : l'agent lit les journaux, en
- * extrait des totaux et une liste bornée d'adresses, et n'envoie que cela. Ce
- * n'est pas une optimisation de taille, c'est la frontière de la feature — un
- * flux brut aurait remonté des lignes de commande sudo et des noms de service,
- * c'est-à-dire l'activité des gens.
+ * Les issues d'authentification sur une fenêtre glissante. Des compteurs, pas
+ * un flux de journal : c'est la frontière de la feature, un flux brut aurait
+ * remonté des lignes de commande sudo et des noms de service, c'est-à-dire
+ * l'activité des gens.
  */
 export const authWindowSchema = z.object({
     /** Bornes de la fenêtre, unix ms. `from` = fin de la fenêtre précédente. */
@@ -483,9 +435,8 @@ export const authWindowSchema = z.object({
     topSources: z.array(authSourceSchema).max(AUTH_SOURCE_LIMIT).default([]),
     logins: z.array(authLoginSchema).max(AUTH_LOGIN_LIMIT).default([]),
     /**
-     * La source n'a pas pu être lue (pas de journal, pas les droits). Distinguer
-     * « zéro tentative » de « je n'ai pas pu regarder » : sans ce drapeau, une
-     * machine aveugle passerait pour une machine tranquille.
+     * La source n'a pas pu être lue (pas de journal, pas les droits) : sans ce
+     * drapeau, une machine aveugle passerait pour une machine tranquille.
      */
     unavailable: z.boolean().default(false)
 });

@@ -1,19 +1,15 @@
 import { z } from 'zod';
 
 /**
- * Server readiness / boot status (HTTP, `GET /api/status`).
- *
- * Surfaces the deployment/startup tasks the server runs before it is "100%
- * ready" — today just the agent-binary reconcile, but the shape is a generic
- * task list so more steps can be added later. The web client shows a discreet
- * topbar zone while `ready` is false, then hides it for good.
+ * Server readiness / boot status (HTTP, `GET /api/status`): the startup tasks
+ * the server runs before it is fully ready, as a generic task list. The web
+ * client shows a topbar zone while `ready` is false.
  */
 
 /**
- * `warning` is a terminal-but-visible outcome: the step finished without fully
- * succeeding, yet the app is usable (e.g. the agent reconcile served an older set
- * because this deploy's build never landed). It keeps the topbar zone shown — like
- * `error` — but reads as a non-blocking caution rather than a hard failure.
+ * `warning` is terminal but visible: the step finished without fully succeeding
+ * (e.g. the agent reconcile served an older set), the app is usable, and the
+ * topbar zone stays shown as a non-blocking caution.
  */
 export const bootTaskStateSchema = z.enum(['pending', 'running', 'done', 'warning', 'error']);
 export type BootTaskState = z.infer<typeof bootTaskStateSchema>;

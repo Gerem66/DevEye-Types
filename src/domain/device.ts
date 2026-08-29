@@ -91,18 +91,10 @@ export interface DeviceRow {
     id: string;
     owner_id: number;
     /**
-     * Espace d'**appairage** : celui que visait le code de liaison. Il porte
-     * l'unicité de l'empreinte (`uniq_workspace_fingerprint`) et sert le
-     * ré-enrôlement depuis la route publique, qui n'a pas de session pour dire
-     * autrement d'où elle vient.
-     *
-     * Ce n'est plus la frontière d'accès : celle-ci est la table de jonction
-     * `device_workspaces`, un appareil pouvant être partagé avec plusieurs
-     * espaces. L'espace d'appairage y figure toujours et ne s'en retire pas.
-     *
-     * `null` quand cet espace a été supprimé : l'appareil survit — il perd son
-     * origine, pas son existence — et reste joignable par les espaces avec
-     * lesquels il est partagé.
+     * Espace d'appairage (celui du code de liaison) : porte l'unicité de
+     * l'empreinte (`uniq_workspace_fingerprint`) et sert le ré-enrôlement par la
+     * route publique. La frontière d'accès est `device_workspaces`, où il figure
+     * toujours. `null` si cet espace a été supprimé : l'appareil survit.
      */
     workspace_id: number | null;
     name: string;

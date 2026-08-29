@@ -23,17 +23,14 @@ export const LINK_CODE_TTL_MAX_SECONDS = 30 * 24 * 60 * 60;
 export const linkCodeRequestSchema = z.object({
     ttlSeconds: z.number().int().positive().max(LINK_CODE_TTL_MAX_SECONDS).nullable().optional(),
     /**
-     * Approve the device automatically the moment it enrols with this code,
-     * instead of leaving it `pending` for manual approval. Defaults to `false`
-     * (manual approval stays the safe default).
+     * Approve the device the moment it enrols with this code, instead of
+     * leaving it `pending` for manual approval. Defaults to `false`.
      */
     autoApprove: z.boolean().default(false),
     /**
      * Espace dans lequel la machine sera rangée à l'enrôlement. Omis → l'espace
-     * actif de l'émetteur (`devices.linkCodeCreate` est une commande de
-     * session). Explicite, n'importe quel espace existant : la commande est
-     * réservée à l'administrateur global, qui rattache déjà un appareil à tout
-     * espace par `devices.setWorkspaces`.
+     * actif de l'émetteur. Explicite (n'importe quel espace existant) : réservé
+     * à l'administrateur global.
      */
     workspaceId: z.number().int().positive().optional()
 });
@@ -86,13 +83,11 @@ export const enrollDeviceResponseSchema = z.object({
 export type EnrollDeviceResponse = z.infer<typeof enrollDeviceResponseSchema>;
 
 /**
- * Agent download matrix — the **single source of truth** for the set of
- * platform binaries shipped with a release. Consumed by:
- *  - the web UI (the "Télécharger l'agent" two-step picker), and
- *  - the server (validates the `:target` param and resolves the file on disk).
- *
- * The CI release workflow and `agent/build-all.sh` mirror the same labels (they
- * can't import TS) — keep all three in sync when adding/removing a target.
+ * Agent download matrix: the single source of truth for the platform binaries
+ * shipped with a release, consumed by the web UI picker and the server
+ * (`:target` validation, file lookup). The CI release workflow and
+ * `agent/build-all.sh` mirror the same labels: keep all three in sync when
+ * adding or removing a target.
  */
 export const agentTargetSchema = z.enum([
     'linux-x86_64',
@@ -205,11 +200,10 @@ export const agentManifestTargetSchema = z.object({
     sha256: z.string().regex(/^[a-f0-9]{64}$/),
     size: z.number().int().nonnegative(),
     /**
-     * Base64 ed25519 signature over the 32 raw bytes of `sha256`, produced by the
-     * CI release with the dedicated update-signing key. The agent verifies it with
-     * its embedded public key before self-replacing. **Optional**: a target with no
-     * signature stays manually downloadable but can never drive a self-update — so a
-     * pre-signing build degrades cleanly instead of being rejected outright.
+     * Base64 ed25519 signature over the 32 raw bytes of `sha256`, made by the CI
+     * release with the update-signing key; the agent verifies it with its
+     * embedded public key before self-replacing. Optional: an unsigned target
+     * stays downloadable but can never drive a self-update.
      */
     signature: z.string().min(1).optional()
 });

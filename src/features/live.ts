@@ -2,16 +2,11 @@ import { z } from 'zod';
 import { liveCursorSchema, livePathSchema, livePeerSchema, liveTopicSchema } from '../domain/live';
 
 /**
- * Déclare où je suis, et récupère l'état de la salle.
- *
- * L'espace **n'est pas dans l'entrée** : il voyage sur l'enveloppe comme toute
- * commande, donc il est résolu et son appartenance vérifiée par le dispatcheur
- * avant que le handler ne s'exécute. L'entrée en salle est ainsi autorisée
- * gratuitement, par le même chemin que tout le reste.
- *
- * La réponse porte l'instantané de la salle — même motif que
- * `cloudSync.subscribe` : aucun trou entre l'inscription et la première
- * diffusion, et une reconnexion se resynchronise par ce seul appel.
+ * Déclare où je suis, et récupère l'état de la salle. L'espace n'est pas dans
+ * l'entrée : il voyage sur l'enveloppe, résolu et vérifié par le dispatcheur.
+ * La réponse porte l'instantané de la salle : aucun trou entre l'inscription
+ * et la première diffusion, et une reconnexion se resynchronise par ce seul
+ * appel.
  */
 export const liveHere = {
     command: 'live.here' as const,
@@ -22,42 +17,27 @@ export const liveHere = {
 export const liveCommands = [liveHere] as const;
 
 /**
- * Les positions de curseur, **hors du registre des commandes**.
- *
- * Délibérément absente de `featureCommandRegistry` : `ws.send` y trouverait un
- * descripteur, ouvrirait une promesse en attente et armerait un délai de 15 s —
- * pour une trame émise vingt fois par seconde dont on n'attend aucune réponse.
- * Le client la poste par `ws.post`, le serveur la traite sur une voie rapide
- * avant la recherche de commande.
+ * Les positions de curseur, hors du registre des commandes : `ws.send` y
+ * ouvrirait une promesse et armerait un délai pour une trame émise vingt fois
+ * par seconde sans réponse. Le client la poste par `ws.post`, le serveur la
+ * traite sur une voie rapide.
  */
 export const LIVE_CURSOR_COMMAND = 'live.cursor' as const;
 
 /**
- * Ce que porte une trame de curseur : des coordonnées, et rien d'autre.
- *
- * Ni chemin ni espace : la voie rapide court-circuite la résolution
- * d'autorisation, elle ne peut donc rien accepter du client qui déciderait de
- * *qui verra* la trame. Le lieu vient du dernier `live.here`, lui passé par le
- * dispatcheur. `cursor: null` = le pointeur a quitté la surface.
+ * Ce que porte une trame de curseur : des coordonnées, rien d'autre. Ni chemin
+ * ni espace : la voie rapide court-circuite l'autorisation, le lieu vient du
+ * dernier `live.here`. `cursor: null` = le pointeur a quitté la surface.
  */
 export const liveCursorFrameSchema = z.object({ cursor: liveCursorSchema.nullable() });
 export type LiveCursorFrame = z.infer<typeof liveCursorFrameSchema>;
 
 /**
- * « Untel est en train d'écrire… », sur la même voie rapide que les curseurs.
- *
- * Hors du registre des commandes, pour exactement la même raison : c'est une
- * trame sans réponse, émise par `ws.post`, qu'il serait absurde de faire passer
- * par une promesse en attente, un journal d'audit et une validation d'accès.
- *
- * Volontairement **générique** : la trame ne dit pas *quoi* est en train d'être
- * écrit. Le lieu vient du dernier `live.here`, comme pour les curseurs, donc
- * n'importe quelle feature peut s'en servir sans toucher au moteur — un fil de
- * discussion de projet aujourd'hui, une note à plusieurs demain.
- *
- * Le serveur applique une péremption : sans rafraîchissement, un pair cesse
- * d'être « en train d'écrire » tout seul. C'est ce qui empêche un onglet fermé
- * brutalement de laisser un fantôme à l'écran.
+ * « Untel est en train d'écrire… », sur la même voie rapide que les curseurs et
+ * hors du registre pour la même raison. Générique : la trame ne dit pas quoi,
+ * le lieu vient du dernier `live.here`. Le serveur applique une péremption :
+ * sans rafraîchissement, un pair cesse d'écrire tout seul (pas de fantôme
+ * après un onglet fermé brutalement).
  */
 export const LIVE_TYPING_COMMAND = 'live.typing' as const;
 export const liveTypingFrameSchema = z.object({ typing: z.boolean() });

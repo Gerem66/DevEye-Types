@@ -1,4 +1,3 @@
-// Protocol
 export { clientMessageSchema, serverMessageSchema } from './protocol/envelope';
 export type { ClientMessage, ConnectionState, ServerMessage } from './protocol/envelope';
 export { ErrorCodeSchema, ProtocolErrorSchema } from './protocol/error';
@@ -229,7 +228,6 @@ export type {
     SyncShareAssignment
 } from './protocol/agent';
 
-// Domain
 export {
     LOG_CATEGORIES,
     LOG_LEVEL_NAMES,
@@ -612,8 +610,6 @@ export type {
     TwoFactorStatus
 } from './domain/twoFactor';
 
-// Features
-
 export { homeCommands, homeSetLayout, homeShortcutPreview } from './features/home';
 export {
     featureCommandRegistry,
@@ -741,7 +737,6 @@ export {
 } from './features/logs';
 export type { LogFilter } from './features/logs';
 
-// HTTP
 export {
     changePasswordRequestSchema,
     changePasswordResponseSchema,
@@ -797,5 +792,4 @@ export type {
 export { bootTaskSchema, bootTaskStateSchema, serverStatusSchema } from './http/status';
 export type { BootTask, BootTaskState, ServerStatus } from './http/status';
 
-// Utils
 export { compareVersions, isNewerVersion } from './utils/version';

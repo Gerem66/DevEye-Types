@@ -53,17 +53,10 @@ export function segmentValue(segment: string): string {
 }
 
 /**
- * L'**état** du curseur, tel que le navigateur le dessine à celui qui le tient.
- *
- * Transmis avec la position parce qu'il porte l'intention : une flèche qui
- * devient main dit « il s'apprête à cliquer », un curseur de texte dit « il
- * lit ou il sélectionne », une main fermée dit « il déplace quelque chose ».
- * Sans lui, tous les pairs seraient perpétuellement en flèche neutre, et le
- * geste d'en face resterait illisible.
- *
- * Volontairement **court** : l'ensemble des curseurs CSS compte une trentaine de
- * valeurs, dont la plupart ne se distinguent pas à seize pixels. Sept familles
- * suffisent, et c'est autant de dessins à tenir.
+ * L'état du curseur, tel que le navigateur le dessine à celui qui le tient.
+ * Transmis avec la position parce qu'il porte l'intention (cliquer, lire,
+ * déplacer). Sept familles seulement : la plupart des curseurs CSS ne se
+ * distinguent pas à seize pixels.
  */
 export const liveCursorKindSchema = z.enum([
     'default',
@@ -83,26 +76,14 @@ export const liveCursorKindSchema = z.enum([
 export type LiveCursorKind = z.infer<typeof liveCursorKindSchema>;
 
 /**
- * Position du curseur dans la **surface** de la vue (le corps de la popup, ou la
- * grille de l'accueil quand rien n'est ouvert).
- *
- * Unités volontairement mixtes, parce que les deux axes n'ont pas le même sens :
- *
- *  - `x` est **relatif** (0..1) à la largeur de la surface. La popup est bornée
- *    à 1240 px : au-delà les deux fenêtres ont la même boîte, en dessous elles
- *    divergent, et seule une fraction reste juste.
- *  - `y` est en **pixels absolus du contenu**, défilement compris. Le contenu
- *    est le même des deux côtés (même liste, mêmes lignes) : « le pair est sur
- *    le 14ᵉ message » est le sens qu'on veut, alors qu'une fraction de la
- *    hauteur totale se décalerait dès qu'une liste est chargée plus loin d'un
- *    côté que de l'autre.
- *
- * Les bornes de `x` dépassent [0, 1] très largement, et à dessein : le pointeur
- * vit aussi **à côté** de la boîte de contenu — ses marges, les bords de l'écran
- * — et l'y écrêter ferait disparaître le curseur d'un pair alors qu'on est
- * toujours sur la même page. Sur un écran très large, ces marges représentent
- * plusieurs fois la largeur du contenu ; les bornes ne sont donc qu'un garde-fou
- * contre l'absurde, et seul le cadre de la fenêtre décide de ce qui s'affiche.
+ * Position du curseur dans la surface de la vue. Unités mixtes à dessein :
+ *  - `x` est relatif (0..1) à la largeur de la surface, bornée à 1240 px : seule
+ *    une fraction reste juste quand les deux fenêtres divergent ;
+ *  - `y` est en pixels absolus du contenu, défilement compris : le contenu est
+ *    le même des deux côtés, alors qu'une fraction de la hauteur se décalerait
+ *    dès qu'une liste est chargée plus loin d'un côté.
+ * Les bornes de `x` dépassent [0, 1] : le pointeur vit aussi dans les marges,
+ * et l'écrêter ferait disparaître le curseur d'un pair sur la même page.
  */
 export const liveCursorSchema = z.object({
     x: z.number().min(-10).max(10),
@@ -112,13 +93,11 @@ export const liveCursorSchema = z.object({
 export type LiveCursor = z.infer<typeof liveCursorSchema>;
 
 /**
- * Un pair tel qu'il est diffusé.
- *
- * Ni pseudo ni avatar : `users.avatar` est une URL de données pouvant atteindre
- * 1,5 Mo (`AVATAR_MAX_LENGTH`), et le roster repart à chaque changement de
- * chemin. Le client résout les deux par `userId` contre les membres de l'espace,
- * que la session lui a déjà donnés. Seule la **couleur** voyage, parce qu'elle
- * doit changer à l'instant où son propriétaire la change.
+ * Un pair tel qu'il est diffusé. Ni pseudo ni avatar : `users.avatar` est une
+ * URL de données pouvant atteindre 1,5 Mo, et le roster repart à chaque
+ * changement de chemin ; le client résout les deux par `userId` contre les
+ * membres de l'espace. Seule la couleur voyage, parce qu'elle doit changer à
+ * l'instant où son propriétaire la change.
  */
 export const livePeerSchema = z.object({
     /** Identité de la *connexion*, pas du compte : deux onglets = deux pairs. */
@@ -144,27 +123,18 @@ export const nativeLiveTopicSchema = z.enum([
     /** Membres, rôles, nom, logo de l'espace. */
     'workspace',
     /**
-     * L'accueil de l'espace : sa **disposition** et son **apparence**.
-     *
-     * Les deux voyagent ensemble parce qu'ils se relisent ensemble — une seule
-     * commande (`workspace.activate`) les rend tous les deux, donc les séparer
-     * en deux sujets ne ferait que doubler les allers-retours pour un même
-     * rafraîchissement. Ce sont aussi des réglages **de l'espace** : `account`
-     * ne conviendrait pas au thème, il ne sort jamais de l'espace personnel.
+     * L'accueil de l'espace : disposition et apparence. Ensemble parce qu'ils
+     * se relisent ensemble (`workspace.activate` rend les deux), et sous
+     * l'espace et non `account` : le thème est un réglage de l'espace.
      */
     'home',
     /** Réglages de compte (avatar, couleur, thème, chiffrement). */
     'account',
     /**
-     * Les canaux d'alerte de l'espace, et les routes qui pointent dessus.
-     *
-     * Un sujet à lui, et non `workspace` : les canaux se relisent depuis
-     * l'écran de réglages de n'importe quelle fonctionnalité, et les rattacher
-     * au sujet de l'espace ferait re-solliciter la liste des membres, les rôles
-     * et le nom à chaque fois qu'on coche une case. Ni `uptime` ni ses voisins
-     * ne conviennent non plus : une route change pour **une** fonctionnalité,
-     * mais un canal change pour toutes à la fois, et `mutates` est déclaré par
-     * commande, pas par argument.
+     * Les canaux d'alerte de l'espace et les routes qui pointent dessus. Un
+     * sujet à part : les canaux se relisent depuis les réglages de n'importe
+     * quelle fonctionnalité, et un canal change pour toutes à la fois alors que
+     * `mutates` est déclaré par commande.
      */
     'notify'
 ]);
@@ -219,28 +189,17 @@ export const TOPIC_FEATURE: Record<NativeLiveTopic, WorkspaceFeatureId | null> =
     workspace: null,
     home: null,
     account: null,
-    // Aucun droit de feature à vérifier : la diffusion ne dit que « quelque
-    // chose a changé », et la relecture qu'elle déclenche est gardée côté
-    // commande (droits de la fonctionnalité et gestion de ses canaux). Même
-    // nature que `workspace`.
+    // Aucun droit de feature à vérifier : la relecture déclenchée est gardée
+    // côté commande. Même nature que `workspace`.
     notify: null
 };
 
 /**
- * Le droit qu'exige la **racine** d'un chemin, pour décider si un pair est
- * montré là où il est ou renvoyé à « ailleurs ».
- *
- * Trois issues :
- *  - une feature → montré au destinataire qui a `read` dessus ;
- *  - `'public'`  → montré à tout membre (aujourd'hui : personne, gardé pour un
- *    éventuel lieu commun) ;
- *  - `'private'` → **jamais montré**, à personne.
- *
- * Les vues de compte et d'administration (Profil, Sécurité, Journaux,
- * Utilisateurs, Gestion de l'espace) tombent dans `'private'`. `featureBehind`
- * côté client leur rend `null` parce qu'elles ont leurs propres gardes ; ici
- * `null` voudrait dire « visible par tous », ce qui ferait fuiter « untel est
- * dans Sécurité ». D'où le troisième cas, plutôt qu'une réutilisation directe.
+ * Le droit qu'exige la racine d'un chemin, pour décider si un pair est montré
+ * là où il est ou renvoyé à « ailleurs » : une feature (montré à qui a `read`
+ * dessus), `'public'` (tout membre), `'private'` (jamais montré). Les vues de
+ * compte et d'administration tombent dans `'private'` : `null` voudrait dire
+ * « visible par tous » et ferait fuiter « untel est dans Sécurité ».
  */
 export type LivePathGate = FeatureId | 'public' | 'private';
 

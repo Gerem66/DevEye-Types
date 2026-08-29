@@ -8,15 +8,11 @@ import {
 } from './workspaceRole';
 
 /**
- * Disposition de l'accueil (par espace). La grille est composée de **sections**
- * ordonnées, chacune tenant des **tuiles** ordonnées de n'importe quels genres —
- * appareil, fonctionnalité, raccourci, dossier. Les sections sont entièrement
- * modulaires : aucune par défaut, ajoutées / retirées / réordonnées librement.
- * Leur intitulé est facultatif — sans lui, la section se rend comme un simple
- * groupe légèrement espacé, sans titre.
- *
- * Stockée en clair : métadonnée de personnalisation non sensible (comme le
- * thème), jamais de charge zero-knowledge.
+ * Disposition de l'accueil (par espace) : des sections ordonnées, chacune
+ * tenant des tuiles ordonnées de n'importe quels genres (appareil,
+ * fonctionnalité, raccourci, dossier). Aucune section par défaut ; l'intitulé
+ * est facultatif. Stockée en clair : métadonnée de personnalisation, jamais de
+ * charge zero-knowledge.
  */
 
 /**
@@ -54,17 +50,13 @@ export const homeFeatureIdSchema = z.union([nativeHomeFeatureIdSchema, externalF
 export type HomeFeatureId = NativeHomeFeatureId | ExternalFeatureId;
 
 /**
- * Compact widgets that can be pinned to the top-right of the navbar. Like the
- * grid features they are individually add/remove/reorderable; the default set is
- * empty (the navbar shows none until the user adds some).
+ * Compact widgets pinned to the top-right of the navbar, individually
+ * add/remove/reorderable; the default set is empty.
  *  - `weather`  → current temperature of the primary city.
  *  - `secrecy`  → password-encryption lock state + re-validation countdown.
  *  - `live`     → qui d'autre est dans l'espace, et où (bulles cliquables).
- *
- * Les widgets d'Uptime (services en ligne / surveillés) et des Appareils
- * (appareils en ligne / enrôlés) ne sont plus natifs : leur module les déclare
- * (`manifest.topbarWidget`), et leur id reste valide dans les dispositions
- * persistées par `homeTopbarWidgetIdSchema`, qui accepte tout id de feature.
+ * A module's widget is declared by its manifest (`topbarWidget`) and keyed by
+ * its feature id (`homeTopbarWidgetIdSchema`).
  */
 export const nativeHomeTopbarWidgetIdSchema = z.enum(['weather', 'secrecy', 'live']);
 export type NativeHomeTopbarWidgetId = z.infer<typeof nativeHomeTopbarWidgetIdSchema>;
@@ -78,12 +70,9 @@ export const homeTopbarWidgetIdSchema = z.union([nativeHomeTopbarWidgetIdSchema,
 export type HomeTopbarWidgetId = NativeHomeTopbarWidgetId | FeatureId;
 
 /**
- * Shortcut preview type, auto-detected from the URL's domain (the user never
- * picks it manually). Each value has a server-side adapter under
- * `src/Services/shortcutTemplates/` — dedicated logic where a real source exists
- * (GitHub API, YouTube/Spotify/SoundCloud/TikTok oEmbed, Wikipedia REST, npm
- * registry), and the generic Open Graph + favicon adapter for the rest. `link`
- * is that generic adapter; unknown domains fall back to it.
+ * Shortcut preview type, auto-detected from the URL's domain. Each value has a
+ * server-side adapter under `src/Services/shortcutTemplates/`; `link` is the
+ * generic Open Graph + favicon adapter, and unknown domains fall back to it.
  */
 export const shortcutTemplateSchema = z.enum([
     'link',
@@ -126,38 +115,19 @@ export const shortcutItemSchema = z.object({
 export type ShortcutItem = z.infer<typeof shortcutItemSchema>;
 
 /**
- * Combien de tuiles tient une section, et combien de fonctionnalités tient un
- * dossier.
- *
- * Exporté, et pas seulement écrit dans le schéma : le client doit refuser
- * **avant** d'écrire. Une disposition qui dépasse le plafond ne passe plus la
- * validation, donc le serveur la rejette et le client la relit vide au
- * démarrage suivant, ce qui revient à un accueil effacé sans un mot. Le
- * plafond des dossiers n'est atteignable par aucun geste (il y a moins de
- * fonctionnalités que ça, et aucune ne peut être rangée deux fois), celui des
- * tuiles l'est en créant des dossiers à la chaîne.
+ * Plafonds d'une section et d'un dossier. Exportés parce que le client doit
+ * refuser avant d'écrire : une disposition qui dépasse ne passe plus la
+ * validation, et le client la relirait vide au démarrage suivant.
  */
 export const HOME_SECTION_MAX_TILES = 60;
 export const HOME_FOLDER_MAX_ITEMS = 20;
 
 /**
- * Un dossier de la grille : plusieurs fonctionnalités derrière une seule tuile.
- *
- * Il vit dans une section au milieu des tuiles ordinaires, parce que c'en est
- * une : même carte, même place dans la grille, même glisser-déposer. Ce qui
- * change est ce qui se passe au clic (côté client, les cartes qu'il tient se
- * déploient par-dessus l'accueil).
- *
- * Il ne range que des **fonctionnalités**, là où une section range tout : une
- * carte d'appareil et un raccourci sont déjà des tuiles courtes, les empiler
- * derrière une tuile de pleine hauteur coûterait plus de place qu'il n'en
- * gagnerait. C'est la seule asymétrie qui reste après l'unification, et elle
- * est de mise en page, pas de modèle.
- *
- * Les fonctionnalités qu'il tient comptent comme **posées sur l'accueil** : le
- * sélecteur d'ajout les exclut, exactement comme celles qui ont leur propre
- * tuile. Une fonctionnalité n'est donc jamais à deux endroits à la fois, et la
- * règle « pas deux fois la même » reste une seule règle.
+ * Un dossier de la grille : plusieurs fonctionnalités derrière une seule tuile,
+ * posée dans une section comme une tuile ordinaire. Il ne range que des
+ * fonctionnalités (les autres tuiles sont déjà courtes), et celles qu'il tient
+ * comptent comme posées sur l'accueil : une fonctionnalité n'est jamais à deux
+ * endroits à la fois.
  */
 export const homeFolderSchema = z.object({
     /** Discriminant : c'est lui qui distingue un dossier d'un raccourci. */
@@ -171,28 +141,11 @@ export const homeFolderSchema = z.object({
 export type HomeFolder = z.infer<typeof homeFolderSchema>;
 
 /**
- * Une tuile de l'accueil — appareil, fonctionnalité, raccourci ou dossier.
- *
- * ## Un seul genre de section, donc un seul genre de tuile
- *
- * Les sections étaient auparavant typées (« appareils », « fonctionnalités »,
- * « raccourcis ») et ne tenaient qu'une sorte de tuile. Ça obligeait à choisir
- * le genre **avant** d'avoir quelque chose à poser, à ouvrir une popup pour
- * ajouter une section, et à trois sélecteurs d'ajout différents. Une section
- * n'est plus qu'une rangée de tuiles ; c'est la tuile qui sait ce qu'elle est.
- *
- * ## Chaque tuile garde l'écriture qu'elle avait
- *
- * Un appareil et une fonctionnalité **sont** leur identifiant (l'entité vit
- * ailleurs) ; un raccourci et un dossier portent l'objet lui-même, parce que
- * rien d'autre ne les décrit. Les deux familles d'identifiants ne peuvent pas
- * se confondre — les fonctionnalités forment un enum fermé, les appareils sont
- * des UUID — et c'est {@link homeTileKind} qui tranche, en un seul endroit.
- *
- * Conséquence utile : les dispositions écrites avant l'unification restent
- * valides telles quelles. Leurs sections portent encore un champ `kind`, qui
- * tombe à la lecture comme n'importe quelle clé inconnue, et la première
- * écriture le fait disparaître. Rien à migrer, rien à rattraper au chargement.
+ * Une tuile de l'accueil : appareil, fonctionnalité, raccourci ou dossier. Un
+ * appareil et une fonctionnalité SONT leur identifiant ; un raccourci et un
+ * dossier portent l'objet. Les deux familles d'identifiants ne se confondent
+ * pas (enum fermé contre UUID), et {@link homeTileKind} tranche en un seul
+ * endroit.
  */
 export const homeTileSchema = z.union([
     homeFolderSchema,
@@ -213,11 +166,8 @@ export type HomeTileKind = 'device' | 'feature' | 'shortcut' | 'folder';
 export const HOME_FEATURE_IDS = nativeHomeFeatureIdSchema.options;
 
 /**
- * Le genre d'une tuile.
- *
- * **Le seul endroit qui connaisse la forme de l'union** : tout le reste passe
- * par lui ou par les gardes ci-dessous, donc changer la représentation ne se
- * paye qu'ici.
+ * Le genre d'une tuile. Le seul endroit qui connaisse la forme de l'union :
+ * changer la représentation ne se paye qu'ici.
  */
 export function homeTileKind(tile: HomeTile): HomeTileKind {
     if (typeof tile !== 'string') return 'kind' in tile ? 'folder' : 'shortcut';
@@ -255,31 +205,19 @@ const sectionBase = {
     id: z.string().min(1).max(64),
     /** User-chosen heading; absent → the section renders untitled on the home. */
     title: z.string().max(40).optional(),
-    /**
-     * The section can be folded away from the home.
-     *
-     * Absent (the default) → it always shows, and there is nothing to click:
-     * a chevron on a section nobody wants to fold is one more thing to ignore.
-     */
+    /** The section can be folded away. Absent = always shown, no chevron. */
     collapsible: z.boolean().optional(),
     /**
-     * It starts folded.
-     *
-     * Only meaningful alongside `collapsible` — a section that cannot be
-     * unfolded but starts folded would simply be invisible. The home enforces
-     * that pairing rather than trusting the flag on its own.
+     * Starts folded. Only meaningful alongside `collapsible`; the home enforces
+     * the pairing rather than trusting the flag on its own.
      */
     collapsed: z.boolean().optional()
 };
 
 /**
- * Une section : une rangée ordonnée de tuiles, de n'importe quels genres.
- *
- * Elle ne se distingue plus par ce qu'elle tient — un appareil, une
- * fonctionnalité et un raccourci cohabitent dans la même — mais par son seul
- * `id`. Une ligne peut donc mêler une carte de pleine hauteur et des cartes
- * courtes : c'est assumé, la grille aligne les hauts et laisse les cartes
- * courtes à leur taille.
+ * Une section : une rangée ordonnée de tuiles de n'importe quels genres,
+ * distinguée par son seul `id`. Une ligne peut mêler une carte de pleine
+ * hauteur et des cartes courtes.
  */
 export const homeSectionSchema = z.object({
     ...sectionBase,

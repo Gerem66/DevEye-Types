@@ -39,9 +39,8 @@ import { ProtocolErrorSchema } from './error';
 
 /**
  * Agent <-> Server wire protocol (distinct from the user feature protocol).
- *
- * The agent authenticates with its device token, then streams metric batches.
- * The server acknowledges and may push commands (reserved for later).
+ * The agent authenticates with its device token, then streams metric batches,
+ * reports and replies; the server acknowledges and pushes orders.
  */
 
 /** Command names the agent may send to the server. */
@@ -301,17 +300,12 @@ export const agentSyncIndexPayloadSchema = z.object({
     entries: z.array(syncIndexEntrySchema).max(SYNC_INDEX_BATCH_MAX),
     done: z.boolean(),
     /**
-     * L'agent a-t-il RÉELLEMENT parcouru le disque ?
-     *
-     * `false` répond à un `sync.scan` en mode `auto` sur un partage que le
-     * watcher sait intact depuis le dernier scan : aucune entrée n'est envoyée,
-     * seule `fingerprint` est renseignée, et c'est au serveur de vérifier qu'elle
-     * correspond à la baseline qu'il détient. Il ne SUPPOSE donc jamais que
-     * l'appareil est à jour, il le VÉRIFIE — une vérification fausse coûte un
-     * scan complet, jamais une divergence.
-     *
-     * Le défaut `true` est ce qui rend un vieil agent inoffensif : sans le champ,
-     * le serveur retombe sur le chemin d'aujourd'hui.
+     * L'agent a-t-il réellement parcouru le disque ? `false` répond à un
+     * `sync.scan` en mode `auto` sur un partage que le watcher sait intact :
+     * aucune entrée, seule `fingerprint` est renseignée, et le serveur VÉRIFIE
+     * qu'elle correspond à sa baseline (une vérification fausse coûte un scan
+     * complet, jamais une divergence). Le défaut `true` rend un vieil agent
+     * inoffensif.
      */
     scanned: z.boolean().default(true),
     /** Empreinte de l'index détenu par l'agent, quand il sait la calculer. */
@@ -520,11 +514,8 @@ export const AGENT_ERROR = 'agent.error' as const;
 export const AGENT_COLLECT = 'agent.collect' as const;
 /**
  * Demande un relevé Sentinelle immédiat (persistance + authentification).
- *
- * Distinct d'`agent.collect` exprès : celui-ci coûte quelques millisecondes et
- * peut être déclenché à volonté, tandis qu'un relevé de persistance empreinte
- * des centaines de fichiers. Les confondre reviendrait à faire payer ce prix à
- * chaque bouton « rafraîchir » de la page Monitoring.
+ * Distinct d'`agent.collect` : celui-ci coûte quelques millisecondes, un relevé
+ * de persistance empreinte des centaines de fichiers.
  */
 export const AGENT_SCAN = 'agent.scan' as const;
 /** Push the per-device collection config (cadences + capture mode) to the agent. */
@@ -731,11 +722,9 @@ export const agentSyncScanPayloadSchema = z.object({
     sessionId: syncOpId,
     shareId: z.number().int().positive(),
     /**
-     * Le défaut `full` est ce qui rend un vieux SERVEUR inoffensif : sans le
-     * champ, un agent récent parcourt le disque comme il l'a toujours fait. Les
-     * deux sens de la dissymétrie de version dégradent donc vers « scan
-     * complet », jamais vers « saut » — sauter exige une empreinte que seul un
-     * agent récent produit et que seul un serveur récent exploite.
+     * Le défaut `full` rend un vieux serveur inoffensif : les deux sens de la
+     * dissymétrie de version dégradent vers « scan complet », jamais vers
+     * « saut ».
      */
     mode: syncScanModeSchema.default('full')
 });
@@ -780,23 +769,20 @@ export const agentSyncApplyChunkPayloadSchema = z.object({
     mode: z.number().int().min(0).max(0o777).nullable().default(null),
     /**
      * Offset de clair à partir duquel CE transfert reprend. Décidé par le
-     * serveur (à partir du `resumeFrom` annoncé par l'agent) et répété sur
-     * chaque frame : l'agent tronque son temporaire à cette valeur avant
-     * d'écrire. C'est ce qui empêche les deux côtés de diverger — l'agent ne
-     * doit jamais présumer de son propre point de reprise.
+     * serveur (d'après le `resumeFrom` de l'agent) et répété sur chaque frame :
+     * l'agent tronque son temporaire à cette valeur avant d'écrire, et ne
+     * présume jamais de son propre point de reprise.
      */
     resumeFrom: z.number().int().nonnegative().default(0)
 });
 export type AgentSyncApplyChunkPayload = z.infer<typeof agentSyncApplyChunkPayloadSchema>;
 
 /**
- * Amorce un download. L'agent répond `sync.opResult` avec `op: 'applyReady'` et
- * un `resumeFrom` : le nombre d'octets de clair qu'il détient DÉJÀ dans son
- * temporaire pour ce hash exact. Le serveur ne renvoie alors que ce qui manque.
- *
- * Le temporaire est nommé par hash et non par `opId`, ce qui rend la reprise
- * auto-corrective : un fichier modifié entre-temps a un autre hash, donc un
- * autre temporaire, donc aucune reprise possible sur des octets périmés.
+ * Amorce un download. L'agent répond `sync.opResult` avec `op: 'applyReady'`
+ * et un `resumeFrom` : les octets de clair qu'il détient DÉJÀ dans son
+ * temporaire pour ce hash exact. Le temporaire est nommé par hash et non par
+ * `opId` : un fichier modifié entre-temps a un autre hash, donc aucune reprise
+ * sur des octets périmés.
  */
 export const AGENT_SYNC_APPLY_START = 'sync.applyStart' as const;
 export const agentSyncApplyStartPayloadSchema = z.object({
@@ -822,10 +808,9 @@ export const agentSyncApplyDirPayloadSchema = z.object({
     shareId: z.number().int().positive(),
     relPath: syncRelPath,
     /**
-     * `dir` autorise la CRÉATION du chemin ; `file` interdit de le créer et se
-     * contente d'ajuster le mode s'il existe. Sans cette distinction, un `chmod`
-     * sur un fichier momentanément absent ferait naître un DOSSIER à sa place —
-     * que le planner écarterait ensuite pour toujours en « conflit de nature ».
+     * `dir` autorise la CRÉATION du chemin ; `file` ne fait qu'ajuster le mode
+     * s'il existe. Sans cette distinction, un `chmod` sur un fichier
+     * momentanément absent ferait naître un DOSSIER à sa place.
      */
     kind: syncEntryKindSchema.default('dir'),
     mode: z.number().int().min(0).max(0o777).nullable().default(null)
@@ -854,13 +839,9 @@ export type AgentSyncApplyLocalPayload = z.infer<typeof agentSyncApplyLocalPaylo
 
 /**
  * Propage un DÉPLACEMENT : l'agent renomme sur place, sans transfert ni
- * corbeille. Le contenu ne bouge pas d'un octet, seul son chemin change — le
- * traiter comme « supprime ici, télécharge là » coûtait une copie intégrale en
- * corbeille, pour une opération qui ne détruit rien.
- *
- * L'agent vérifie que la source porte bien le contenu attendu avant de bouger.
- * En cas d'échec il répond `opResult !ok`, et le serveur retombe sur le chemin
- * ordinaire (téléchargement puis suppression), qui reste sûr.
+ * corbeille, après avoir vérifié que la source porte le contenu attendu. En
+ * cas d'échec il répond `opResult !ok` et le serveur retombe sur le chemin
+ * ordinaire (téléchargement puis suppression).
  */
 export const AGENT_SYNC_MOVE = 'sync.move' as const;
 export const agentSyncMovePayloadSchema = z.object({
@@ -900,13 +881,10 @@ export const agentConfigPayloadSchema = z.object({
     /** How much of the process list to carry on each tick (`off`/`top`/`all`). */
     processCapture: processCaptureSchema,
     /**
-     * Sentinelle est-elle active sur cet appareil ? Éteinte, l'agent ne relève ni
-     * persistance ni authentification — ces deux sondes ne coûtent rien à qui ne
-     * les demande pas, et une machine qui n'est pas surveillée ne doit pas voir
-     * ses journaux lus « au cas où ».
-     *
-     * Facultatif : un serveur antérieur à Sentinelle n'envoie pas le champ, et
-     * l'agent se comporte alors comme avant.
+     * Sentinelle est-elle active sur cet appareil ? Éteinte, l'agent ne relève
+     * ni persistance ni authentification : une machine non surveillée ne doit
+     * pas voir ses journaux lus « au cas où ». Facultatif : absent, l'agent ne
+     * relève rien.
      */
     sentinelEnabled: z.boolean().optional(),
     /** Cadence du manifeste de persistance, en ms. */
@@ -1048,12 +1026,9 @@ export const DEVICE_REPORT_EVENT = 'device.report' as const;
 /** Package-manager inventory, live upgrade progress, and completion (Appareils panel). */
 export const PACKAGE_LIST_EVENT = 'package.list' as const;
 /**
- * Une mise à jour vient d'être **acceptée** pour ce gestionnaire.
- *
- * Émis par le serveur, qui seul sait qu'un verrou vient d'être pris — et avant
- * la première ligne de sortie de l'outil, qui peut se faire attendre. C'est ce
- * qui permet à tous les écrans ouverts, y compris ceux d'autres personnes, de
- * griser le bouton au même instant.
+ * Une mise à jour vient d'être acceptée pour ce gestionnaire. Émis par le
+ * serveur avant la première ligne de sortie de l'outil, pour que tous les
+ * écrans ouverts grisent le bouton au même instant.
  */
 export const PACKAGE_STARTED_EVENT = 'package.started' as const;
 export const PACKAGE_PROGRESS_EVENT = 'package.progress' as const;
@@ -1063,10 +1038,6 @@ export const DEVICE_POWER_EVENT = 'device.powerResult' as const;
 /**
  * Outcome of a persistence/privilege change (autostart, elevate, drop), fanned to
  * subscribers exactly like the power result.
- *
- * Sans lui, la seule trace de l'échec d'une installation de service était une
- * ligne de journal d'audit : l'interface attendait quelques secondes, relisait
- * l'appareil, et n'affichait rien — ni la réussite, ni la raison de l'échec.
  */
 export const DEVICE_SERVICE_EVENT = 'device.serviceResult' as const;
 /** Device log sources inventory + queried log lines, fanned to subscribers. */
@@ -1086,14 +1057,13 @@ export const CLOUD_SYNC_PROGRESS_EVENT = 'cloudSync.progress' as const;
 export const CLOUD_SYNC_STATE_EVENT = 'cloudSync.state' as const;
 export const CLOUD_SYNC_CHUNK_EVENT = 'cloudSync.chunk' as const;
 
-/** Push payloads reuse the agent reply shapes (already carry `deviceId`). */
+// Push payloads reuse the agent reply shapes (they already carry `deviceId`).
+
 /**
- * L'inventaire des gestionnaires, **enrichi** par le serveur de ce que l'agent
- * ne peut pas savoir : quelles mises à jour tournent déjà.
- *
- * Sans ce champ, un écran ouvert pendant qu'une mise à jour est en cours —
- * après avoir refermé la fenêtre, ou chez quelqu'un d'autre — repartait d'un
- * bouton actif et permettait de relancer la même commande.
+ * L'inventaire des gestionnaires, enrichi par le serveur de ce que l'agent ne
+ * peut pas savoir : quelles mises à jour tournent déjà. Sans ce champ, un
+ * écran ouvert pendant une mise à jour permettrait de relancer la même
+ * commande.
  */
 export const packageListPushSchema = agentPkgListResultPayloadSchema.extend({
     running: z.array(packageManagerIdSchema).default([])

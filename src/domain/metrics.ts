@@ -49,11 +49,9 @@ export const metricSnapshotSchema = z.object({
     batteryCharging: z.boolean().nullable().default(null),
     /**
      * Programs running at this instant, heaviest first, aggregated by name.
-     * `null` means "not carried by this row" — either the device's capture mode
-     * is `off`, or the snapshot sat long enough in the agent's offline queue for
-     * the detail to be trimmed (graphs keep full fidelity, process detail is
-     * bounded). Persisted separately (`device_process_samples`) under this row's
-     * `timestamp`, so it is *not* echoed back by `metrics.query`.
+     * `null` = not carried by this row (capture mode `off`, or trimmed from a
+     * long offline queue). Persisted separately (`device_process_samples`)
+     * under this row's `timestamp`, so `metrics.query` does not echo it back.
      */
     processes: z.array(reportProcessSchema).max(2000).nullable().default(null),
     /**
@@ -67,10 +65,10 @@ export const metricSnapshotSchema = z.object({
 export type MetricSnapshot = z.infer<typeof metricSnapshotSchema>;
 
 /**
- * Batch of snapshots pushed by an agent over the agent WebSocket. Bounded to
- * keep payloads small and allow draining an offline queue in chunks. The agent
- * additionally caps a batch by serialized size, since a snapshot now carries its
- * process list and 100 of them would make a multi-megabyte frame.
+ * Batch of snapshots pushed by an agent over the agent WebSocket. Bounded so an
+ * offline queue drains in chunks; the agent additionally caps a batch by
+ * serialized size, since 100 snapshots with process lists would make a
+ * multi-megabyte frame.
  */
 export const metricsBatchSchema = z.object({
     deviceId: z.uuid(),
@@ -88,11 +86,9 @@ export const metricsResolutionSchema = z.enum(['raw', 'minute', 'hour']);
 export type MetricsResolution = z.infer<typeof metricsResolutionSchema>;
 
 /**
- * A point read back from `device_metrics` — a live snapshot minus its process
- * list, which lives in its own table and is read through `metrics.processesAt`.
- * Keeping it out of the series is deliberate: a graph window holds hundreds of
- * points, and carrying every process list along would cost megabytes for data
- * the graphs never read.
+ * A point read back from `device_metrics`: a snapshot minus its process list,
+ * which lives in its own table (`metrics.processesAt`). A graph window holds
+ * hundreds of points; carrying every process list along would cost megabytes.
  */
 export const metricSeriesPointSchema = metricSnapshotSchema.omit({
     processes: true,

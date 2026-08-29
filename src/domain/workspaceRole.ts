@@ -22,11 +22,6 @@ export const workspaceCapabilitySchema = z.enum([
     'workspace.appearance',
     /** Modifier la disposition de l'accueil de l'espace. */
     'workspace.layout'
-    // « Gérer les canaux d'alerte » a vécu ici (`workspace.notifications`)
-    // puis est passée PAR FONCTIONNALITÉ (migration 093) : depuis que chaque
-    // émetteur possède ses canaux (091), une capacité d'espace accordait d'un
-    // bloc l'astreinte d'Uptime et le salon des sauvegardes. Voir le champ
-    // `channels` du grant de feature.
 ]);
 
 export type WorkspaceCapability = z.infer<typeof workspaceCapabilitySchema>;
@@ -34,14 +29,9 @@ export type WorkspaceCapability = z.infer<typeof workspaceCapabilitySchema>;
 export const WORKSPACE_CAPABILITIES = workspaceCapabilitySchema.options;
 
 /**
- * Features qu'un rôle peut ouvrir. Surensemble de `HomeFeatureId` : `devices`
- * s'y ajoute, parce que voir la flotte d'un espace est un droit comme un autre
- * (lecture = voir les appareils et leur supervision, écriture = les appairer,
- * approuver, renommer, supprimer).
- *
- * `monitoring` n'y figure pas : la carte d'agrégat du même nom est réservée à
- * l'administrateur global dans son espace personnel, donc aucun rôle d'espace
- * ne peut l'accorder. Les vues d'appareil, elles, relèvent de `devices`.
+ * Features qu'un rôle peut ouvrir. `devices` en fait partie : voir la flotte
+ * d'un espace est un droit comme un autre (lecture = voir les appareils et leur
+ * supervision, écriture = les appairer, approuver, renommer, supprimer).
  */
 export const workspaceFeatureIdSchema = z.enum([
     'devices',
@@ -61,56 +51,32 @@ export const workspaceFeatureIdSchema = z.enum([
     'projects',
     'git',
     /**
-     * Déploiement. `read` = voir les cibles de l'espace et leur historique,
-     * `write` = déclarer une cible, poser la clé d'API de l'instance, et
-     * **déclencher une mise en production**.
-     *
-     * ⚠️ Le droit le plus lourd de conséquences hors de DevEye : c'est le seul
-     * qui pousse quelque chose chez un tiers. Distinct de `projects` exprès —
-     * piloter le travail et livrer ne se confondent pas, et tout le monde n'a
-     * pas à pouvoir faire les deux.
+     * Déploiement. `read` = voir les cibles et leur historique, `write` =
+     * déclarer une cible, poser la clé d'API et déclencher une mise en
+     * production : le seul droit qui pousse quelque chose chez un tiers, d'où
+     * sa séparation de `projects`.
      */
     'deploy',
     'database',
     /**
-     * Sauvegardes. Les destinations de l'espace (dossier serveur, dossier d'une
-     * machine enrôlée, bucket S3) et les travaux qui y écrivent.
-     *
-     * `read` = voir les destinations, les travaux et leur historique, `write` =
-     * déclarer une destination, poser sa clé secrète, créer un travail et le
-     * déclencher.
-     *
-     * ⚠️ Le droit le plus lourd en lecture après `finance`, et pour une raison
-     * différente: la liste des destinations dit **où sont les copies de tout**.
-     * Qui la lit sait quel bucket viser pour obtenir la base entière sans jamais
-     * toucher à DevEye. Distinct de `database` exprès — superviser une base et
-     * savoir où en dorment les vidages ne se confondent pas.
+     * Sauvegardes. `read` = voir destinations, travaux et historique, `write` =
+     * déclarer une destination, poser sa clé, créer et déclencher un travail.
+     * La lecture est lourde : la liste des destinations dit où sont les copies
+     * de tout, d'où sa séparation de `database`.
      */
     'backup',
     /**
-     * Finances. Le grand livre de l'espace: comptes, opérations, budgets,
-     * échéances.
-     *
-     * `read` = consulter soldes, journal et tableau de bord, `write` = saisir et
-     * corriger des opérations, tenir comptes, catégories, budgets et échéances.
-     *
-     * ⚠️ Le droit dont la lecture seule est déjà lourde: un livre de comptes dit
-     * ce qu'une structure gagne, ce qu'elle doit et à qui elle paie quoi. Le
-     * distinguer de `projects` n'est donc pas une commodité de rangement, c'est
-     * la raison d'être de la séparation.
+     * Finances. `read` = consulter soldes, journal et tableau de bord, `write` =
+     * saisir et corriger des opérations, tenir comptes, catégories, budgets et
+     * échéances. La lecture seule est déjà lourde, d'où sa séparation de
+     * `projects`.
      */
     'finance',
     /**
-     * Audience. Le suivi d'usage des sites livrés — dernier maillon de la même
-     * famille que `projects`, `git` et `database` : un objet de l'**espace**
-     * qu'un projet ne fait que pointer.
-     *
-     * `read` = consulter les statistiques, `write` = déclarer un site, changer
-     * ses origines autorisées, sa rétention, le supprimer.
-     *
-     * ⚠️ Distinct de `projects` exprès, comme `git` l'est déjà : voir les
-     * chiffres d'un site livré et piloter le travail qui le produit ne se
-     * confondent pas, et tout le monde n'a pas à voir les deux.
+     * Audience. `read` = consulter les statistiques, `write` = déclarer un site,
+     * changer ses origines autorisées, sa rétention, le supprimer. Distinct de
+     * `projects`, comme `git` : un objet de l'espace qu'un projet ne fait que
+     * pointer.
      */
     'audience',
     /**
@@ -125,15 +91,11 @@ export type WorkspaceFeatureId = z.infer<typeof workspaceFeatureIdSchema>;
 export const WORKSPACE_FEATURE_IDS = workspaceFeatureIdSchema.options;
 
 /**
- * Identifiant d'une feature **externe** (module tiers compilé dans l'app).
- *
- * Le préfixe `x-` porte trois garanties d'un coup : aucune collision possible
- * avec les seize ids natifs ni avec les sujets réservés (`workspace`, `home`,
- * `account`, `notify`, `home`), aucune confusion avec un UUID
- * d'appareil dans une disposition d'accueil (un UUID commence par un chiffre
- * hexadécimal, jamais par `x`), et un tri visuel immédiat dans un grant ou un
- * journal. Pas de tiret intérieur : l'id sert tel quel de préfixe de commande
- * (`x-crypto.list`) et de valeur de segment live.
+ * Identifiant d'une feature externe (module tiers compilé dans l'app). Le
+ * préfixe `x-` exclut toute collision avec les ids natifs, les sujets réservés
+ * (`workspace`, `home`, `account`, `notify`) et les UUID d'appareil d'une
+ * disposition (un UUID commence par un chiffre hexadécimal). Pas de tiret
+ * intérieur : l'id sert tel quel de préfixe de commande (`x-crypto.list`).
  */
 export const EXTERNAL_FEATURE_ID_PATTERN = /^x-[a-z][a-z0-9]{1,24}$/;
 
@@ -173,29 +135,19 @@ export const workspaceFeatureGrantSchema = z.object({
     feature: featureIdSchema,
     access: featureAccessSchema,
     /**
-     * Gérer les **canaux d'alerte** de cette fonctionnalité : en déclarer,
-     * corriger une adresse ou une URL, en supprimer, lire leurs destinations.
-     *
-     * Par fonctionnalité et non par espace (migration 093) : depuis que chaque
-     * émetteur possède ses canaux (091), l'adresse de l'astreinte d'Uptime et
-     * le salon des sauvegardes ne se confient pas d'un bloc. Distinct de
-     * `access` exprès : régler où Uptime écrit relève de `access: write`, et
-     * se donne sans livrer les destinations elles-mêmes. Sans effet sur une
-     * fonctionnalité qui n'émet pas de notifications.
+     * Gérer les canaux d'alerte de cette fonctionnalité : en déclarer, corriger
+     * une adresse ou une URL, en supprimer, lire leurs destinations. Distinct de
+     * `access` : régler où Uptime écrit relève de `access: write` et se donne
+     * sans livrer les destinations. Sans effet sur une fonctionnalité qui
+     * n'émet pas de notifications.
      */
     channels: z.boolean(),
     /**
-     * Permissions **déclarées par la feature elle-même** (module externe, ou
-     * native modernisée) au-delà de lecture/écriture : la clé vient de son
-     * manifest (`extraPermissions`), la valeur est un booléen (`toggle`) ou la
-     * valeur d'un choix (`choice`).
-     *
-     * Fermeture par défaut, une seule règle : une clé **absente** vaut « refusé »
-     * pour un toggle et « valeur par défaut du manifest » (la moins privilégiée)
-     * pour un choix. Le propriétaire, qui a tout, reçoit `true` / la valeur
-     * `ownerValue`. Une clé inconnue du manifest courant est rejetée à
-     * l'écriture du rôle et ignorée à la lecture ; un grant survivant à la
-     * dépose d'un module reste donc inerte, jamais dangereux.
+     * Permissions déclarées par la feature elle-même (`extraPermissions` du
+     * manifest) : booléen pour un `toggle`, valeur d'un `choice`. Une clé
+     * absente vaut « refusé » pour un toggle et « valeur par défaut du manifest »
+     * pour un choix ; le propriétaire reçoit `true` / `ownerValue`. Une clé
+     * inconnue du manifest est rejetée à l'écriture et ignorée à la lecture.
      */
     extras: z.record(z.string().max(24), z.union([z.boolean(), z.string().max(32)])).default({})
 });

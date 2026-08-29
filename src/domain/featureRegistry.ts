@@ -6,24 +6,10 @@ import {
 } from './workspaceRole';
 
 /**
- * Ce qu'est une fonctionnalité, dit **une fois**.
- *
- * Le même renseignement vivait à trois endroits : `HOME_FEATURE_IDS` pour les
- * tuiles, `WORKSPACE_FEATURE_IDS` pour les droits, et les intitulés recopiés à la
- * main dans `RoleDialog` **et** dans `FEATURE_CATALOG`. Trois copies d'un même
- * couple identifiant / libellé, c'est la garantie qu'une fonctionnalité ajoutée
- * n'arrivera que dans deux d'entre elles — et c'est exactement ce qui était
- * arrivé à `monitoring`, présent dans un tableau et absent de l'autre sans que
- * rien ne le dise.
- *
- * Ce registre porte donc le **descriptif** ; les deux enums gardent leur rôle,
- * qui est de dire *où* une fonctionnalité a le droit d'apparaître. Ils ne sont
- * volontairement pas fusionnés : leur écart est documenté et voulu (`devices`
- * s'accorde mais n'a pas de tuile, `monitoring` a une tuile mais ne s'accorde
- * pas — voir `workspaceRole.ts`).
- *
- * Les écrans qui parcourent les fonctionnalités — la coquille de réglages, la
- * matrice de permissions, l'écran des rôles — lisent celui-ci et rien d'autre.
+ * Ce qu'est une fonctionnalité, dit une fois : le descriptif que lisent les
+ * écrans qui parcourent les fonctionnalités (coquille de réglages, matrice de
+ * permissions, écran des rôles). `HOME_FEATURE_IDS` et `WORKSPACE_FEATURE_IDS`
+ * gardent leur rôle : dire où une fonctionnalité a le droit d'apparaître.
  */
 export interface FeatureDescriptor {
     id: FeatureId;
@@ -38,18 +24,14 @@ export interface FeatureDescriptor {
     /** Classe d'icône de `Styles/icons.css`, sans le préfixe `icon-`. */
     icon: string;
     /**
-     * Cette fonctionnalité sait prévenir. Décide de l'onglet « Notifications »
-     * de ses réglages — et, à elle seule, de l'existence du bouton pour les
-     * quatre qui n'ont rien d'autre à régler.
+     * Cette fonctionnalité sait prévenir : décide de l'onglet « Notifications »
+     * de ses réglages.
      */
     notifies: boolean;
     /**
-     * Elle tient une liste d'entités adressables (un service, une base, une
-     * cible) sur lesquelles des réglages peuvent porter individuellement.
-     *
-     * Faux ne veut pas dire « aucune donnée » : Sentinelle a bien des constats,
-     * mais on ne règle pas un constat, on règle la surveillance. Le critère est
-     * « peut-on ouvrir les réglages de **cet** élément ? ».
+     * Elle tient des entités adressables sur lesquelles des réglages portent
+     * individuellement. Le critère : « peut-on ouvrir les réglages de CET
+     * élément ? » (Sentinelle a des constats, mais on règle la surveillance).
      */
     hasItems: boolean;
     /**
@@ -58,42 +40,23 @@ export interface FeatureDescriptor {
      */
     itemNoun?: string;
     /**
-     * Les **sources** de la fonctionnalité : des réglages d'espace réutilisables
-     * (un jeton Dokploy, un jeton GitHub, une destination d'archives) que
-     * chaque élément ne fait que **désigner**. Corriger une source corrige d'un
-     * coup tout ce qui s'en sert.
-     *
-     * Présent, il ouvre l'onglet « Sources » des réglages **à l'échelle de la
-     * fonctionnalité**, le seul endroit où les sources se créent et se
-     * corrigent. Les dialogues d'élément, eux, ne font que choisir dans la
-     * liste, avec un bouton qui mène ici. `hint` est la phrase de tête de
-     * l'onglet : elle dit ce qu'on y gère et qui s'en sert.
-     *
-     * Les canaux de notification suivent la même logique sans passer par ce
-     * champ : ce sont les sources des émetteurs (chaque feature a les siens,
-     * migration 091), gérées dans leur onglet « Notifications », qui porte
-     * aussi le routage, indissociable (voir `notifies`).
+     * Les sources de la fonctionnalité : des réglages d'espace réutilisables
+     * (un jeton, une destination) que chaque élément ne fait que désigner.
+     * Ouvre l'onglet « Sources » à l'échelle de la fonctionnalité, seul endroit
+     * où elles se créent et se corrigent ; `hint` est la phrase de tête de
+     * l'onglet. Les canaux de notification suivent la même logique dans
+     * l'onglet « Notifications » (voir `notifies`).
      */
     sources?: { hint: string };
     /**
      * Un de ses éléments peut-il être rendu visible depuis un autre espace ?
-     *
-     * La réponse tient entièrement au **chiffrement**, pas au goût : un élément
-     * partagé reste chiffré sous la clé de son espace d'origine — c'est le
-     * levier L3 de `WORKSPACES.md`, et y renoncer voudrait dire re-chiffrer sous
-     * session vivante, ce que ce document range explicitement hors périmètre.
-     *
-     * Or seule la clé de l'**étage ouvert** est résoluble par le serveur seul.
-     * D'où trois cas :
-     *
-     *  - `'open'` — toute la fonctionnalité vit à l'étage ouvert : partageable
-     *    sans condition (Uptime, Bases, Déploiement, Git, Audience, Sauvegardes) ;
-     *  - `'perItem'` — l'étage se choisit élément par élément. Une note
-     *    ordinaire se partage, une note privée non ; un compte mail « open »
-     *    oui, un compte « guarded » non. Le serveur tranche à la ligne, jamais
-     *    la fonctionnalité en bloc ;
-     *  - `'never'` — rien n'y est partageable, pour une raison propre à chaque
-     *    cas (voir la note sous le registre).
+     * Décidé par le chiffrement : un élément partagé reste chiffré sous la clé
+     * de son espace d'origine, et seule la clé de l'étage ouvert est résoluble
+     * par le serveur seul.
+     *  - `'open'` : toute la fonctionnalité vit à l'étage ouvert ;
+     *  - `'perItem'` : l'étage se choisit élément par élément, le serveur
+     *    tranche à la ligne ;
+     *  - `'never'` : rien n'y est partageable (voir la note sous le registre).
      */
     shareTier: 'open' | 'perItem' | 'never';
 }
@@ -290,13 +253,9 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
 const BY_ID = new Map<string, FeatureDescriptor>(FEATURE_REGISTRY.map((f) => [f.id, f]));
 
 /**
- * Les modules **externes** enregistrés dans ce processus.
- *
- * Le registre natif est une constante ; celui-ci se remplit au chargement, une
- * fois par module installé, depuis la glue générée des deux bundles. Il ne
- * s'agit pas de chargement à chaud : la liste est figée à la compilation, la
- * carte n'existe que parce qu'un fichier ne peut pas être à la fois publié dans
- * ce package et généré par l'application qui l'installe.
+ * Les modules externes enregistrés dans ce processus, remplis au chargement
+ * par la glue générée. Pas de chargement à chaud : la liste est figée à la
+ * compilation.
  */
 const EXTERNAL_BY_ID = new Map<ExternalFeatureId, FeatureDescriptor>();
 
@@ -316,13 +275,10 @@ export function allFeatureDescriptors(): readonly FeatureDescriptor[] {
 }
 
 /**
- * Le descriptif d'une fonctionnalité, native ou externe.
- *
- * Lève plutôt que de rendre `undefined` : un id natif vient d'un enum fermé,
- * donc une absence est un oubli d'entrée dans ce fichier ; un id externe
- * inconnu signifie que la glue générée n'a pas tourné, pas un cas d'exécution
- * à traiter chez l'appelant. Les écrans qui veulent tolérer un module absent
- * (une tuile orpheline) passent par {@link maybeFeatureDescriptor}.
+ * Le descriptif d'une fonctionnalité, native ou externe. Lève plutôt que de
+ * rendre `undefined` : une absence est un oubli d'entrée ici, ou une glue
+ * générée qui n'a pas tourné. Pour tolérer un module absent, voir
+ * {@link maybeFeatureDescriptor}.
  */
 export function featureDescriptor(id: FeatureId): FeatureDescriptor {
     const found = maybeFeatureDescriptor(id);
@@ -341,19 +297,10 @@ export function featureLabel(id: FeatureId): string {
 }
 
 /**
- * Trois `never` méritent leur justification, parce qu'on pourrait croire le
- * contraire :
- *
- *  - **`devices`** a **déjà** son partage inter-espaces, antérieur et d'une
- *    autre nature : `device_workspaces` (migration 072) est une adhésion à part
- *    entière, pas une projection. Le mécanisme d'ici ne s'y superpose pas.
- *  - **`password`** vit toujours à l'étage gardé — c'est la promesse du coffre.
- *    Le serveur sait certes le lire quand le chiffrement par mot de passe est
- *    éteint, mais un partage dont la survie dépend d'un réglage de sécurité
- *    qu'on encourage n'est pas un partage.
- *  - **`cloudsync`** range ses contenus dans un magasin de blobs sur disque,
- *    chiffrés par la BMK et non par une clé d'espace : ce serait un autre
- *    chantier.
+ * Les trois `never` : `devices` a déjà son partage inter-espaces, d'une autre
+ * nature (`device_workspaces` est une adhésion, pas une projection) ;
+ * `password` vit toujours à l'étage gardé ; `cloudsync` range ses contenus
+ * dans un magasin de blobs chiffrés par la BMK, pas par une clé d'espace.
  */
 
 /** Les fonctionnalités dont un élément **pourrait** voyager, côté chiffrement. */
@@ -362,24 +309,12 @@ export const SHAREABLE_FEATURES: readonly WorkspaceFeatureId[] = FEATURE_REGISTR
 ).map((f) => f.id);
 
 /**
- * Celles dont la **lecture élargie est réellement branchée**.
- *
- * `shareTier` dit ce que le chiffrement autorise ; cette liste dit ce que le
- * code fait. L'écart est volontaire et temporaire : projeter suppose que le
- * listage de la fonctionnalité sache aller chercher les lignes projetées et
- * choisir le bon codec ligne par ligne. Tant que ce n'est pas fait, la case
- * cocherait et rien n'apparaîtrait de l'autre côté.
- *
- * Partagée entre client et serveur **exprès** : le serveur refuse, le client
- * n'affiche pas l'onglet. Deux listes séparées auraient donné un onglet qui ne
- * mène nulle part — précisément ce que la coquille de réglages refuse.
- *
- * Brancher une fonctionnalité de plus : `listVisible` / `findVisible` dans son
- * dépôt, le codec par ligne dans son listage, une entrée ici.
- *
- * Les natives seulement : un module (Uptime, rapatrié) se déclare par
- * son manifest (`shareTier` autre que `'never'`), et le boot exige alors son
- * entrée `items`. Il n'a rien à inscrire ici.
+ * Celles dont la lecture élargie est réellement branchée : `shareTier` dit ce
+ * que le chiffrement autorise, cette liste ce que le code fait. Partagée entre
+ * client et serveur : le serveur refuse, le client n'affiche pas l'onglet.
+ * Brancher une native : `listVisible` / `findVisible` dans son dépôt, le codec
+ * par ligne dans son listage, une entrée ici. Un module se déclare par son
+ * manifest (`shareTier` autre que `'never'`) et son entrée `items`.
  */
 export const SHARE_WIRED_FEATURES: readonly WorkspaceFeatureId[] = ['backup'];
 

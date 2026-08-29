@@ -10,13 +10,11 @@ import type { ComponentType, ReactNode } from 'react';
  * shapes both sides must agree on.
  */
 
-/** The scope a settings panel is opened for. */
 /**
- * An item id is a number for every row-keyed feature (the default), a string
- * for a device (a UUID): a module whose items are strings types its panels
- * `SettingsPanelProps<string>`. The shell's own sections (sharing,
- * permissions, notifications) key their tables on the number and never see a
- * string, because a feature whose items are strings is not wired to them.
+ * The scope a settings panel is opened for. An item id is a number for every
+ * row-keyed feature (the default), a string for a device (a UUID): a module
+ * whose items are strings types its panels `SettingsPanelProps<string>`. The
+ * shell's own sections (sharing, permissions, notifications) key on the number.
  */
 export type SdkSettingsScope<Id extends number | string = number> =
     { kind: 'feature' } | { kind: 'item'; itemId: Id; itemLabel: string };
@@ -54,14 +52,10 @@ export interface FeatureClient {
     // holds a `number | string`, casts once at that boundary.
     settingsPanels?: Readonly<Record<string, ComponentType<SettingsPanelProps<never>>>>;
     /**
-     * The compact topbar widget declared by `manifest.topbarWidget`.
-     *
-     * Rendered with NO props, on purpose: that is the security contract. The
-     * host hands the component nothing (no user, no stores, no other feature's
-     * state); everything it shows must come through YOUR feature's commands
-     * (`featureApi`), which the server authorizes against the caller's grants
-     * like any other call. The host also only mounts it for members whose role
-     * grants your feature. Freedom inside the box, nothing outside it.
+     * The compact topbar widget declared by `manifest.topbarWidget`. Rendered
+     * with NO props: everything it shows must come through YOUR feature's
+     * commands, which the server authorizes against the caller's grants. The
+     * host mounts it only for members whose role grants your feature.
      */
     TopbarWidget?: ComponentType;
     /**
@@ -75,10 +69,8 @@ export interface FeatureClient {
     holdSecrecy?: boolean;
     /**
      * Named contracts offered to the host's screens (see `sdk/providers.ts`),
-     * the client twin of `FeatureService.providers`: the inversion for app
-     * screens that compose a module's components (Projects shows the Uptime
-     * strip of a linked service). The app looks a provider up at render time
-     * and degrades cleanly when the module is absent.
+     * the client twin of `FeatureService.providers`. The app looks a provider
+     * up at render time and degrades cleanly when the module is absent.
      */
     providers?: Readonly<Record<string, unknown>>;
 }
@@ -113,12 +105,6 @@ export interface UptimeHistoryPoint {
 export type UptimeHistoryResolution = 'raw' | 'hour' | 'day';
 
 /**
- * What the Uptime module offers the host's screens under
- * `UPTIME_CLIENT_PROVIDER`: the availability strip, the ratios, the history
- * hook feeding the strip, the list of the workspace's services, and the
- * feature's own service dialog.
- */
-/**
  * What the Devices module offers the app's own screens (`DEVICES_CLIENT_PROVIDER`):
  * the workspace's devices as a live store, the panel of one device (the home
  * renders one view per placed device), and its compact tile. Without the
@@ -143,6 +129,12 @@ export interface SdkDeviceSummary {
     platform: string;
 }
 
+/**
+ * What the Uptime module offers the host's screens under
+ * `UPTIME_CLIENT_PROVIDER`: the availability strip, the ratios, the history
+ * hook feeding the strip, the workspace's services, and the feature's own
+ * service dialog.
+ */
 export interface UptimeClientProvider {
     /** The workspace's services, as `uptime.list` returns them. */
     listServices(): Promise<readonly UptimeLinkedService[]>;

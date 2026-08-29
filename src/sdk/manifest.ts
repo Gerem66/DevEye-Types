@@ -9,13 +9,8 @@ import {
 
 /**
  * The feature manifest: everything DevEye needs to know about a feature,
- * declared once.
- *
- * Historically this knowledge was scattered across ~14 registration points
- * (descriptor, catalog entry, settings wiring tables, invalidation keys,
- * teleport segments...). A module declares all of it here; the app's generated
- * glue reads the manifest and wires every screen from it. Native features are
- * being migrated onto the same contract (Weather first).
+ * declared once. The app's generated glue reads it and wires every screen
+ * (descriptor, catalog, settings tabs, invalidation keys, teleport segments).
  */
 
 /**
@@ -88,8 +83,8 @@ export type NativeCapability =
     | 'devices.read'
     /**
      * The full agent-fleet sync transport (outbound requests, browser fan-out,
-     * per-socket subscriptions). Reserved for repatriated NATIVE features: the
-     * agent protocol is app infrastructure, not a third-party surface.
+     * per-socket subscriptions). Reserved for native-id modules: the agent
+     * protocol is app infrastructure, not a third-party surface.
      */
     | 'agents'
     /**
@@ -99,12 +94,10 @@ export type NativeCapability =
      */
     | 'telemetry.read'
     /**
-     * Public HTTP routes: endpoints reachable WITHOUT a session, from
-     * browsers and machines that know nothing of DevEye (an analytics
-     * beacon). Mounted by the host on every listener it exposes to the
-     * outside (the app, and the public surface when it has one), with open
-     * CORS. Declared, because opening a door is the one thing a module must
-     * not do quietly. See `FeatureService.publicRoutes`.
+     * Public HTTP routes: endpoints reachable WITHOUT a session (an analytics
+     * beacon), mounted on every listener the host exposes, with open CORS.
+     * Declared, because opening a door is the one thing a module must not do
+     * quietly. See `FeatureService.publicRoutes`.
      */
     | 'routes.public';
 
@@ -195,15 +188,11 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
     sources?: { hint: string };
     /**
      * Whether an item can be projected into another workspace. Decided by
-     * encryption, not preference: only the open tier is readable by the
-     * server alone, so only open-tier rows can be served elsewhere.
-     *
-     * Anything but `'never'` commits the module to the sharing contract: a
-     * server entry with `items` (the app must find an item's home), listings
-     * that read `ctx.sharing.scope()` and pick the cipher row by row, and
-     * `ctx.items.restrictions()` applied to what they return. External modules
-     * declare `'never'` for now: the wiring is generic, but no third-party
-     * module has exercised it yet, and lifting the rule is one line here.
+     * encryption: only the open tier is readable by the server alone. Anything
+     * but `'never'` commits the module to the sharing contract: a server entry
+     * with `items`, listings that read `ctx.sharing.scope()` and pick the
+     * cipher row by row, and `ctx.items.restrictions()` applied to what they
+     * return. External modules declare `'never'` for now.
      */
     shareTier: 'open' | 'perItem' | 'never';
 

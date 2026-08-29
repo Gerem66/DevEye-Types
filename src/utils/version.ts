@@ -1,13 +1,10 @@
 /**
- * Dotted-numeric version helpers shared by the server (which decides whether to
- * offer/push an agent self-update) and the web client (which decides whether to
- * show the affordance). Keeping a single implementation here means both ends agree
- * on what "newer" means — a self-update is only ever offered/pushed as an UPGRADE,
- * never a downgrade, even if the served manifest happens to lag a running agent.
+ * Dotted-numeric version helpers shared by the server (offers/pushes an agent
+ * self-update) and the web client (shows the affordance), so both agree on what
+ * "newer" means: a self-update is only ever an upgrade, never a downgrade.
  *
- * Non-numeric segments are treated as 0 and missing segments as 0, so `1.2` and
- * `1.2.0` compare equal. No pre-release/build-metadata handling: DevEye versions
- * come from a single `package.json`, so plain dotted integers are enough.
+ * Non-numeric and missing segments count as 0, so `1.2` equals `1.2.0`. No
+ * pre-release handling: DevEye versions are plain dotted integers.
  */
 
 /** Compare dotted numeric versions: <0 if a<b, >0 if a>b, 0 if equal. */

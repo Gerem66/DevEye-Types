@@ -8,9 +8,6 @@ import { minimalUserSchema } from './user';
  *   quittable ni supprimable, jamais partageable. C'est le repli implicite quand
  *   une commande ne vise aucun espace en particulier.
  * - `shared` : créé à la demande, plusieurs membres, rôles et invitations.
- *
- * Les deux sont de vraies lignes de `workspaces` : il n'existe plus d'espace
- * virtuel d'id 0.
  */
 export const workspaceKindSchema = z.enum(['personal', 'shared']);
 export type WorkspaceKind = z.infer<typeof workspaceKindSchema>;

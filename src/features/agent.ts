@@ -6,25 +6,20 @@ import { packageManagerIdSchema } from '../domain/packages';
 import { agentLifecycleActionSchema, agentPowerActionSchema } from '../protocol/agent';
 
 /**
- * Le transport des agents : les commandes WS qui ne font que relayer un ordre
- * du `MonitorHub` à l'agent d'un appareil (abonnement aux métriques, fichiers,
- * terminal, journaux, paquets, alimentation, service, mise à jour). C'est de
- * l'infrastructure de l'app, native ; la feature Appareils (`devices.*`, dans
- * `features/device.ts` et `features/metrics.ts`) s'en sert comme n'importe quel
- * module le ferait par la capacité `agents`.
+ * Le transport des agents : les commandes WS qui relaient un ordre du
+ * `MonitorHub` à l'agent d'un appareil (abonnement aux métriques, fichiers,
+ * terminal, journaux, paquets, alimentation, service, mise à jour).
+ * Infrastructure native ; un module s'en sert par la capacité `agents`.
  *
- * Deux espaces de noms `agent.*` coexistent et ne se confondent pas : les
- * TRAMES du protocole agent (`protocol/agent.ts` : `agent.hello`,
- * `agent.config`, `agent.report`...), échangées entre le serveur et le binaire
- * de l'agent sur sa propre socket, et les COMMANDES ci-dessous, envoyées par
- * le client de l'app sur la socket de session. Quatre noms existent des deux
- * côtés (`agent.collect`, `agent.update`, `agent.lifecycle`, `agent.power`) :
- * la commande est ce que demande l'utilisateur, la trame ce que reçoit l'agent.
+ * Deux espaces de noms `agent.*` coexistent : les TRAMES du protocole agent
+ * (`protocol/agent.ts`, entre le serveur et le binaire) et les COMMANDES
+ * ci-dessous, envoyées par le client sur la socket de session. Quatre noms
+ * existent des deux côtés (`agent.collect`, `agent.update`, `agent.lifecycle`,
+ * `agent.power`) : la commande est ce que demande l'utilisateur, la trame ce
+ * que reçoit l'agent.
  */
 
 const deviceId = z.uuid();
-
-/* Abonnement en direct */
 
 /** Subscribe to live metric pushes for one or more devices. */
 export const agentSubscribe = {
@@ -47,8 +42,6 @@ export const agentCollect = {
     output: z.object({ deviceId, requested: z.boolean() })
 };
 
-/* Alimentation et processus de l'agent */
-
 /**
  * Run a system power action on the device (shutdown / reboot / suspend / hibernate
  * / lock). Owner-or-admin; the agent must be online. The command only acknowledges
@@ -62,22 +55,17 @@ export const agentPower = {
 };
 
 /**
- * Stop or cleanly restart the agent *process* on the device (not the machine).
- * - `stop`: the agent exits. With autostart (supervised service) the manager
- *   relaunches it within seconds; standalone, the device stays offline — and
- *   unmanageable remotely — until someone relaunches it on the machine.
- * - `restart`: exit-and-relaunch (manager or self-respawn), e.g. to pick up a
- *   clean state.
- * Owner-or-admin; the agent must be online. Fire-and-forget: the command only
- * acknowledges the push — the outcome is observed through presence.
+ * Stop or cleanly restart the agent process on the device (not the machine).
+ * `stop`: a supervised agent is relaunched by its manager, a standalone one
+ * stays offline until relaunched on the machine. `restart`: exit-and-relaunch.
+ * Owner-or-admin; the agent must be online. Fire-and-forget: the outcome is
+ * observed through presence.
  */
 export const agentLifecycle = {
     command: 'agent.lifecycle' as const,
     input: z.object({ deviceId, action: agentLifecycleActionSchema }),
     output: z.object({ ok: z.boolean() })
 };
-
-/* Service et privilèges */
 
 /**
  * Enable/disable the agent's per-user autostart (survives reboot, no privilege).
@@ -108,8 +96,6 @@ export const agentDropPrivileges = {
     output: z.object({ device: deviceSchema, manualCommand: z.string() })
 };
 
-/* Mise à jour */
-
 /**
  * Push a self-update to a connected device's agent: the server resolves the newer
  * signed binary for the device's build target and sends the `agent.update` frame.
@@ -121,8 +107,6 @@ export const agentUpdate = {
     input: z.object({ deviceId }),
     output: z.object({ device: deviceSchema })
 };
-
-/* Paquets */
 
 /**
  * Ask the agent to enumerate its package managers + pending updates. The result
@@ -145,8 +129,6 @@ export const agentUpgradePackages = {
     input: z.object({ deviceId, manager: packageManagerIdSchema }),
     output: z.object({ ok: z.boolean() })
 };
-
-/* Journaux */
 
 /**
  * Ask the agent to enumerate the log sources present on the device (system journal,
@@ -177,8 +159,6 @@ export const agentLogQuery = {
     }),
     output: z.object({ ok: z.boolean() })
 };
-
-/* Terminal */
 
 const sessionId = z.string().min(1).max(64);
 const cols = z.number().int().min(1).max(2000);
@@ -227,8 +207,6 @@ export const agentTermClose = {
     input: z.object({ deviceId, sessionId }),
     output: z.object({ ok: z.boolean() })
 };
-
-/* Fichiers */
 
 /** Correlates a request to its streamed result (results carry no requestId). */
 const opId = z.string().min(1).max(64);

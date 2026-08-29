@@ -41,11 +41,9 @@ const identityCipher: SdkCipher = {
 };
 
 /**
- * The guarded cipher of a SEALED session, as the app's behaves: `encrypt` and
- * `decrypt` throw `locked`, `tryDecrypt` answers null (a listing that
- * degrades gracefully). Handed out for `'private'` when the harness says
- * `unlocked: false`, so a test covers both the guard a handler puts before
- * reading and the refusal the cipher itself opposes.
+ * The guarded cipher of a SEALED session: `encrypt` and `decrypt` throw
+ * `locked`, `tryDecrypt` answers null. Handed out for `'private'` when the
+ * harness says `unlocked: false`.
  */
 const sealedCipher: SdkCipher = {
     encrypt: () => Promise.reject(new FeatureError('locked', 'Password encryption is locked')),

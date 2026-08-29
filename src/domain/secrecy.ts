@@ -26,11 +26,9 @@ export const secrecyStatusSchema = z.object({
      */
     reAuthInterval: z.number().int().min(0).nullable(),
     /**
-     * Epoch ms at which the current grace window expires (when the cached DEK
-     * will be flushed if no further activity slides it forward). `null` when the
-     * session isn't unlocked, when the feature is off, or in "validate on every
-     * action" mode — i.e. whenever there is no countdown to display. Lets the
-     * topbar timer widget render a live progress bar without guessing the window.
+     * Epoch ms at which the grace window expires (cached DEK flushed unless
+     * activity slides it forward). `null` when there is no countdown: session
+     * locked, feature off, or "validate on every action" mode.
      */
     unlockedUntil: z.number().int().nullable()
 });

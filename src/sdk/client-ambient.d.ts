@@ -1,18 +1,11 @@
 /**
- * Ambient declaration of `deveye-sdk-client` — the runtime barrel the APP
+ * Ambient declaration of `deveye-sdk-client`, the runtime barrel the APP
  * provides when a feature module is compiled in (resolved by alias inside
- * DevEye). The module itself is app code and is published nowhere; this file
- * is its typed portrait, so a module repo can `tsc --noEmit` standalone.
- *
- * How it is consumed:
- *  - a module repo (the template) pulls it into its standalone typecheck via
- *    one tsconfig `include` entry pointing at this file in node_modules;
- *  - DevEye itself verifies MECHANICALLY that the real barrel honours this
- *    declaration (`client/npm run check:sdk`): a drift breaks the app's CI,
- *    never a third-party build.
- *
- * Extend it when the app's stable surface grows — same gesture as before,
- * one file instead of one per module repo.
+ * DevEye). The module itself is app code, published nowhere; this file is its
+ * typed portrait, so a module repo can `tsc --noEmit` standalone (one tsconfig
+ * `include` entry pointing here). DevEye verifies mechanically that the real
+ * barrel honours it (`client/npm run check:sdk`): a drift breaks the app's CI,
+ * never a third-party build.
  */
 declare module 'deveye-sdk-client' {
     import type {
@@ -172,10 +165,9 @@ declare module 'deveye-sdk-client' {
         /** The tab a click opens (one of the manifest's tab ids); the first by default. */
         initialSection?: string;
         /**
-         * The shell opened or closed (unmount counts as closed). For the one
+         * The shell opened or closed (unmount counts as closed): for the one
          * component that owns the item's presence (`useLiveSegment`) when
-         * nothing else announces the item, such as a card without a detail
-         * pane. The shell never declares the level itself.
+         * nothing else announces the item. The shell never declares the level.
          */
         onOpenChange?: (open: boolean) => void;
     }>;
@@ -195,11 +187,11 @@ declare module 'deveye-sdk-client' {
         tone?: 'neutral' | 'danger';
     }>;
     /**
-     * A workspace count over one of YOUR `.count` commands, re-fetched on
-     * reconnect and on invalidation of that key. Never gated by the
-     * password-encryption unlock: the command must answer while locked.
+     * A workspace count over one of YOUR `.count` commands (or any `...Count`
+     * command answering `{ count }`), re-fetched on reconnect and on
+     * invalidation of that key. Never gated by the password-encryption unlock:
+     * the command must answer while locked.
      */
-    /** A `.count` command of your own, or any `...Count` command that answers `{ count }`. */
     export function useWorkspaceCount(
         command: `x-${string}.count` | `${string}.${string}Count`
     ): CountState;

@@ -12,31 +12,15 @@ import {
 } from '../domain/notifications';
 
 /**
- * Les canaux d'alerte de l'espace, et les routes qui pointent vers eux.
+ * Les canaux d'alerte de l'espace, et les routes qui pointent vers eux. Un
+ * module à part : la fonctionnalité est un argument, pas un préfixe de
+ * commande, et un émetteur de plus ne coûte qu'une valeur dans
+ * `notificationFeatureSchema`.
  *
- * ## Pourquoi un module à part, et pas trois commandes par émetteur
- *
- * Il y en avait quinze — `getSettings`, `setSettings`, `testNotification`, pour
- * chacun des cinq émetteurs — strictement identiques à leur préfixe près. Le
- * dialogue client les reconstituait déjà par concaténation
- * (`` `${feature}.getSettings` ``), ce qui disait tout : la fonctionnalité
- * n'était pas dans la commande, elle était dans un **argument**. Elle l'est
- * désormais pour de bon.
- *
- * Conséquence directe : brancher un sixième émetteur ne coûte plus trois
- * commandes, trois entrées de registre et trois handlers, mais une valeur de
- * plus dans `notificationFeatureSchema`.
- *
- * ## Deux étages d'autorisation, et ils ne sont pas les mêmes
- *
- * Gérer les **canaux** d'une fonctionnalité relève du champ `channels` de son
- * grant de rôle (migration 093) : un canal appartient à une fonctionnalité
- * (091), et son adresse ne se livre qu'à qui gère les canaux de celle-ci. Les
- * **routes**, elles, relèvent de la fonctionnalité visée (`{ feature, level:
- * 'write' }`) : décider où Uptime écrit fait partie du réglage d'Uptime, et n'a
- * pas à ouvrir la gestion des destinations. C'est la séparation qui permet de
- * confier le routage d'une fonctionnalité sans confier l'adresse de
- * l'astreinte.
+ * Deux étages d'autorisation : gérer les canaux d'une fonctionnalité relève du
+ * champ `channels` de son grant ; les routes relèvent de la fonctionnalité
+ * visée (`{ feature, level: 'write' }`). On peut confier le routage sans
+ * confier l'adresse de l'astreinte.
  */
 
 const channelId = z.number().int().positive();
@@ -62,11 +46,8 @@ export const notifyChannelUpdate = {
 };
 
 /**
- * Ce qu'une suppression emporterait, **sans rien supprimer**.
- *
- * Lue par la confirmation pour nommer les routes qui vont cesser de prévenir.
- * Séparée de la suppression elle-même parce qu'un écran qui demande « êtes-vous
- * sûr ? » sans dire de quoi ne fait pas confirmer, il fait cliquer.
+ * Ce qu'une suppression emporterait, sans rien supprimer : lue par la
+ * confirmation pour nommer les routes qui vont cesser de prévenir.
  */
 export const notifyChannelUsage = {
     command: 'notify.channelUsage' as const,
@@ -86,14 +67,7 @@ export const notifyChannelReorder = {
     output: z.object({ ok: z.literal(true) })
 };
 
-/**
- * Un envoi d'essai **sur un seul canal**, tel qu'il est enregistré.
- *
- * L'ancien dialogue devait enregistrer avant de tester, faute de quoi l'essai
- * partait sur les réglages précédents. Un canal étant une entité à part entière,
- * l'essai vise directement son identifiant : plus d'enregistrement forcé, et
- * plus de doute sur ce qui vient d'être éprouvé.
- */
+/** Un envoi d'essai sur un seul canal, tel qu'il est enregistré. */
 export const notifyChannelTest = {
     command: 'notify.channelTest' as const,
     input: z.object({ id: channelId }),
@@ -107,31 +81,19 @@ export const notifyRouteGet = {
     output: z.object({
         route: notificationRouteSchema,
         /**
-         * Les canaux de la route qui **n'appartiennent pas à cet espace**.
-         *
-         * Le cas d'un élément projeté depuis ailleurs : ses destinations vivent
-         * dans son espace d'origine. Sans cette liste, l'écran afficherait
-         * « aucun canal » sur un élément qui prévient bel et bien — le mensonge
-         * exact que la projection devait éviter.
-         *
-         * Rendus **masqués** : leur genre (« Salon Discord d'un autre espace »),
-         * jamais leur identité ni leur adresse.
+         * Les canaux de la route qui n'appartiennent pas à cet espace (élément
+         * projeté depuis ailleurs). Rendus masqués : leur genre, jamais leur
+         * identité ni leur adresse.
          */
         foreign: z.array(notificationChannelSchema),
         /**
-         * Cette route se règle-t-elle **d'ici** ?
-         *
-         * Faux sur un élément projeté depuis un autre espace : ses canaux
-         * appartiennent à cet espace-là, et l'ordonnanceur qui le sonde y
-         * tourne. Laisser l'écran proposer le réglage produirait un geste que
-         * le serveur refuse — un écran qui ment, pas une garde.
+         * Cette route se règle-t-elle d'ici ? Faux sur un élément projeté
+         * depuis un autre espace : ses canaux appartiennent à cet espace-là.
          */
         managedHere: z.boolean(),
         /**
-         * L'espace **où cette route se règle** : le domicile de l'élément.
-         * Égal à l'espace de l'enveloppe quand `managedHere` est vrai. C'est ce
-         * qui permet à l'écran, sur un élément projeté, de proposer d'aller
-         * régler chez lui plutôt que d'expliquer un refus.
+         * L'espace où cette route se règle : le domicile de l'élément (égal à
+         * l'espace de l'enveloppe quand `managedHere` est vrai).
          */
         homeWorkspaceId: z.number().int().positive()
     })
@@ -143,7 +105,7 @@ export const notifyRouteSet = {
     output: z.object({ route: notificationRouteSchema })
 };
 
-/** Un essai sur la route entière, héritage compris — ce que verrait une vraie alerte. */
+/** Un essai sur la route entière : ce que verrait une vraie alerte. */
 export const notifyRouteTest = {
     command: 'notify.routeTest' as const,
     input: notificationRouteTargetSchema,

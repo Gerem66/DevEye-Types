@@ -1,36 +1,24 @@
 import crypto from 'crypto';
 
 /**
- * `DEVB` : le conteneur chiffré que deux modules partagent, CloudSync (ses
- * blobs) et Backup (ses archives). Une seule définition, dans le SDK, parce
- * que le format est figé : deux copies auraient fini par diverger d'un octet,
- * et un octet suffit pour qu'une sauvegarde ne se rouvre plus.
+ * `DEVB` : le conteneur chiffré que CloudSync (blobs) et Backup (archives)
+ * partagent. Une seule définition parce que le format est figé : un octet de
+ * divergence et une sauvegarde ne se rouvre plus. Ne s'occupe que du FORMAT ;
+ * la clé est l'affaire de chaque module (`scripts/restore-backup.mjs` côté app
+ * relit ce format sans DevEye).
  *
- * Ne s'occupe que du FORMAT. La clé est l'affaire de chaque module (CloudSync
- * la tire au premier boot et la range wrappée ; Backup la dérive de la clé
- * serveur, voir `scripts/restore-backup.mjs` côté app, qui relit ce format
- * sans DevEye).
- *
- * ── Deux versions, distinguées par l'octet de version ──────────────
- *
- * **v1, flux unique** (blobs écrits avant la reprise de transfert) :
+ * v1, flux unique (lu, plus jamais écrit) :
  *   magic 'DEVB' (4) | 0x01 (1) | nonce (12) | ciphertext | tag GCM (16)
- * Un seul AES-256-GCM du premier au dernier octet. Toujours LU, jamais plus
- * écrit. Ne peut pas être repris après un redémarrage : l'état du cipher ne
- * se sérialise pas.
+ * Un seul AES-256-GCM ; irreprenable après redémarrage, l'état du cipher ne se
+ * sérialise pas.
  *
- * **v2, scellé par blocs** (format d'écriture actuel) :
+ * v2, scellé par blocs (format d'écriture) :
  *   magic 'DEVB' (4) | 0x02 (1) | nonce de base (12) | bloc* | bloc final
  *   bloc = ciphertext ({@link BLOB_CHUNK_BYTES} octets de clair) | tag (16)
- * Chaque bloc est scellé indépendamment, nonce = nonce de base XOR compteur,
- * AAD = compteur (8) + marqueur de fin (1). Le marqueur ferme la troncature :
- * couper des blocs à la fin ne peut pas passer pour un blob complet, puisque
- * le dernier bloc reçu ne porterait pas le marqueur. Le compteur dans l'AAD
- * ferme le réordonnancement.
- *
- * C'est ce qui rend la REPRISE possible : à la réouverture d'un partiel, on
- * compte les blocs complets et on les relit en local pour reconstituer le
- * SHA-256 courant, sans jamais retransmettre un octet sur le réseau.
+ * Nonce = nonce de base XOR compteur, AAD = compteur (8) + marqueur de fin (1) :
+ * le marqueur ferme la troncature, le compteur le réordonnancement. La reprise
+ * d'un partiel relit les blocs complets en local pour reconstituer le SHA-256
+ * courant, sans retransmettre un octet.
  */
 
 const BLOB_MAGIC = Buffer.from('DEVB');

@@ -6,13 +6,11 @@ import { workspacePermissionsSchema } from '../domain/workspaceRole';
 import { themeStateSchema } from '../features/user';
 
 /**
- * Contenu commun à `/login`, `/refresh` et `/me` : le compte, les espaces
- * auxquels il a accès, et **l'espace actif seul** — son thème et sa disposition
- * d'accueil.
- *
- * Le thème des autres espaces n'est délibérément pas embarqué : `bgImages` peut
- * contenir plusieurs data URLs, et les livrer tous multiplierait la charge utile
- * par le nombre d'espaces. Basculer d'espace va chercher les siens.
+ * Contenu commun à `/login`, `/refresh` et `/me` : le compte, ses espaces, et
+ * le thème et la disposition d'accueil de l'espace actif seul. Les thèmes des
+ * autres espaces ne sont pas embarqués : `bgImages` peut porter plusieurs data
+ * URLs, et les livrer tous multiplierait la charge utile par le nombre
+ * d'espaces.
  */
 export const sessionBundleSchema = z.object({
     user: userSchema,
@@ -34,12 +32,7 @@ export const loginRequestSchema = z.object({
 
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 
-/**
- * L'inscription n'est plus libre : elle exige un jeton d'invitation émis par un
- * administrateur. La route existait déjà, ouverte à tous et connectant
- * automatiquement — simplement inatteignable depuis l'interface, ce qui n'est
- * pas une protection.
- */
+/** L'inscription exige un jeton d'invitation émis par un administrateur. */
 export const registerRequestSchema = z.object({
     inviteToken: z.string().min(1),
     username: z

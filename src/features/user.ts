@@ -31,10 +31,9 @@ export const THEME_IMAGE_MAX_LENGTH = 4_200_000;
 export const THEME_SLOT_COUNT = 5;
 
 /**
- * Upper bound on one saved slot value. Slots hold *compressed* data URLs (the
- * client downscales before saving) or a short raw URL, so this is a safety cap,
- * not the typical size — it keeps the whole theme JSON (5 slots + active image)
- * within the browser's localStorage budget and the `users.theme` column.
+ * Upper bound on one saved slot value (a compressed data URL or a short raw
+ * URL): a safety cap keeping the whole theme JSON (5 slots + active image)
+ * within the browser's localStorage budget and the theme column.
  */
 export const THEME_SLOT_IMAGE_MAX_LENGTH = 1_500_000;
 
@@ -74,13 +73,9 @@ export const userSetColor = {
 };
 
 /**
- * Pose ou retire un drapeau de compte. Une commande unique pour tous les
- * drapeaux plutôt qu'une par réglage : le serveur n'a alors qu'un seul chemin de
- * lecture-modification-écriture sur `users.settings`, et un nouveau drapeau ne
- * coûte qu'une entrée dans `userSettingFlagSchema`.
- *
- * La sortie renvoie le sac **complet** tel qu'il vient d'être écrit : le client
- * peut s'aligner dessus au lieu de rejouer sa propre arithmétique.
+ * Pose ou retire un drapeau de compte. Une commande pour tous les drapeaux :
+ * un seul chemin lecture-modification-écriture sur `users.settings`. La sortie
+ * renvoie le sac complet tel qu'il vient d'être écrit.
  */
 export const userSetSetting = {
     command: 'user.setSetting' as const,

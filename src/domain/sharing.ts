@@ -3,35 +3,17 @@ import { z } from 'zod';
 import { featureAccessSchema, featureIdSchema } from './workspaceRole';
 
 /**
- * Rendre un élément visible depuis un autre espace, **sans le déplacer**.
+ * Rendre un élément visible depuis un autre espace, sans le déplacer.
  *
- * ## L'invariant, avant tout le reste
+ * Invariant : un élément partagé ne change jamais de clé. Il reste chiffré sous
+ * celle de son espace d'origine et, servi ailleurs, est déchiffré avec le codec
+ * ouvert de cet espace-là (levier L3 de `WORKSPACES.md`). Partager est une
+ * projection, pas un transfert. Seule la clé de l'étage ouvert étant résoluble
+ * par le serveur seul, un élément de l'étage gardé ne peut pas être partagé
+ * (voir `shareTier` dans le registre).
  *
- * Un élément partagé **ne change jamais de clé**. Il reste chiffré sous celle de
- * son espace d'origine ; servi ailleurs, il est déchiffré avec le codec ouvert
- * de cet espace-là. C'est le prolongement direct du levier L3 de
- * `WORKSPACES.md`, « chaque espace a sa clé, et un blob n'en change jamais »,
- * et la raison pour laquelle ce chantier ne re-chiffre rien.
- *
- * `WORKSPACES.md` §10 range **déplacer** un élément hors périmètre, précisément
- * parce que ce serait la seule opération à exiger un déchiffrement clé A puis un
- * re-chiffrement clé B sous session vivante. Partager ne l'exige pas : c'est une
- * **projection**, pas un transfert. L'élément a un seul domicile, et des
- * fenêtres ailleurs.
- *
- * ## Ce qui en découle, et qu'il faut assumer
- *
- * Seule la clé de l'étage ouvert est résoluble par le serveur seul. Un élément
- * de l'étage gardé ne peut donc pas être partagé — pas par prudence, par
- * impossibilité mécanique. Voir `shareTier` dans le registre.
- *
- * ## On ne partage qu'avec soi-même
- *
- * La liste proposée est celle des espaces **dont l'appelant est membre**. Ce
- * n'est pas une restriction d'interface mais la règle : partager vers un espace
- * où l'on n'entre pas reviendrait à y déposer une donnée sans pouvoir en
- * répondre, et à contourner l'appartenance — qui est la frontière absolue du
- * modèle (`WORKSPACES.md` §3).
+ * On ne partage qu'avec les espaces dont l'appelant est membre : l'appartenance
+ * est la frontière absolue du modèle (`WORKSPACES.md` §3).
  */
 
 export const itemShareSchema = z.object({
@@ -42,25 +24,19 @@ export const itemShareSchema = z.object({
     isHome: z.boolean(),
     shared: z.boolean(),
     /**
-     * L'appelant peut régler, **depuis ici**, ce que chaque rôle de cet espace
-     * voit de l'élément (`share.grantList` / `share.grantSet` avec ce
-     * `workspaceId`).
-     *
-     * Vrai quand l'élément y est visible, que l'espace est partagé (un espace
-     * personnel n'a pas de rôles) et que l'appelant y tient `workspace.roles`.
-     * C'est ce qui permet de gérer les permissions de toutes les fenêtres
-     * depuis l'onglet Partage, sans changer d'espace.
+     * L'appelant peut régler d'ici ce que chaque rôle de cet espace voit de
+     * l'élément (`share.grantList` / `share.grantSet` avec ce `workspaceId`) :
+     * l'élément y est visible, l'espace est partagé et l'appelant y tient
+     * `workspace.roles`.
      */
     grantsManageable: z.boolean()
 });
 export type ItemShare = z.infer<typeof itemShareSchema>;
 
 /**
- * Pourquoi un élément ne peut pas être partagé, quand c'est le cas.
- *
- * Une phrase plutôt qu'un booléen : « impossible » sans raison donne à chercher
- * un réglage qui n'existe pas. Ici la cause est toujours structurelle, et la
- * dire évite qu'on la prenne pour une panne.
+ * Pourquoi un élément ne peut pas être partagé. Une raison plutôt qu'un
+ * booléen : la cause est toujours structurelle, et la dire évite qu'on la
+ * prenne pour une panne.
  */
 export const shareBlockerSchema = z.enum([
     /** La fonctionnalité entière vit à l'étage gardé, ou n'a pas de sens ici. */
@@ -86,16 +62,10 @@ export const itemShareStateSchema = z.object({
 export type ItemShareState = z.infer<typeof itemShareStateSchema>;
 
 /**
- * Ce qu'un rôle peut faire sur **un** élément.
- *
- * Volontairement **restrictif seulement** : `none` ou `read` abaissent ce que le
- * rôle a sur la fonctionnalité, jamais l'inverse. Le droit de feature reste le
- * plafond, ici comme pour les droits fins.
- *
- * L'alternative — permettre d'élever — a été écartée : l'accès effectif à une
- * fonctionnalité deviendrait « le maximum entre le rôle et le meilleur droit
- * d'élément », donc une requête de plus dans la résolution d'accès, et surtout
- * un écran des rôles qui ne dirait plus à lui seul qui voit quoi.
+ * Ce qu'un rôle peut faire sur un élément. Restrictif seulement : `none` ou
+ * `read` abaissent ce que le rôle a sur la fonctionnalité, jamais l'inverse ;
+ * le droit de feature reste le plafond, et l'écran des rôles dit à lui seul
+ * qui voit quoi.
  */
 export const itemAccessSchema = z.enum(['none', 'read']);
 export type ItemAccess = z.infer<typeof itemAccessSchema>;
@@ -108,13 +78,9 @@ export const itemRoleGrantSchema = z.object({
 export type ItemRoleGrant = z.infer<typeof itemRoleGrantSchema>;
 
 /**
- * Un rôle d'un espace, vu depuis l'écran des restrictions d'un élément.
- *
- * Porte tout ce que l'écran affiche, pour qu'il n'ait **aucun** recoupement à
- * faire : l'identité du rôle, ce que la fonctionnalité lui donne (le droit
- * *hérité*, affiché même quand aucune exception n'est posée — une vue
- * d'ensemble qui ne montre que les exceptions oblige à deviner le reste), et
- * l'exception posée s'il y en a une.
+ * Un rôle d'un espace, vu depuis l'écran des restrictions d'un élément : son
+ * identité, le droit hérité de la fonctionnalité (affiché même sans exception)
+ * et l'exception posée s'il y en a une.
  */
 export const itemRoleGrantViewSchema = z.object({
     roleId: z.number().int().positive(),
@@ -138,11 +104,9 @@ export const itemGrantStateSchema = z.object({
 });
 export type ItemGrantState = z.infer<typeof itemGrantStateSchema>;
 
-/** La cible d'un partage ou d'une restriction. */
 /**
- * `featureIdSchema` and not the native enum: a module's items project like a
- * native's (the server wires sharing from the manifest's `shareTier` and the
- * module's `items` entry), so the commands must accept its id.
+ * La cible d'un partage ou d'une restriction. `featureIdSchema` et non l'enum
+ * natif : les éléments d'un module se projettent comme ceux d'une native.
  */
 export const itemRefSchema = z.object({
     feature: featureIdSchema,
@@ -151,16 +115,10 @@ export const itemRefSchema = z.object({
 export type ItemRef = z.infer<typeof itemRefSchema>;
 
 /**
- * Une référence qu'on voit sans pouvoir la lire.
- *
- * Le cas : un élément partagé vers B pointe une donnée de A — un compte mail, un
- * appareil, un canal d'alerte. Un membre de B qui n'est pas membre de A doit
- * **savoir que le lien existe** sans en connaître le contenu. Le masquer
- * entièrement ferait croire à un élément mal réglé ; le montrer ferait fuiter
- * l'espace d'origine.
- *
- * Il peut la **retirer** si ses droits le permettent — retirer un lien ne
- * demande pas de le lire. Il ne peut ni le voir ni le modifier.
+ * Une référence qu'on voit sans pouvoir la lire : un élément partagé vers B
+ * pointe une donnée de A (compte mail, appareil, canal). Un membre de B non
+ * membre de A doit savoir que le lien existe sans en connaître le contenu ; il
+ * peut le retirer si ses droits le permettent, ni le voir ni le modifier.
  */
 export const foreignRefSchema = z.object({
     kind: z.literal('inaccessible'),

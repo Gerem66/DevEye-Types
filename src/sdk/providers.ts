@@ -52,9 +52,7 @@ export interface CloudSyncBackupProvider {
 /**
  * Key of the database access the Backup module consumes: a logical dump goes
  * through the SAME access as the monitoring (SSH tunnel or SOCKS proxy
- * included), and only the Databases feature knows how to decrypt a
- * connection. Offered by the app while Databases was native, by its module
- * since its migration: Backup never saw the difference.
+ * included), and only the Databases feature knows how to decrypt a connection.
  */
 export const DATABASE_BACKUP_PROVIDER = 'database.backup' as const;
 
@@ -92,12 +90,9 @@ export interface DatabaseBackupProvider {
 }
 
 /**
- * Key under `FeatureService.providers` for the Databases items the app's
- * Projects feature links to: same shape and same reason as
- * `UPTIME_ITEMS_PROVIDER`. Projects stores only identifiers
- * (`project_database_links`, its own table); before linking one it asks the
- * module whether the database exists in the workspace, so a foreign id can
- * neither be linked nor leak its existence.
+ * Key under `FeatureService.providers` for the Databases items the Projects
+ * feature links to: same shape and reason as `UPTIME_ITEMS_PROVIDER`
+ * (`project_database_links` is Projects' table).
  */
 export const DATABASE_ITEMS_PROVIDER = 'database.items' as const;
 
@@ -243,14 +238,10 @@ export const DATABASE_CLIENT_PROVIDER = 'database.client' as const;
 
 /**
  * Key of what Projects knows about the items of OTHER features: the projects
- * of the workspace that link them. The inversion in the other direction
- * (a module reading a native): the module's list shows how many projects use
- * each database, its detail lists them by title so the interconnection is
- * clickable both ways, and neither may read Projects' tables. Offered by the
- * app while Projects was native, by the Projects module's service since its
- * migration: the readers never saw the difference. Keyed by the linked
- * feature's id so every linkable feature (database, git, deploy, audience;
- * uptime the day its links go through it) reads the same contract.
+ * of the workspace that link them (a module's list shows how many projects use
+ * each item, its detail lists them by title), without reading Projects'
+ * tables. Keyed by the linked feature's id so every linkable feature reads the
+ * same contract.
  */
 export const PROJECTS_USAGE_PROVIDER = 'projects.usage' as const;
 
@@ -271,13 +262,10 @@ export interface ProjectsUsageProvider {
     /** How many projects of the workspace link each item of this feature (absent = zero). */
     countByItem(feature: string, workspaceId: number): Promise<ReadonlyMap<number, number>>;
     /**
-     * Writes one line in a project's timeline: the only thing a module has to
-     * TELL Projects (a deployment triggered from a project's tab). Open tier
-     * only: a guarded project cannot link a workspace item, so an event aimed
-     * at one is dropped silently (the caller is looking at the wrong project).
-     * Rejects when the write itself fails; the caller decides whether the
-     * gesture that already happened must be reported as a failure (it must
-     * not: a lost timeline line never turns a deployment into an error).
+     * Writes one line in a project's timeline (a deployment triggered from a
+     * project's tab). Open tier only: an event aimed at a guarded project is
+     * dropped silently. Rejects when the write fails; a lost timeline line
+     * never turns a deployment into an error.
      */
     recordEvent(
         projectId: number,
@@ -308,11 +296,7 @@ export interface ProjectsUsageProvider {
 export const UPTIME_ITEMS_PROVIDER = 'uptime.items' as const;
 
 export interface UptimeItemsProvider {
-    /**
-     * Does this service live in this workspace? Its home only, never a
-     * projection: a project links what its workspace owns, the same rule the
-     * native code applied before the module.
-     */
+    /** Does this service live in this workspace? Its home only, never a projection. */
     exists(serviceId: number, workspaceId: number): Promise<boolean>;
     /**
      * The item's display name under the OPEN cipher of `workspaceId`, its home;

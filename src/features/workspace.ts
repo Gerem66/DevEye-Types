@@ -24,12 +24,9 @@ export const workspaceDelete = {
 
 /**
  * Bascule vers un espace : renvoie son apparence et sa disposition d'accueil.
- *
- * L'espace visé n'apparaît pas dans l'entrée — il voyage sur l'enveloppe, et le
- * dispatcheur a déjà vérifié l'appartenance avant d'appeler le handler. Passer
- * par `/api/auth/me` ne conviendrait pas : cette route recalcule l'espace actif à
- * partir du favori et renverrait l'apparence de l'espace qu'*elle* choisit, pas
- * de celui vers lequel on bascule.
+ * L'espace visé voyage sur l'enveloppe, appartenance vérifiée par le
+ * dispatcheur. `/api/auth/me` ne conviendrait pas : il recalcule l'espace actif
+ * à partir du favori.
  */
 export const workspaceActivate = {
     command: 'workspace.activate' as const,
@@ -77,11 +74,9 @@ export const workspaceRemoveMember = {
 };
 
 /**
- * Ajoute un membre à l'espace actif, désigné par son adresse.
- *
- * Pas de lien, pas d'acceptation : le compte existe déjà (l'inscription est sur
- * invitation d'un administrateur), donc le désigner suffit. Un lien serait un
- * détour — et un secret transmissible de plus à surveiller.
+ * Ajoute un membre à l'espace actif, désigné par son adresse. Pas de lien ni
+ * d'acceptation : le compte existe déjà (inscription sur invitation), et un
+ * lien serait un secret transmissible de plus.
  */
 export const workspaceAddMember = {
     command: 'workspace.addMember' as const,

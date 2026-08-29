@@ -55,15 +55,10 @@ export const secrecySetReauth = {
 };
 
 /**
- * Hold (or release) the cached DEK for the duration of an open action popup.
- *
- * `active: true` is a heartbeat: it pins the DEK so the sliding grace window
- * cannot flush it while the user composes a long action, and must be re-sent
- * periodically — the server only honours the hold for a short lease, so if the
- * popup vanishes for *any* reason (close, navigation, crash, disconnect) the
- * heartbeats stop and the DEK reverts to a normal countdown. `active: false`
- * releases the hold and restarts a fresh grace window. The DEK can therefore
- * never linger indefinitely: only a genuinely-still-open popup keeps it alive.
+ * Hold (or release) the cached DEK while an action popup is open. `active:
+ * true` is a heartbeat: the server honours the hold for a short lease only, so
+ * if the popup vanishes for any reason the DEK reverts to a normal countdown.
+ * `active: false` releases the hold and restarts a fresh grace window.
  */
 export const secrecyHold = {
     command: 'secrecy.hold' as const,

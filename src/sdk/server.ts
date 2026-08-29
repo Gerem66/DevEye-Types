@@ -276,13 +276,6 @@ export interface DevEyeFacade {
     agents: AgentsFacade;
 }
 
-/**
- * The agent-fleet sync transport (capability `'agents'`, native-id modules
- * only). Method names and semantics mirror the app's MonitorHub exactly, so a
- * repatriated engine swaps its hub handle for this facade and changes nothing
- * else. Outbound calls return `false` when the agent is offline (frame
- * dropped, never queued).
- */
 /** A workspace as the fleet sees it: enough to attach a device to it. */
 export interface SdkWorkspaceSummary {
     id: number;
@@ -291,6 +284,11 @@ export interface SdkWorkspaceSummary {
     ownerUserId: number;
 }
 
+/**
+ * The agent-fleet sync transport (capability `'agents'`, native-id modules
+ * only). Method names mirror the app's MonitorHub. Outbound calls return
+ * `false` when the agent is offline (frame dropped, never queued).
+ */
 export interface AgentsFacade {
     isOnline(deviceId: string): boolean;
     /**
@@ -374,20 +372,15 @@ export interface SdkSocketTransport {
 }
 
 /**
- * Inbound agent events, dispatched by the app's agent socket layer to the
- * modules that declare `'agents'`. Every hook is optional; an absent hook is a
- * no-op. Hooks may fire before your service's `start()` has completed: drop
- * quietly in that case, the agent will resend or reconcile.
+ * Inbound agent events, dispatched to the modules that declare `'agents'`.
+ * Every hook is optional. Hooks may fire before your service's `start()` has
+ * completed: drop quietly, the agent will resend or reconcile. Telemetry hooks
+ * fire once the app has persisted it, and only for ACTIVE devices; whether the
+ * device is watched by YOUR feature is your decision.
  */
 export interface FeatureAgentHooks {
     onAgentConnect?(deviceId: string): void | Promise<void>;
     onAgentOffline?(deviceId: string): void;
-    /**
-     * Telemetry, once the app has persisted it. Only for ACTIVE devices (an
-     * unapproved or revoked agent is acknowledged but never recorded, and never
-     * reaches a module). Whether the device is watched by YOUR feature is your
-     * decision: the app no longer gates telemetry on any feature's settings.
-     */
     /** The OS/security report (`agent.report`), just written to the device row. */
     onReport?(deviceId: string, report: DeviceReport): void | Promise<void>;
     /** A batch of metric instants, oldest first, just written to the metric store. */
@@ -407,11 +400,9 @@ export interface FeatureAgentHooks {
 /**
  * The named contracts the host holds (`sdk/providers.ts`): what the installed
  * modules offer on their services. Looked up at call time, `undefined` when
- * nobody offers the key, and it is the caller's job to degrade cleanly (a
- * missing source kind, a run that fails with a clean message). A reader
- * cannot tell who offers a key, on purpose: a contract can change hands (the
- * app offered `PROJECTS_USAGE_PROVIDER` while Projects was native) without
- * anything changing here.
+ * nobody offers the key; the caller degrades cleanly. A reader cannot tell who
+ * offers a key, on purpose: a contract can change hands without anything
+ * changing here.
  */
 export interface SdkProviders {
     get<T>(key: string): T | undefined;
@@ -623,14 +614,11 @@ export interface SdkFeatureDefinition<
     input: I;
     output: O;
     /**
-     * `level` defaults to `'read'`; `extras` are ALL required. Your feature id
-     * is implied: you cannot gate on another feature's rights.
-     */
-    /**
      * `level`: the caller's level on your feature (`read` by default).
-     * `extras`: the extra permissions the caller must hold. `admin`: the
-     * caller must be a global administrator (fleet management: enrolling,
-     * revoking, deleting a device); the feature check still applies.
+     * `extras`: the extra permissions the caller must hold, ALL required.
+     * `admin`: the caller must be a global administrator; the feature check
+     * still applies. Your feature id is implied: you cannot gate on another
+     * feature's rights.
      */
     access?: { level?: FeatureAccess; extras?: readonly string[]; admin?: boolean };
     /**
@@ -651,10 +639,6 @@ export function defineSdkFeature<Repo, Cmd extends string, I extends ZodType, O 
     return def;
 }
 
-/**
- * A background worker. Started during boot (awaited, before the agent socket
- * layer registers), stopped on shutdown.
- */
 /** The request a public route sees: headers, decoded body, client address. Nothing of a session. */
 export interface SdkPublicRequest {
     headers: Readonly<Record<string, string | string[] | undefined>>;
@@ -710,6 +694,10 @@ export interface SdkPublicApp {
     post(path: string, opts: SdkPublicRouteOptions, handler: SdkPublicHandler): void;
 }
 
+/**
+ * A background worker. Started during boot (awaited, before the agent socket
+ * layer registers), stopped on shutdown.
+ */
 export interface FeatureService {
     start(): void | Promise<void>;
     stop(): void | Promise<void>;

@@ -41,9 +41,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
-    "ci": "npm run lint && npm run typecheck && npm test",
-    "prettier": "prettier --check .",
-    "prettier:fix": "prettier --write .",
+    "ci": "npm run format:check && npm run lint && npm run typecheck && npm test",
+    "format:check": "prettier --check .",
+    "format:fix": "prettier --write .",
     "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {

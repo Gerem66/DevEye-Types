@@ -39,6 +39,14 @@ export const reportProcessSchema = z.object({
      * l'expose pas (macOS, Windows).
      */
     deleted: z.boolean().nullable().default(null),
+    /**
+     * Fil du noyau (`PF_KTHREAD`), qui n'a par nature ni exécutable ni durée de
+     * vie stable : son nom encode un CPU et un index que le noyau recycle. Les
+     * règles de dérive l'écartent, sans quoi ce recyclage passerait pour des
+     * programmes qui apparaissent et disparaissent. `null` là où la plateforme
+     * ne l'expose pas (macOS, Windows) ou sur un agent trop ancien.
+     */
+    kernel: z.boolean().nullable().default(null),
     /** Number of PIDs aggregated under this name. */
     instances: z.number().int().positive().default(1),
     /** Summed CPU%, cumulative across cores (can exceed 100 — divide by `os.cores`). */

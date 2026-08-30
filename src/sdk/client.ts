@@ -23,6 +23,13 @@ export interface SettingsPanelProps<Id extends number | string = number> {
     scope: SdkSettingsScope<Id>;
     /** Caller has `write` on the feature. Render read-only when false. */
     canWrite: boolean;
+    /**
+     * Closes the settings dialog. For a panel that removes the very item being
+     * configured: the scope it was opened on no longer exists, and the shell
+     * would otherwise fall back to the feature's own tabs under the item's name.
+     * Not a substitute for saving — every other change applies in place.
+     */
+    close(): void;
 }
 
 export interface FeatureViewProps {

@@ -171,6 +171,37 @@ declare module 'deveye-sdk-client' {
          */
         onOpenChange?: (open: boolean) => void;
     }>;
+    /**
+     * One provider of a feature and the key it wants. The row carries the state
+     * and the gesture; the key itself is typed in a dialog.
+     */
+    export interface ProviderKeyRow {
+        id: string;
+        label: string;
+        /** What the key unlocks, or what the provider brings. */
+        hint: string;
+        /** A key is on file for this provider. */
+        held: boolean;
+        /** `false` for a provider that needs none (Open-Meteo): shown, nothing to set. */
+        needsKey?: boolean;
+        /** Where to get one. Only offered while no key is held. */
+        signupUrl?: string;
+        /** Icon class suffix, without the `icon-` prefix. */
+        icon?: string;
+    }
+    /**
+     * The `sources` tab of a feature whose providers are a fixed list, each
+     * wanting one key. Renders the rows, the add/edit button on each, and the
+     * dialog. `onSave` / `onRemove` reject to keep the dialog open on the error.
+     */
+    export const ProviderKeys: ComponentType<{
+        rows: ProviderKeyRow[];
+        canWrite: boolean;
+        onSave: (id: string, key: string) => Promise<void>;
+        onRemove: (id: string) => Promise<void>;
+        /** Shown to a caller without write access. */
+        readOnlyHint: string;
+    }>;
     /** The canonical settings row classes (channelRow, field, sectionHint...). */
     export const settingsStyles: Readonly<Record<string, string>>;
     /** A plain count on a home card: a big number, a noun, a secondary line. */

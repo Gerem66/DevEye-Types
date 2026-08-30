@@ -58,7 +58,18 @@ export const deviceLogLineSchema = z.object({
 export type DeviceLogLine = z.infer<typeof deviceLogLineSchema>;
 
 export const DEVICE_LOG_PAGE_MAX = 1000;
-export const DEVICE_LOG_PAGE_DEFAULT = 200;
+export const DEVICE_LOG_PAGE_DEFAULT = 500;
+/** How far back a query may skip, so a runaway offset can't drive an unbounded read. */
+export const DEVICE_LOG_OFFSET_MAX = 20_000;
+
+/**
+ * Which end of the log `offset` counts from. A query returns the window
+ * `[offset, offset + limit)` walking back from the newest line, or forward from the
+ * oldest one — the latter is how the viewer jumps straight to a log's beginning
+ * without paging through everything in between.
+ */
+export const deviceLogAnchorSchema = z.enum(['newest', 'oldest']);
+export type DeviceLogAnchor = z.infer<typeof deviceLogAnchorSchema>;
 
 /**
  * Advanced search surface for a query. Every field is optional and combines as

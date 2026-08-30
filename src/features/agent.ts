@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import { deviceSchema } from '../domain/device';
 import { fileMutateOpSchema, fileSearchFilterSchema } from '../domain/deviceFiles';
-import { deviceLogFilterSchema, DEVICE_LOG_PAGE_MAX } from '../domain/deviceLogs';
+import {
+    deviceLogAnchorSchema,
+    deviceLogFilterSchema,
+    DEVICE_LOG_OFFSET_MAX,
+    DEVICE_LOG_PAGE_MAX
+} from '../domain/deviceLogs';
 import { packageManagerIdSchema } from '../domain/packages';
 import { agentLifecycleActionSchema, agentPowerActionSchema } from '../protocol/agent';
 
@@ -146,6 +151,10 @@ export const agentLogSources = {
  * Query one source with an advanced filter. `queryId` correlates the streamed
  * result back to this request (results have no requestId). Lines arrive as one or
  * more `device.logLines` push events, the last carrying `done: true`.
+ *
+ * `offset` and `anchor` page through the history: the agent returns the window
+ * `[offset, offset + limit)` counted from the anchor end. A short page means the
+ * source held nothing more in that direction.
  */
 export const agentLogQuery = {
     command: 'agent.logQuery' as const,
@@ -155,7 +164,9 @@ export const agentLogQuery = {
         /** Client-generated id echoed back on every `device.logLines` for this query. */
         queryId: z.string().min(1).max(64),
         filter: deviceLogFilterSchema.optional(),
-        limit: z.number().int().positive().max(DEVICE_LOG_PAGE_MAX).optional()
+        limit: z.number().int().positive().max(DEVICE_LOG_PAGE_MAX).optional(),
+        offset: z.number().int().nonnegative().max(DEVICE_LOG_OFFSET_MAX).optional(),
+        anchor: deviceLogAnchorSchema.optional()
     }),
     output: z.object({ ok: z.boolean() })
 };

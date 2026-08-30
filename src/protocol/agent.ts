@@ -22,6 +22,7 @@ import {
     fileUsageEntrySchema
 } from '../domain/deviceFiles';
 import {
+    deviceLogAnchorSchema,
     deviceLogFilterSchema,
     deviceLogLineSchema,
     deviceLogSourceSchema
@@ -589,7 +590,9 @@ export const agentLogQueryPayloadSchema = z.object({
     queryId: z.string().max(64),
     sourceId: z.string().min(1).max(512),
     filter: deviceLogFilterSchema.optional(),
-    limit: z.number().int().positive().optional()
+    limit: z.number().int().positive().optional(),
+    offset: z.number().int().nonnegative().optional(),
+    anchor: deviceLogAnchorSchema.optional()
 });
 export type AgentLogQueryPayload = z.infer<typeof agentLogQueryPayloadSchema>;
 

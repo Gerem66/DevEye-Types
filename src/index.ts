@@ -241,8 +241,10 @@ export {
 export type { LogCategory, LogEntry, LogLevelName, LogRow, LogSource } from './domain/logs';
 export {
     DEVICE_LOG_LEVELS,
+    DEVICE_LOG_OFFSET_MAX,
     DEVICE_LOG_PAGE_DEFAULT,
     DEVICE_LOG_PAGE_MAX,
+    deviceLogAnchorSchema,
     deviceLogFilterSchema,
     deviceLogLevelSchema,
     deviceLogLineSchema,
@@ -280,6 +282,7 @@ export type {
     SyncShareStatus
 } from './domain/syncProtocol';
 export type {
+    DeviceLogAnchor,
     DeviceLogFilter,
     DeviceLogLevel,
     DeviceLogLine,

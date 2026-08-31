@@ -247,6 +247,19 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         sources: {
             hint: 'Les clés d’API des fournisseurs, toutes facultatives : chaque sonde libre fonctionne déjà, une clé ne fait qu’enrichir la sienne.'
         }
+    },
+    {
+        id: 'cve',
+        label: 'Veille CVE',
+        description:
+            'Lecture : le fil des vulnérabilités et la recherche. Écriture : épingler, et poser la clé du NVD.',
+        icon: 'bug',
+        notifies: false,
+        hasItems: false,
+        shareTier: 'never',
+        sources: {
+            hint: 'La clé d’API du NVD, facultative : sans elle le catalogue se remplit quand même, elle ne fait que relever le quota de requêtes.'
+        }
     }
 ];
 
@@ -267,7 +280,7 @@ export function registerExternalFeature(desc: FeatureDescriptor & { id: External
     EXTERNAL_BY_ID.set(desc.id, desc);
 }
 
-/** Le registre fusionné : les seize natives puis les modules, dans l'ordre d'enregistrement. */
+/** Le registre fusionné : les natives puis les modules, dans l'ordre d'enregistrement. */
 export function allFeatureDescriptors(): readonly FeatureDescriptor[] {
     return EXTERNAL_BY_ID.size === 0
         ? FEATURE_REGISTRY

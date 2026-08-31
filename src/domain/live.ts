@@ -186,6 +186,7 @@ export const TOPIC_FEATURE: Record<NativeLiveTopic, WorkspaceFeatureId | null> =
     finance: 'finance',
     audience: 'audience',
     osint: 'osint',
+    cve: 'cve',
     workspace: null,
     home: null,
     account: null,

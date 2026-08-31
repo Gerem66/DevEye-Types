@@ -16,9 +16,9 @@ import {
  */
 
 /**
- * Les seize tuiles de fonctionnalités natives. Une tuile porte l'id de sa
- * feature : la tuile Monitoring est celle de la feature `devices`, dont le
- * module fournit la carte et la vue.
+ * Les tuiles de fonctionnalités natives. Une tuile porte l'id de sa feature :
+ * la tuile Monitoring est celle de la feature `devices`, dont le module
+ * fournit la carte et la vue.
  */
 export const nativeHomeFeatureIdSchema = z.enum([
     'devices',
@@ -36,7 +36,8 @@ export const nativeHomeFeatureIdSchema = z.enum([
     'backup',
     'finance',
     'audience',
-    'osint'
+    'osint',
+    'cve'
 ]);
 export type NativeHomeFeatureId = z.infer<typeof nativeHomeFeatureIdSchema>;
 
@@ -55,10 +56,11 @@ export type HomeFeatureId = NativeHomeFeatureId | ExternalFeatureId;
  *  - `weather`  → current temperature of the primary city.
  *  - `secrecy`  → password-encryption lock state + re-validation countdown.
  *  - `live`     → qui d'autre est dans l'espace, et où (bulles cliquables).
+ *  - `publicIp` → l'adresse publique par laquelle CE navigateur sort.
  * A module's widget is declared by its manifest (`topbarWidget`) and keyed by
  * its feature id (`homeTopbarWidgetIdSchema`).
  */
-export const nativeHomeTopbarWidgetIdSchema = z.enum(['weather', 'secrecy', 'live']);
+export const nativeHomeTopbarWidgetIdSchema = z.enum(['weather', 'secrecy', 'live', 'publicIp']);
 export type NativeHomeTopbarWidgetId = z.infer<typeof nativeHomeTopbarWidgetIdSchema>;
 
 /**

@@ -83,7 +83,12 @@ export const workspaceFeatureIdSchema = z.enum([
      * OSINT. `read` = chercher et consulter l'historique de l'espace, `write` =
      * effacer l'historique et poser les clés d'API des fournisseurs.
      */
-    'osint'
+    'osint',
+    /**
+     * Veille CVE. `read` = lire le fil et chercher dans le catalogue, `write` =
+     * épingler une CVE pour tout l'espace et poser la clé d'API du NVD.
+     */
+    'cve'
 ]);
 
 export type WorkspaceFeatureId = z.infer<typeof workspaceFeatureIdSchema>;

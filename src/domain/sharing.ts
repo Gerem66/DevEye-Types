@@ -110,7 +110,8 @@ export type ItemGrantState = z.infer<typeof itemGrantStateSchema>;
  */
 export const itemRefSchema = z.object({
     feature: featureIdSchema,
-    itemId: z.number().int().positive()
+    /** Texte : une feature choisit la clé de sa table, entière ou non (un appareil est un UUID). */
+    itemId: z.string().min(1).max(64)
 });
 export type ItemRef = z.infer<typeof itemRefSchema>;
 
@@ -131,17 +132,19 @@ export type ForeignRef = z.infer<typeof foreignRefSchema>;
 export interface ItemShareRow {
     workspace_id: number;
     feature: string;
-    item_id: number;
+    item_id: string;
     home_workspace_id: number;
     shared_by_user_id: number;
     created: number;
+    /** Le rang de l'élément dans l'espace qui le reçoit, propre à cet espace. */
+    sort_order: number;
 }
 
 /** Ligne de `item_role_grants` (serveur uniquement). */
 export interface ItemRoleGrantRow {
     workspace_id: number;
     feature: string;
-    item_id: number;
+    item_id: string;
     role_id: number;
     access: ItemAccess;
 }

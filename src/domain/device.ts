@@ -70,10 +70,10 @@ export const deviceSchema = z.object({
      */
     retentionDays: z.number().int().positive().nullable().default(null),
     /**
-     * Workspaces this device is shared with. A device is reachable from every
-     * workspace listed here; its pairing workspace is always among them.
+     * Seen from a workspace it was projected into, not the one it was paired
+     * in: read-only marks and a "shared" badge hang on it.
      */
-    workspaceIds: z.array(z.number().int().positive()).default([]),
+    foreign: z.boolean().default(false),
     /**
      * Last self-destruct failure message: set when an agent failed to wipe itself
      * during deletion, so the UI can surface it and the deletion is aborted.
@@ -91,12 +91,12 @@ export interface DeviceRow {
     id: string;
     owner_id: number;
     /**
-     * Espace d'appairage (celui du code de liaison) : porte l'unicité de
-     * l'empreinte (`uniq_workspace_fingerprint`) et sert le ré-enrôlement par la
-     * route publique. La frontière d'accès est `device_workspaces`, où il figure
-     * toujours. `null` si cet espace a été supprimé : l'appareil survit.
+     * Le domicile de l'appareil, celui du code de liaison : il porte l'unicité
+     * de l'empreinte (`uniq_workspace_fingerprint`), sert le ré-enrôlement par
+     * la route publique, et c'est depuis lui que l'appareil se projette
+     * ailleurs (`item_shares`).
      */
-    workspace_id: number | null;
+    workspace_id: number;
     name: string;
     fingerprint: string;
     platform: string;
@@ -123,17 +123,7 @@ export interface DeviceRow {
     status_before_delete: string | null;
     /** Last self-destruct failure message (deletion aborted); null otherwise. */
     delete_error: string | null;
-}
-
-/**
- * Un appareil rangé dans un espace (`device_workspaces`). Le rang est porté par
- * la jonction et non par l'appareil : le même appareil est rangé
- * indépendamment dans chaque espace qui y a accès.
- */
-export interface DeviceWorkspaceRow {
-    device_id: string;
-    workspace_id: number;
-    /** Rank in *that* workspace's list, entirely the user's (`device.reorder`). */
+    /** Rang chez lui ; celui des espaces qui ne font que le voir vit dans `item_shares`. */
     sort_order: number;
 }
 

@@ -243,7 +243,7 @@ export interface TestContext<Repo> extends SdkFeatureContext<Repo> {
     recorded: RecordedCalls;
     store: TestFeatureStore;
     /** Item ids passed to `items.forget`, in order. */
-    forgotten: number[];
+    forgotten: string[];
 }
 
 export interface TestContextOverrides<Repo> {
@@ -287,13 +287,13 @@ export interface TestContextOverrides<Repo> {
      */
     unlocked?: boolean;
     /** The caller's role restrictions on items, by item id. Default none. */
-    itemRestrictions?: Readonly<Record<number, ItemAccess>>;
+    itemRestrictions?: Readonly<Record<string, ItemAccess>>;
     /**
      * Items projected INTO the workspace, as `itemId → home workspace id`.
      * Default none: every item is at home. `sharing.scope().cipherFor` is the
      * identity cipher either way.
      */
-    shares?: Readonly<Record<number, number>>;
+    shares?: Readonly<Record<string, number>>;
     /** The named contracts the host holds (`ctx.providers.get(key)`). */
     providers?: Readonly<Record<string, unknown>>;
 }
@@ -331,13 +331,12 @@ export function createTestContext<Repo = undefined>(
         agents: recordingAgents(recorded),
         ...overrides.deveye
     };
-    const restrictions = new Map<number, ItemAccess>(
-        Object.entries(overrides.itemRestrictions ?? {}).map(([id, access]) => [Number(id), access])
+    const restrictions = new Map<string, ItemAccess>(
+        Object.entries(overrides.itemRestrictions ?? {})
     );
-    const homes = new Map<number, number>(
-        Object.entries(overrides.shares ?? {}).map(([id, home]) => [Number(id), home])
-    );
-    const forgotten: number[] = [];
+    const homes = new Map<string, number>(Object.entries(overrides.shares ?? {}));
+    const forgotten: string[] = [];
+    const orders: { itemId: string; order: number }[] = [];
     return {
         recorded,
         forgotten,
@@ -382,8 +381,16 @@ export function createTestContext<Repo = undefined>(
                 Promise.resolve({
                     foreignIds: new Set(homes.keys()),
                     homeOf: (itemId) => homes.get(itemId) ?? null,
-                    cipherFor: () => Promise.resolve(identityCipher)
-                })
+                    cipherFor: () => Promise.resolve(identityCipher),
+                    orderOf: (itemId) =>
+                        homes.has(itemId)
+                            ? (orders.find((o) => o.itemId === itemId)?.order ?? 0)
+                            : null
+                }),
+            setOrder: (itemId, order) => {
+                orders.push({ itemId, order });
+                return Promise.resolve();
+            }
         },
         userId: overrides.userId ?? 1,
         workspaceId,

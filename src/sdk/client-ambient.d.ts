@@ -156,7 +156,7 @@ declare module 'deveye-sdk-client' {
             | {
                   kind: 'item';
                   feature: FeatureId;
-                  itemId: number | string;
+                  itemId: string;
                   itemLabel: string;
                   shareable?: boolean;
               };
@@ -477,7 +477,7 @@ declare module 'deveye-sdk-client' {
      * host's teleport, the same mechanism as "join someone". The access guard
      * is the host's; a missing item is ignored after a short grace.
      */
-    export function openFeature(feature: string, itemId?: number): void;
+    export function openFeature(feature: string, itemId?: number | string): void;
     /**
      * Ask the feature popup for a wider frame (px) while the calling
      * component is mounted, `null` to ask for nothing. Several requests

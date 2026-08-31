@@ -26,13 +26,7 @@ export const linkCodeRequestSchema = z.object({
      * Approve the device the moment it enrols with this code, instead of
      * leaving it `pending` for manual approval. Defaults to `false`.
      */
-    autoApprove: z.boolean().default(false),
-    /**
-     * Espace dans lequel la machine sera rangée à l'enrôlement. Omis → l'espace
-     * actif de l'émetteur. Explicite (n'importe quel espace existant) : réservé
-     * à l'administrateur global.
-     */
-    workspaceId: z.number().int().positive().optional()
+    autoApprove: z.boolean().default(false)
 });
 
 export type LinkCodeRequest = z.infer<typeof linkCodeRequestSchema>;

@@ -11,16 +11,15 @@ import type { ComponentType, ReactNode } from 'react';
  */
 
 /**
- * The scope a settings panel is opened for. An item id is a number for every
- * row-keyed feature (the default), a string for a device (a UUID): a module
- * whose items are strings types its panels `SettingsPanelProps<string>`. The
- * shell's own sections (sharing, permissions, notifications) key on the number.
+ * The scope a settings panel is opened for. An item id is text, whatever key
+ * the feature's own table uses: a row-keyed feature reads it back with
+ * `Number(...)`, a device is a UUID as it stands.
  */
-export type SdkSettingsScope<Id extends number | string = number> =
-    { kind: 'feature' } | { kind: 'item'; itemId: Id; itemLabel: string };
+export type SdkSettingsScope =
+    { kind: 'feature' } | { kind: 'item'; itemId: string; itemLabel: string };
 
-export interface SettingsPanelProps<Id extends number | string = number> {
-    scope: SdkSettingsScope<Id>;
+export interface SettingsPanelProps {
+    scope: SdkSettingsScope;
     /** Caller has `write` on the feature. Render read-only when false. */
     canWrite: boolean;
     /**
@@ -54,10 +53,7 @@ export interface FeatureClient {
      * `'sources'`, `'encryption'`, and any custom tab id. Generic tabs
      * (`'notifications'`, `'permissions'`) need no panel.
      */
-    // `never` as the id: a panel typed for numbers and one typed for strings
-    // are both assignable here (props are contravariant), and the shell, which
-    // holds a `number | string`, casts once at that boundary.
-    settingsPanels?: Readonly<Record<string, ComponentType<SettingsPanelProps<never>>>>;
+    settingsPanels?: Readonly<Record<string, ComponentType<SettingsPanelProps>>>;
     /**
      * The compact topbar widget declared by `manifest.topbarWidget`. Rendered
      * with NO props: everything it shows must come through YOUR feature's

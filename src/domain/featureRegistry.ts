@@ -75,7 +75,7 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         notifies: false,
         hasItems: true,
         itemNoun: 'appareil',
-        shareTier: 'never'
+        shareTier: 'open'
     },
     {
         id: 'sentinel',
@@ -310,10 +310,9 @@ export function featureLabel(id: FeatureId): string {
 }
 
 /**
- * Les trois `never` : `devices` a déjà son partage inter-espaces, d'une autre
- * nature (`device_workspaces` est une adhésion, pas une projection) ;
- * `password` vit toujours à l'étage gardé ; `cloudsync` range ses contenus
- * dans un magasin de blobs chiffrés par la BMK, pas par une clé d'espace.
+ * Les deux `never` : `password` vit toujours à l'étage gardé ; `cloudsync`
+ * range ses contenus dans un magasin de blobs chiffrés par la BMK, pas par une
+ * clé d'espace.
  */
 
 /** Les fonctionnalités dont un élément **pourrait** voyager, côté chiffrement. */

@@ -476,13 +476,13 @@ export interface SdkItems {
      * feature grants, never raise it. Empty for the owner and for a member
      * without a role. Listings filter with it.
      */
-    restrictions(): Promise<ReadonlyMap<number, ItemAccess>>;
+    restrictions(): Promise<ReadonlyMap<string, ItemAccess>>;
     /**
      * Throws `forbidden` unless THIS item is open to the caller at `level`
      * (default `'read'`), role restriction included. Commands that target one
      * item call it first.
      */
-    assert(itemId: number, level?: FeatureAccess): Promise<void>;
+    assert(itemId: string, level?: FeatureAccess): Promise<void>;
     /**
      * The item no longer exists: drops its projections, its role restrictions
      * and its notification route. Call it from your delete handler; nothing
@@ -490,7 +490,7 @@ export interface SdkItems {
      * feature), so without this call the next item to inherit the id would
      * inherit them too.
      */
-    forget(itemId: number): Promise<void>;
+    forget(itemId: string): Promise<void>;
 }
 
 /**
@@ -504,11 +504,17 @@ export interface SdkItems {
  */
 export interface SdkShareScope {
     /** The ids of the items projected into the active workspace from elsewhere. */
-    readonly foreignIds: ReadonlySet<number>;
+    readonly foreignIds: ReadonlySet<string>;
     /** The home workspace of a projected item, or null when it is at home. */
-    homeOf(itemId: number): number | null;
+    homeOf(itemId: string): number | null;
     /** The open cipher of the workspace the item lives in (the active one when it is at home). */
-    cipherFor(itemId: number): Promise<SdkCipher>;
+    cipherFor(itemId: string): Promise<SdkCipher>;
+    /**
+     * The rank a projected item holds in the ACTIVE workspace, or null when it
+     * is at home (its own table carries the rank there). Each workspace orders
+     * what it sees independently.
+     */
+    orderOf(itemId: string): number | null;
 }
 
 /** Cross-workspace projection of your items (manifest `shareTier` other than `'never'`). */
@@ -518,6 +524,11 @@ export interface SdkSharing {
      * read command; the result does not outlive the command.
      */
     scope(): Promise<SdkShareScope>;
+    /**
+     * Sets the rank of a projected item in the ACTIVE workspace. For an item
+     * at home, rank belongs to your own table: write it there instead.
+     */
+    setOrder(itemId: string, order: number): Promise<void>;
 }
 
 /** Live invalidation from a background service, which writes without a command. */
@@ -802,7 +813,7 @@ export interface FeatureItemsEntry<Repo = unknown> {
      * (its own, or one it is projected into); null when it does not exist
      * there. The sharing commands rely on it to tell a home from a window.
      */
-    homeOf(repo: Repo, itemId: number, workspaceId: number): Promise<number | null>;
+    homeOf(repo: Repo, itemId: string, workspaceId: number): Promise<number | null>;
     /**
      * The item's display name, decrypted with `cipher` (the open cipher of
      * `workspaceId`), or null when the item is gone or unreadable. Names the
@@ -812,7 +823,7 @@ export interface FeatureItemsEntry<Repo = unknown> {
     labelOf(
         repo: Repo,
         cipher: SdkCipher,
-        itemId: number,
+        itemId: string,
         workspaceId: number
     ): Promise<string | null>;
     /**
@@ -823,7 +834,7 @@ export interface FeatureItemsEntry<Repo = unknown> {
      * moment it is asked, with a message that says why. Called with the item's
      * HOME workspace.
      */
-    shareable?(repo: Repo, itemId: number, workspaceId: number): Promise<boolean>;
+    shareable?(repo: Repo, itemId: string, workspaceId: number): Promise<boolean>;
 }
 
 // Le conteneur chiffré que CloudSync et Backup partagent (voir `devb.ts`).

@@ -262,6 +262,16 @@ export interface ProjectsUsageProvider {
     /** How many projects of the workspace link each item of this feature (absent = zero). */
     countByItem(feature: string, workspaceId: number): Promise<ReadonlyMap<number, number>>;
     /**
+     * The item leaves the workspace: drop every link pointing at it from
+     * there, and answer how many projects lost one. A link never spans two
+     * workspaces, so a departing item takes none with it; left alone the rows
+     * would keep naming an item that lives elsewhere now.
+     *
+     * Called by the app when an item is moved out, not by the module that owns
+     * the item. Idempotent, and zero for a feature that links nothing.
+     */
+    detach(feature: string, itemId: number, workspaceId: number): Promise<number>;
+    /**
      * Writes one line in a project's timeline (a deployment triggered from a
      * project's tab). Open tier only: an event aimed at a guarded project is
      * dropped silently. Rejects when the write fails; a lost timeline line

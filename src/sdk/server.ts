@@ -835,6 +835,82 @@ export interface FeatureItemsEntry<Repo = unknown> {
      * HOME workspace.
      */
     shareable?(repo: Repo, itemId: string, workspaceId: number): Promise<boolean>;
+    /**
+     * Move this item to another workspace. The ONLY operation of the whole
+     * system that re-encrypts (read under key A, written under key B); every
+     * other one keeps a blob under the key it was sealed with. Omit it and
+     * your items cannot be moved: the screen offers nothing and `item.move`
+     * refuses. That default is the safe one, and staying on it is a valid
+     * answer for a feature whose item depends on a workspace source (a
+     * credential, a destination) that cannot follow it.
+     */
+    move?: FeatureItemsMove<Repo>;
+}
+
+/**
+ * What moving one item would cost, decided while it is still at home and
+ * before a single row is written.
+ */
+export interface SdkMovePlan {
+    /**
+     * Why the move is impossible, in sentences the screen shows as they are.
+     * Empty means it can go. Put the decisive one first: a name already taken
+     * in the target, a source of the origin workspace that cannot follow.
+     */
+    blockers: readonly string[];
+    /**
+     * What the move destroys, named one by one, for the confirmation to list
+     * verbatim: a history left behind, a setting that means nothing there.
+     * Say it here or the caller discovers it afterwards.
+     */
+    drops: readonly string[];
+    /**
+     * Encrypted cells to convert, so the confirmation can say how much rather
+     * than spin. An estimate is fine; zero is a legitimate answer.
+     */
+    rows: number;
+}
+
+/** See {@link FeatureItemsEntry.move}. */
+export interface FeatureItemsMove<Repo = unknown> {
+    /**
+     * Everything the confirmation must say, and every refusal, with the item
+     * still at home. Called with both workspaces: answer for that target, a
+     * name collision being decidable only against it.
+     */
+    plan(
+        repo: Repo,
+        itemId: string,
+        fromWorkspaceId: number,
+        toWorkspaceId: number
+    ): Promise<SdkMovePlan>;
+    /**
+     * Re-home the item: `workspace_id` on every row it owns, and every
+     * encrypted cell read with `ciphers.from` and written with `ciphers.to`.
+     *
+     * Read and convert EVERYTHING before the first write. A tree half
+     * converted is unreadable forever and nothing can detect it: one encrypted
+     * blob is indistinguishable from another. `reencryptProjectTree` in the
+     * Projects module is the reference implementation.
+     */
+    apply(ctx: FeatureItemsMoveContext<Repo>): Promise<void>;
+}
+
+/** The handles {@link FeatureItemsMove.apply} works with. */
+export interface FeatureItemsMoveContext<Repo = unknown> {
+    /**
+     * Transactional: what you write here commits with the app's own cleanup,
+     * or rolls back with it. Write through this, NEVER through `repo`, which
+     * is bound to the pool and would land outside the transaction.
+     */
+    q: SdkQueryable;
+    /** Your repo. For reads only, see `q`. */
+    repo: Repo;
+    itemId: string;
+    fromWorkspaceId: number;
+    toWorkspaceId: number;
+    /** The open ciphers of the two workspaces: decrypt with `from`, seal with `to`. */
+    ciphers: { from: SdkCipher; to: SdkCipher };
 }
 
 // Le conteneur chiffré que CloudSync et Backup partagent (voir `devb.ts`).

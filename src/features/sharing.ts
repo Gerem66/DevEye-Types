@@ -4,6 +4,7 @@ import {
     itemAccessSchema,
     itemExtraOverridesSchema,
     itemGrantStateSchema,
+    itemMovePreviewSchema,
     itemRefSchema,
     itemShareStateSchema
 } from '../domain/sharing';
@@ -77,4 +78,37 @@ export const itemGrantSet = {
     output: itemGrantStateSchema
 };
 
-export const sharingCommands = [shareGet, shareSet, itemGrantList, itemGrantSet] as const;
+/**
+ * Ce qu'un déplacement vers cet espace ferait, sans rien écrire : ce qui
+ * l'empêche, ce qu'il détruit, les liaisons qui suivent et celles qu'on peut
+ * emmener. Le popup de confirmation n'affiche rien d'autre.
+ */
+export const itemMovePreview = {
+    command: 'share.movePreview' as const,
+    input: itemRefSchema.extend({ workspaceId: z.number().int().positive() }),
+    output: itemMovePreviewSchema
+};
+
+/**
+ * Déplace l'élément : sa donnée est déchiffrée sous la clé de son espace et
+ * re-chiffrée sous celle de la cible. La seule opération du système qui change
+ * un blob de clé, et donc la seule qui ne se rejoue pas.
+ *
+ * Il arrive nu : ses projections, les surcharges de rôle posées dessus, sa route
+ * de notification et les liaisons qui le visaient tombent, toutes désignant
+ * l'espace qu'il quitte.
+ */
+export const itemMove = {
+    command: 'share.move' as const,
+    input: itemRefSchema.extend({ workspaceId: z.number().int().positive() }),
+    output: z.object({ workspaceId: z.number().int().positive() })
+};
+
+export const sharingCommands = [
+    shareGet,
+    shareSet,
+    itemGrantList,
+    itemGrantSet,
+    itemMovePreview,
+    itemMove
+] as const;

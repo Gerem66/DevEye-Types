@@ -561,6 +561,8 @@ export {
     itemAccessSchema,
     itemExtraOverridesSchema,
     itemGrantStateSchema,
+    itemMoveDependencySchema,
+    itemMovePreviewSchema,
     itemRefSchema,
     itemRoleGrantSchema,
     itemRoleGrantViewSchema,
@@ -573,6 +575,8 @@ export type {
     ItemAccess,
     ItemExtraOverrides,
     ItemGrantState,
+    ItemMoveDependency,
+    ItemMovePreview,
     ItemRef,
     ItemRoleGrant,
     ItemRoleGrantRow,
@@ -585,6 +589,8 @@ export type {
 export {
     itemGrantList,
     itemGrantSet,
+    itemMove,
+    itemMovePreview,
     shareGet,
     shareSet,
     sharingCommands

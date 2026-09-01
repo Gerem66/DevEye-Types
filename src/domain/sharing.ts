@@ -57,9 +57,56 @@ export const itemShareStateSchema = z.object({
     /** Les espaces de l'appelant, l'origine comprise et marquée. */
     workspaces: z.array(itemShareSchema),
     /** Renseigné quand le partage est impossible ; les cases sont alors inertes. */
-    blocker: shareBlockerSchema.nullable()
+    blocker: shareBlockerSchema.nullable(),
+    /**
+     * L'élément peut changer d'espace : sa fonctionnalité sait le re-chiffrer,
+     * il est chez lui ici, et l'appelant a le droit de l'y écrire. Faux ne dit
+     * pas pourquoi : c'est `share.movePreview`, une fois la cible choisie, qui
+     * porte les motifs.
+     */
+    movable: z.boolean().default(false)
 });
 export type ItemShareState = z.infer<typeof itemShareStateSchema>;
+
+/**
+ * Une liaison que le déplacement va rompre. Une liaison ne traverse jamais un
+ * espace : ce qui vise l'élément depuis celui qu'il quitte est retiré, et
+ * l'écran le nomme avant de confirmer.
+ */
+export const itemMoveDependencySchema = z.object({
+    feature: featureIdSchema,
+    itemId: z.string().min(1).max(64),
+    /** Son intitulé sous le codec de son espace ; « Élément disparu » si illisible. */
+    label: z.string(),
+    /** Pourquoi elle ne peut pas suivre, dit à la place de l'utilisateur. */
+    reason: z.string()
+});
+export type ItemMoveDependency = z.infer<typeof itemMoveDependencySchema>;
+
+/**
+ * Ce qu'un déplacement ferait, calculé sans rien écrire. C'est le contenu du
+ * popup de confirmation : ce qui l'empêche, ce qu'il détruit, ce qu'il emmène.
+ */
+export const itemMovePreviewSchema = z.object({
+    workspaceId: z.number().int().positive(),
+    workspaceName: z.string(),
+    /** L'espace d'origine, nommé : la phrase du popup le cite. */
+    homeWorkspaceName: z.string(),
+    /**
+     * L'origine est un espace partagé : ses autres membres perdront l'accès.
+     * Dit plutôt que gardé, la suppression n'exigeant pas davantage.
+     */
+    losesSharedAccess: z.boolean(),
+    /** Vide = le déplacement est possible. Sinon la première phrase est le motif affiché. */
+    blockers: z.array(z.string()),
+    /** Ce qui sera détruit ou retiré, nommé : projections, restrictions, historique. */
+    drops: z.array(z.string()),
+    /** Cellules chiffrées à convertir, pour annoncer l'ampleur plutôt que faire attendre. */
+    rows: z.number().int().nonnegative(),
+    /** Les liaisons rompues, nommées une par une. */
+    dependencies: z.array(itemMoveDependencySchema)
+});
+export type ItemMovePreview = z.infer<typeof itemMovePreviewSchema>;
 
 /**
  * Ce qu'un rôle peut faire sur un élément, **en surcharge** de ce que la

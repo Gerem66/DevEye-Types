@@ -875,15 +875,10 @@ export interface SdkMovePlan {
 export interface FeatureItemsMove<Repo = unknown> {
     /**
      * Everything the confirmation must say, and every refusal, with the item
-     * still at home. Called with both workspaces: answer for that target, a
-     * name collision being decidable only against it.
+     * still at home and nothing written yet. Answer for THAT target: a name
+     * collision or a missing source is decidable only against it.
      */
-    plan(
-        repo: Repo,
-        itemId: string,
-        fromWorkspaceId: number,
-        toWorkspaceId: number
-    ): Promise<SdkMovePlan>;
+    plan(ctx: FeatureItemsMovePlanContext<Repo>): Promise<SdkMovePlan>;
     /**
      * Re-home the item: `workspace_id` on every row it owns, and every
      * encrypted cell read with `ciphers.from` and written with `ciphers.to`.
@@ -894,6 +889,16 @@ export interface FeatureItemsMove<Repo = unknown> {
      * Projects module is the reference implementation.
      */
     apply(ctx: FeatureItemsMoveContext<Repo>): Promise<void>;
+}
+
+/** The handles {@link FeatureItemsMove.plan} works with. Reads only. */
+export interface FeatureItemsMovePlanContext<Repo = unknown> {
+    /** Not transactional: planning writes nothing. {@link countMovableCells} takes it. */
+    q: SdkQueryable;
+    repo: Repo;
+    itemId: string;
+    fromWorkspaceId: number;
+    toWorkspaceId: number;
 }
 
 /** The handles {@link FeatureItemsMove.apply} works with. */
@@ -911,6 +916,105 @@ export interface FeatureItemsMoveContext<Repo = unknown> {
     toWorkspaceId: number;
     /** The open ciphers of the two workspaces: decrypt with `from`, seal with `to`. */
     ciphers: { from: SdkCipher; to: SdkCipher };
+}
+
+/**
+ * One column of encrypted text hanging off an item, for {@link resealCells}.
+ *
+ * ⚠️ The list you build out of these is held BY HAND: an encrypted column left
+ * out of it stays under the old key and becomes unreadable, and nothing can
+ * detect it, one encrypted blob being indistinguishable from another. Revisit
+ * it whenever you add an encrypted column.
+ */
+export interface MovableCell {
+    table: string;
+    /** Identifying column of the row, to rewrite exactly one. */
+    idColumn: string;
+    /** Column tying the row to the item. */
+    ownerColumn: string;
+    column: string;
+    /**
+     * For a row hanging off the item INDIRECTLY: a SQL subquery selecting the
+     * `ownerColumn` values that belong to it, taking the item's id as its only
+     * `?` (a mail account's messages hang off its folders:
+     * `SELECT id FROM mail_folders WHERE account_id = ?`).
+     *
+     * Interpolated into the query, so it must be a literal written in your
+     * module, exactly like `table` and `column`. Never build it from input.
+     */
+    ownerScope?: string;
+}
+
+/** `WHERE` fragment tying a cell's rows to the item, subquery included. */
+function ownerFilter(cell: MovableCell): string {
+    return cell.ownerScope
+        ? `${cell.ownerColumn} IN (${cell.ownerScope})`
+        : `${cell.ownerColumn} = ?`;
+}
+
+/** How many cells {@link resealCells} would convert: a `plan`'s `rows`. */
+export async function countMovableCells(
+    q: SdkQueryable,
+    cells: readonly MovableCell[],
+    ownerId: string | number
+): Promise<number> {
+    let total = 0;
+    for (const cell of cells) {
+        const rows = await q.query<{ n: number }>(
+            `SELECT COUNT(*) AS n FROM ${cell.table}
+              WHERE ${ownerFilter(cell)} AND ${cell.column} IS NOT NULL AND ${cell.column} <> ''`,
+            [ownerId]
+        );
+        total += Number(rows[0]?.n ?? 0);
+    }
+    return total;
+}
+
+/**
+ * Re-seals every encrypted cell of an item from one workspace's key to
+ * another's, for a `move`'s `apply`.
+ *
+ * Reads and converts EVERYTHING before the first write, and throws before
+ * writing anything if one cell resists: half a converted tree is unreadable
+ * forever. Call it before you change the item's `workspace_id`, so a failure
+ * leaves the item where it was.
+ */
+export async function resealCells(
+    q: SdkQueryable,
+    cells: readonly MovableCell[],
+    ownerId: string | number,
+    ciphers: { from: SdkCipher; to: SdkCipher }
+): Promise<number> {
+    const pending: { cell: MovableCell; id: string | number; value: string }[] = [];
+    for (const cell of cells) {
+        // A cell that is empty has nothing to convert, and that is the common
+        // case for an error message or an optional body.
+        const rows = await q.query<{ row_id: string | number; value: string }>(
+            `SELECT ${cell.idColumn} AS row_id, ${cell.column} AS value FROM ${cell.table}
+              WHERE ${ownerFilter(cell)} AND ${cell.column} IS NOT NULL AND ${cell.column} <> ''`,
+            [ownerId]
+        );
+        for (const row of rows) {
+            const plain = await ciphers.from.tryDecrypt(String(row.value));
+            if (plain === null) {
+                throw new FeatureError(
+                    'internal',
+                    `Une ligne de ${cell.table} est illisible : déplacement annulé, rien n’a été modifié.`
+                );
+            }
+            pending.push({ cell, id: row.row_id, value: await ciphers.to.encrypt(plain) });
+        }
+    }
+
+    for (const { cell, id, value } of pending) {
+        // La garde du propriétaire dans le `WHERE` même quand l'identifiant
+        // suffit : une conversion ne peut alors pas déborder sur un voisin.
+        await q.execute(
+            `UPDATE ${cell.table} SET ${cell.column} = ? WHERE ${cell.idColumn} = ? AND ${ownerFilter(cell)}`,
+            [value, id, ownerId]
+        );
+    }
+    return pending.length;
 }
 
 // Le conteneur chiffré que CloudSync et Backup partagent (voir `devb.ts`).

@@ -204,6 +204,21 @@ export interface WorkspaceRoleRow {
 }
 
 /**
+ * Une surcharge d'élément, du point de vue de l'appelant : ce que CE rôle-là
+ * obtient sur cette ligne, en remplacement de ce que la fonctionnalité donne.
+ */
+export const itemGrantOverrideSchema = z.object({
+    feature: featureIdSchema,
+    itemId: z.string().min(1).max(64),
+    /** `null` : le niveau suit la fonctionnalité, seules les permissions changent. */
+    access: z.enum(['none', 'read', 'write']).nullable(),
+    /** `true` accorde, `false` retire ; une clé absente suit la fonctionnalité. */
+    extras: z.record(z.string().max(24), z.boolean()).default({})
+});
+
+export type ItemGrantOverride = z.infer<typeof itemGrantOverrideSchema>;
+
+/**
  * Droits effectifs de l'appelant dans l'espace actif, tels que le client les
  * reçoit pour n'afficher que ce qui est réellement accessible.
  *
@@ -213,7 +228,15 @@ export interface WorkspaceRoleRow {
 export const workspacePermissionsSchema = z.object({
     isOwner: z.boolean(),
     capabilities: z.array(workspaceCapabilitySchema),
-    features: z.array(workspaceFeatureGrantSchema)
+    features: z.array(workspaceFeatureGrantSchema),
+    /**
+     * Les surcharges posées sur des éléments précis pour le rôle de l'appelant.
+     * Elles voyagent avec ses droits parce que l'interface en a besoin élément
+     * par élément — griser le terminal d'UNE machine, ouvrir l'écriture sur une
+     * autre — et que `features` seule ne peut pas y répondre. Seules les
+     * exceptions y figurent ; l'absence vaut « comme la fonctionnalité ».
+     */
+    itemOverrides: z.array(itemGrantOverrideSchema).default([])
 });
 
 export type WorkspacePermissions = z.infer<typeof workspacePermissionsSchema>;

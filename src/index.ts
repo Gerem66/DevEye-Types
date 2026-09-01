@@ -440,6 +440,7 @@ export type {
     ExternalFeatureId,
     FeatureAccess,
     FeatureId,
+    ItemGrantOverride,
     WorkspaceCapability,
     WorkspaceFeatureGrant,
     WorkspaceFeatureId,

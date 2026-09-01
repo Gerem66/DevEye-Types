@@ -416,10 +416,12 @@ declare module 'deveye-sdk-client' {
     export function useWorkspacePermissions(): {
         isOwner: boolean;
         can: (c: WorkspaceCapability) => boolean;
-        canFeature: (f: FeatureId, level?: FeatureAccess) => boolean;
+        /** `itemId` répond pour CET élément, surcharge comprise. */
+        canFeature: (f: FeatureId, level?: FeatureAccess, itemId?: string) => boolean;
         canChannels: (f: FeatureId) => boolean;
         canManageItemGrants: (f: FeatureId) => boolean;
-        canExtra: (f: FeatureId, key: string) => boolean;
+        /** `itemId` répond pour CET élément, surcharge comprise. */
+        canExtra: (f: FeatureId, key: string, itemId?: string) => boolean;
         extraValue: (
             f: FeatureId,
             key: string,

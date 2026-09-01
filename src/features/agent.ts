@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { deviceSchema, terminalUser } from '../domain/device';
 import { fileMutateOpSchema, fileSearchFilterSchema } from '../domain/deviceFiles';
+import { containerEngineSchema, dockerActionSchema } from '../domain/deviceDocker';
 import {
     deviceLogAnchorSchema,
     deviceLogFilterSchema,
@@ -133,6 +134,49 @@ export const agentListPackages = {
 export const agentUpgradePackages = {
     command: 'agent.upgradePackages' as const,
     input: z.object({ deviceId, manager: packageManagerIdSchema }),
+    output: z.object({ ok: z.boolean() })
+};
+
+/**
+ * Ask the agent for its container inventory (containers, images, volumes,
+ * networks, plus which engines answered). Needs the `docker` permission on
+ * Appareils + agent online. The command only acknowledges; the inventory
+ * arrives as a `device.dockerInventory` push event (the caller must be
+ * subscribed to the device).
+ */
+export const agentDockerInventory = {
+    command: 'agent.dockerInventory' as const,
+    input: z.object({ deviceId }),
+    output: z.object({ ok: z.boolean() })
+};
+
+/**
+ * Ask the agent for a one-shot resource sample of the running containers. The
+ * panel polls it while it is open; nothing is stored, the series lives in the
+ * browser. Streams back as `device.dockerStats`.
+ */
+export const agentDockerStats = {
+    command: 'agent.dockerStats' as const,
+    input: z.object({ deviceId }),
+    output: z.object({ ok: z.boolean() })
+};
+
+/**
+ * Act on a container, image, volume or network. `opId` correlates the streamed
+ * output (`device.dockerProgress`) and the outcome (`device.dockerDone`) back
+ * to this request. The long actions (pull, recreate, the prunes) take a
+ * per-device lock: a second one is refused while the first runs.
+ */
+export const agentDockerAction = {
+    command: 'agent.dockerAction' as const,
+    input: z.object({
+        deviceId,
+        opId: z.string().min(1).max(64),
+        engine: containerEngineSchema,
+        action: dockerActionSchema,
+        /** L'identifiant de la cible ; nul pour les nettoyages, qui n'en ont pas. */
+        target: z.string().max(512).nullable().optional()
+    }),
     output: z.object({ ok: z.boolean() })
 };
 
@@ -295,6 +339,9 @@ export const agentCommands = [
     agentElevate,
     agentDropPrivileges,
     agentUpdate,
+    agentDockerInventory,
+    agentDockerStats,
+    agentDockerAction,
     agentListPackages,
     agentUpgradePackages,
     agentLogSources,

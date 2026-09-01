@@ -27,6 +27,12 @@ import {
     deviceLogLineSchema,
     deviceLogSourceSchema
 } from '../domain/deviceLogs';
+import {
+    containerEngineSchema,
+    dockerActionSchema,
+    dockerInventorySchema,
+    dockerStatSchema
+} from '../domain/deviceDocker';
 import { metricsBatchSchema, metricSnapshotSchema } from '../domain/metrics';
 import { packageManagerIdSchema, packageManagerSchema } from '../domain/packages';
 import {
@@ -126,6 +132,43 @@ export const agentPkgDonePayloadSchema = z.object({
     manager: packageManagerIdSchema,
     ok: z.boolean(),
     rebootRequired: z.boolean().optional(),
+    error: z.string().max(500).optional()
+});
+
+/** Agent's reply to `docker.inventory`: the host's whole container inventory. */
+export const AGENT_DOCKER_INVENTORY_RESULT = 'docker.inventoryResult' as const;
+
+export const agentDockerInventoryResultPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    inventory: dockerInventorySchema
+});
+
+/** Agent's reply to `docker.stats`: a one-shot resource sample per running container. */
+export const AGENT_DOCKER_STATS_RESULT = 'docker.statsResult' as const;
+
+export const agentDockerStatsResultPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    stats: z.array(dockerStatSchema)
+});
+
+/** Live output line of a long `docker.action` (pull, prune, recreate). */
+export const AGENT_DOCKER_PROGRESS = 'docker.progress' as const;
+
+export const agentDockerProgressPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    /** Correlates back to the originating `docker.action` (echoed verbatim). */
+    opId: z.string().max(64),
+    line: z.string().max(2000)
+});
+
+/** Final outcome of a `docker.action`. */
+export const AGENT_DOCKER_DONE = 'docker.done' as const;
+
+export const agentDockerDonePayloadSchema = z.object({
+    deviceId: z.uuid(),
+    opId: z.string().max(64),
+    action: dockerActionSchema,
+    ok: z.boolean(),
     error: z.string().max(500).optional()
 });
 
@@ -449,6 +492,22 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
         payload: agentPowerResultPayloadSchema
     }),
     z.object({
+        command: z.literal(AGENT_DOCKER_INVENTORY_RESULT),
+        payload: agentDockerInventoryResultPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_DOCKER_STATS_RESULT),
+        payload: agentDockerStatsResultPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_DOCKER_PROGRESS),
+        payload: agentDockerProgressPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_DOCKER_DONE),
+        payload: agentDockerDonePayloadSchema
+    }),
+    z.object({
         command: z.literal(AGENT_LOG_SOURCES_RESULT),
         payload: agentLogSourcesResultPayloadSchema
     }),
@@ -573,6 +632,28 @@ export const AGENT_PKG_UPGRADE = 'pkg.upgrade' as const;
 
 export const agentPkgUpgradePayloadSchema = z.object({ manager: packageManagerIdSchema });
 export type AgentPkgUpgradePayload = z.infer<typeof agentPkgUpgradePayloadSchema>;
+
+/** Ask the agent for its container inventory (`docker.inventoryResult`). */
+export const AGENT_DOCKER_INVENTORY = 'docker.inventory' as const;
+
+/** Ask the agent for a one-shot resource sample of the running containers. */
+export const AGENT_DOCKER_STATS = 'docker.stats' as const;
+
+/**
+ * Ask the agent to act on a container, image, volume or network. `opId`
+ * correlates the streamed output and the outcome back to this order. `target`
+ * is the object's own identifier, and it is the ONLY caller-supplied value that
+ * reaches a command line; the untargeted actions (the prunes) carry none.
+ */
+export const AGENT_DOCKER_ACTION = 'docker.action' as const;
+
+export const agentDockerActionPayloadSchema = z.object({
+    opId: z.string().min(1).max(64),
+    engine: containerEngineSchema,
+    action: dockerActionSchema,
+    target: z.string().max(512).nullable()
+});
+export type AgentDockerActionPayload = z.infer<typeof agentDockerActionPayloadSchema>;
 
 /** Ask the agent to perform a system power action (`agent.powerResult` reports the outcome). */
 export const AGENT_POWER = 'agent.power' as const;
@@ -944,6 +1025,18 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
         payload: agentPkgUpgradePayloadSchema
     }),
     z.object({
+        command: z.literal(AGENT_DOCKER_INVENTORY),
+        payload: z.object({})
+    }),
+    z.object({
+        command: z.literal(AGENT_DOCKER_STATS),
+        payload: z.object({})
+    }),
+    z.object({
+        command: z.literal(AGENT_DOCKER_ACTION),
+        payload: agentDockerActionPayloadSchema
+    }),
+    z.object({
         command: z.literal(AGENT_POWER),
         payload: agentPowerPayloadSchema
     }),
@@ -1043,6 +1136,11 @@ export const DEVICE_POWER_EVENT = 'device.powerResult' as const;
  * subscribers exactly like the power result.
  */
 export const DEVICE_SERVICE_EVENT = 'device.serviceResult' as const;
+/** Container inventory, live stats sample, and action progress/outcome. */
+export const DEVICE_DOCKER_INVENTORY_EVENT = 'device.dockerInventory' as const;
+export const DEVICE_DOCKER_STATS_EVENT = 'device.dockerStats' as const;
+export const DEVICE_DOCKER_PROGRESS_EVENT = 'device.dockerProgress' as const;
+export const DEVICE_DOCKER_DONE_EVENT = 'device.dockerDone' as const;
 /** Device log sources inventory + queried log lines, fanned to subscribers. */
 export const DEVICE_LOG_SOURCES_EVENT = 'device.logSources' as const;
 export const DEVICE_LOG_LINES_EVENT = 'device.logLines' as const;
@@ -1080,6 +1178,17 @@ export const packageProgressPushSchema = agentPkgProgressPayloadSchema;
 export const packageDonePushSchema = agentPkgDonePayloadSchema;
 export const devicePowerPushSchema = agentPowerResultPayloadSchema;
 export const deviceServicePushSchema = agentServiceResultPayloadSchema;
+/**
+ * L'inventaire, enrichi par le serveur de ce que l'agent ignore : l'action
+ * longue déjà en cours sur cet appareil. Sans ce champ, un second écran
+ * relancerait le même `prune`.
+ */
+export const deviceDockerInventoryPushSchema = agentDockerInventoryResultPayloadSchema.extend({
+    running: z.string().max(64).nullable().default(null)
+});
+export const deviceDockerStatsPushSchema = agentDockerStatsResultPayloadSchema;
+export const deviceDockerProgressPushSchema = agentDockerProgressPayloadSchema;
+export const deviceDockerDonePushSchema = agentDockerDonePayloadSchema;
 export const deviceLogSourcesPushSchema = agentLogSourcesResultPayloadSchema;
 export const deviceLogLinesPushSchema = agentLogLinesPayloadSchema;
 export const deviceTermOutputPushSchema = agentTermOutputPayloadSchema;
@@ -1104,6 +1213,11 @@ export const cloudSyncChunkPushSchema = z.object({
 export type CloudSyncProgressPush = z.infer<typeof cloudSyncProgressPushSchema>;
 export type CloudSyncStatePush = z.infer<typeof cloudSyncStatePushSchema>;
 export type CloudSyncChunkPush = z.infer<typeof cloudSyncChunkPushSchema>;
+
+export type DeviceDockerInventoryPush = z.infer<typeof deviceDockerInventoryPushSchema>;
+export type DeviceDockerStatsPush = z.infer<typeof deviceDockerStatsPushSchema>;
+export type DeviceDockerProgressPush = z.infer<typeof deviceDockerProgressPushSchema>;
+export type DeviceDockerDonePush = z.infer<typeof deviceDockerDonePushSchema>;
 
 export type PackageListPush = z.infer<typeof packageListPushSchema>;
 export type PackageStartedPush = z.infer<typeof packageStartedPushSchema>;

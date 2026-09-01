@@ -60,7 +60,7 @@ export type ExtraPermissionSpec =
       };
 
 /** Hard cap on `extraPermissions`: keeps role editors legible. */
-export const MAX_EXTRA_PERMISSIONS = 4;
+export const MAX_EXTRA_PERMISSIONS = 10;
 
 const EXTRA_KEY_PATTERN = /^[a-z][a-zA-Z0-9]{1,23}$/;
 

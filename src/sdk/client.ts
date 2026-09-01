@@ -49,6 +49,19 @@ export interface FeatureClient {
     /** The full view, opened when the card expands. */
     Full: ComponentType<FeatureViewProps>;
     /**
+     * The vignette shown on your card in the home grid's add market and on
+     * your "About" sheet. Without one, the host draws a neutral module mark:
+     * a card with no vignette among cards that have one reads as broken.
+     *
+     * Return SVG CHILDREN, not an `<svg>`: the host supplies the frame, a
+     * 160 x 90 viewBox with the useful area at x 16 to 144 centred on y 45, so
+     * every vignette shares one set of margins. Colour with the theme's CSS
+     * variables (`var(--accent)`, `var(--text-muted)`), never a literal: an
+     * accent colour is per-workspace, and a hardcoded one ignores the theme.
+     * Draw the SHAPE of your screen, not your icon enlarged.
+     */
+    Art?: ComponentType;
+    /**
      * Panels for the manifest's settings tabs that need one: `'general'`,
      * `'sources'`, `'encryption'`, and any custom tab id. Generic tabs
      * (`'notifications'`, `'permissions'`) need no panel.

@@ -26,6 +26,15 @@ export const devicePlatformSchema = z.enum(['linux', 'macos', 'windows']);
 export type DevicePlatform = z.infer<typeof devicePlatformSchema>;
 
 /**
+ * OS account a terminal session opens under. Restricted to safe username
+ * characters (no shell metacharacters), since it reaches a `su` on the device.
+ */
+export const terminalUser = z
+    .string()
+    .regex(/^[A-Za-z0-9._-]+$/, 'Nom d’utilisateur invalide')
+    .max(32);
+
+/**
  * Client-facing device. Secrets (token hash, public key) are never exposed.
  * `online` is live presence, derived from an active agent connection.
  */
@@ -69,6 +78,16 @@ export const deviceSchema = z.object({
      * presence *and* processes expire together. Null → server default.
      */
     retentionDays: z.number().int().positive().nullable().default(null),
+    /**
+     * Account new terminal sessions open under (`su -l`); null → the account the
+     * agent itself runs as.
+     */
+    terminalDefaultUser: terminalUser.nullable().default(null),
+    /**
+     * On shell exit: `true` closes the terminal straight away, `false` keeps it
+     * open with a "Relancer"/"Fermer" banner.
+     */
+    terminalCloseOnExit: z.boolean().default(true),
     /**
      * Seen from a workspace it was projected into, not the one it was paired
      * in: read-only marks and a "shared" badge hang on it.
@@ -119,6 +138,10 @@ export interface DeviceRow {
     process_capture: string | null;
     /** History retention in days (metrics, presence, processes); null → server default. */
     retention_days: number | null;
+    /** Account terminal sessions open under; null → the agent's own account. */
+    terminal_default_user: string | null;
+    /** 1 = closing the shell closes the terminal, 0 = it stays open on a banner. */
+    terminal_close_on_exit: number;
     /** Status to restore if a pending deletion is cancelled; null otherwise. */
     status_before_delete: string | null;
     /** Last self-destruct failure message (deletion aborted); null otherwise. */

@@ -459,7 +459,8 @@ export {
     DEFAULT_RETENTION_DAYS,
     devicePlatformSchema,
     deviceSchema,
-    deviceStatusSchema
+    deviceStatusSchema,
+    terminalUser
 } from './domain/device';
 export type { Device, DevicePlatform, DeviceRow, DeviceStatus } from './domain/device';
 export { packageManagerIdSchema, packageManagerSchema } from './domain/packages';
@@ -686,8 +687,7 @@ export {
     agentTermResize,
     agentUnsubscribe,
     agentUpdate,
-    agentUpgradePackages,
-    terminalUser
+    agentUpgradePackages
 } from './features/agent';
 export {
     notifyChannelAdd,

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { deviceSchema } from '../domain/device';
+import { deviceSchema, terminalUser } from '../domain/device';
 import { fileMutateOpSchema, fileSearchFilterSchema } from '../domain/deviceFiles';
 import {
     deviceLogAnchorSchema,
@@ -49,7 +49,8 @@ export const agentCollect = {
 
 /**
  * Run a system power action on the device (shutdown / reboot / suspend / hibernate
- * / lock). Owner-or-admin; the agent must be online. The command only acknowledges
+ * / lock). Needs the `system` permission on Appareils; the agent must be online.
+ * The command only acknowledges
  * the request — the agent applies it best-effort and the outcome streams back as a
  * `device.powerResult` push event (the caller must be subscribed to the device).
  */
@@ -63,8 +64,8 @@ export const agentPower = {
  * Stop or cleanly restart the agent process on the device (not the machine).
  * `stop`: a supervised agent is relaunched by its manager, a standalone one
  * stays offline until relaunched on the machine. `restart`: exit-and-relaunch.
- * Owner-or-admin; the agent must be online. Fire-and-forget: the outcome is
- * observed through presence.
+ * Needs `devices: write`; the agent must be online. Fire-and-forget: the outcome
+ * is observed through presence.
  */
 export const agentLifecycle = {
     command: 'agent.lifecycle' as const,
@@ -137,7 +138,8 @@ export const agentUpgradePackages = {
 
 /**
  * Ask the agent to enumerate the log sources present on the device (system journal,
- * Docker containers, log files…). Owner-or-admin + agent online. The command only
+ * Docker containers, log files…). Needs the `logs` permission on Appareils +
+ * agent online. The command only
  * acknowledges; the list arrives as a `device.logSources` push event (the caller
  * must be subscribed to the device).
  */
@@ -177,16 +179,8 @@ const rows = z.number().int().min(1).max(2000);
 /** Base64-encoded terminal bytes, capped per frame (~1.5 MB). */
 const termData = z.string().max(2_000_000);
 /**
- * Optional OS account to open the session under. Restricted to safe username
- * characters (no shell metacharacters), since it reaches a `su` on the device.
- */
-export const terminalUser = z
-    .string()
-    .regex(/^[A-Za-z0-9._-]+$/, 'Nom d’utilisateur invalide')
-    .max(32);
-
-/**
- * Open an interactive terminal (PTY) on the device. Owner-or-admin + agent online.
+ * Open an interactive terminal (PTY) on the device. Needs the `terminal`
+ * permission on Appareils + agent online.
  * `sessionId` is client-generated and ties every later input/resize/close and the
  * streamed `device.termOutput` / `device.termExit` push events together (the caller
  * must be subscribed). `user` runs the shell under that account (`su -l`); omitted
@@ -224,7 +218,8 @@ const opId = z.string().min(1).max(64);
 const path = z.string().min(1).max(4096);
 
 /**
- * List a directory. Owner-or-admin + agent online. The listing arrives as a
+ * List a directory. Needs the `files` permission on Appareils + agent online.
+ * The listing arrives as a
  * `device.filesListing` push event keyed by `opId` (the caller must be subscribed).
  */
 export const agentFilesList = {

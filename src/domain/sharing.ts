@@ -92,7 +92,15 @@ export const itemRoleGrantViewSchema = z.object({
      */
     featureAccess: z.enum(['none', 'read', 'write']),
     /** L'exception posée sur cet élément, ou `null` : « comme la fonctionnalité ». */
-    access: itemAccessSchema.nullable()
+    access: itemAccessSchema.nullable(),
+    /**
+     * Les permissions propres que le rôle tient sur la **fonctionnalité** :
+     * l'autre plafond. Une clé absente d'ici ne se refuse pas sur un élément,
+     * elle est déjà fermée partout.
+     */
+    featureExtras: z.array(z.string().max(24)).default([]),
+    /** Celles que cet élément-ci refuse au rôle, sous-ensemble de `featureExtras`. */
+    deniedExtras: z.array(z.string().max(24)).default([])
 });
 export type ItemRoleGrantView = z.infer<typeof itemRoleGrantViewSchema>;
 
@@ -100,6 +108,13 @@ export type ItemRoleGrantView = z.infer<typeof itemRoleGrantViewSchema>;
 export const itemGrantStateSchema = z.object({
     workspaceId: z.number().int().positive(),
     workspaceName: z.string(),
+    /**
+     * Les permissions propres de la fonctionnalité qui se refusent élément par
+     * élément, intitulés compris : les booléens seulement. Un choix borné n'a
+     * pas d'ordre que le socle connaisse, donc pas de « moins que » à poser ici,
+     * et reste réglé à l'échelle de la fonctionnalité.
+     */
+    extras: z.array(z.object({ key: z.string().max(24), label: z.string() })).default([]),
     roles: z.array(itemRoleGrantViewSchema)
 });
 export type ItemGrantState = z.infer<typeof itemGrantStateSchema>;
@@ -146,7 +161,10 @@ export interface ItemRoleGrantRow {
     feature: string;
     item_id: string;
     role_id: number;
-    access: ItemAccess;
+    /** `null` quand la ligne n'existe que pour des permissions refusées. */
+    access: ItemAccess | null;
+    /** Tableau JSON des clés refusées sur cet élément ; `null` ou `[]` = aucune. */
+    denied_extras: string | null;
 }
 
 export { featureAccessSchema };

@@ -66,10 +66,25 @@ declare module 'deveye-sdk-client' {
         value: T;
         options: readonly { value: T; label: string; title?: string }[];
         onChange: (value: T) => void;
+        /** Étire le groupe sur la ligne, chaque choix en prenant une part égale. */
+        fullWidth?: boolean;
         className?: string;
         'aria-label'?: string;
         disabled?: boolean;
     }): ReactNode;
+    /**
+     * Le bouton d'enregistrement d'un panneau de réglages : « Enregistrement… »
+     * pendant l'aller-retour, « Enregistré » quelques secondes, puis l'intitulé
+     * de départ. Les erreurs restent au panneau, elles ne s'effacent pas seules.
+     */
+    export const SaveButton: ComponentType<{
+        onSave: () => Promise<unknown> | unknown;
+        children?: string;
+        disabled?: boolean;
+        variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+        icon?: string;
+        title?: string;
+    }>;
     export const Dialog: ComponentType<{
         open: boolean;
         onClose: () => void;

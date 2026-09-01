@@ -605,6 +605,7 @@ export {
     allFeatureDescriptors,
     featureDescriptor,
     featureLabel,
+    itemNounForms,
     maybeFeatureDescriptor,
     registerExternalFeature
 } from './domain/featureRegistry';

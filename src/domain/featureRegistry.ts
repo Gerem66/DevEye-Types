@@ -40,6 +40,13 @@ export interface FeatureDescriptor {
      */
     itemNoun?: string;
     /**
+     * Le genre de `itemNoun`, sans quoi les intitulés qui le précèdent d'un
+     * déterminant ne peuvent pas s'accorder (« cette note » contre « cet
+     * appareil »). Masculin par défaut : c'est le cas le plus courant, et un
+     * module qui l'omet lit au moins juste la moitié du temps.
+     */
+    itemNounGender?: 'm' | 'f';
+    /**
      * Les sources de la fonctionnalité : des réglages d'espace réutilisables
      * (un jeton, une destination) que chaque élément ne fait que désigner.
      * Ouvre l'onglet « Sources » à l'échelle de la fonctionnalité, seul endroit
@@ -117,6 +124,7 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         notifies: false,
         hasItems: true,
         itemNoun: 'note',
+        itemNounGender: 'f',
         shareTier: 'perItem'
     },
     {
@@ -183,6 +191,7 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         notifies: true,
         hasItems: true,
         itemNoun: 'cible',
+        itemNounGender: 'f',
         sources: {
             hint: 'Les accès Dokploy de l’espace (adresse de l’instance et clé d’API). Chaque cible en désigne un ; corriger un accès corrige d’un coup toutes les cibles qui s’en servent.'
         },
@@ -197,6 +206,7 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         notifies: true,
         hasItems: true,
         itemNoun: 'base',
+        itemNounGender: 'f',
         shareTier: 'open'
     },
     {
@@ -307,6 +317,57 @@ export function maybeFeatureDescriptor(id: FeatureId): FeatureDescriptor | undef
 /** L'intitulé seul — le besoin de très loin le plus courant. */
 export function featureLabel(id: FeatureId): string {
     return featureDescriptor(id).label;
+}
+
+/**
+ * Élision devant voyelle ou h muet. Le `h` aspiré ferait exception, mais aucun
+ * nom d'élément n'en commence, et un module qui en introduirait un lirait mal
+ * une fois plutôt que de faire porter le doute à tous les autres.
+ */
+function elides(noun: string): boolean {
+    const first = noun
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .charAt(0)
+        .toLowerCase();
+    return 'aeiouyh'.includes(first);
+}
+
+function capitalise(s: string): string {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/**
+ * Le nom d'un élément décliné, pour les intitulés qui le précèdent d'un
+ * déterminant : « cet appareil », « cette note », « le dépôt ». Sans ces
+ * formes, une phrase écrite une fois pour toutes lit faux dès que le nom
+ * change de genre ou commence par une voyelle. Le repli est « élément »,
+ * masculin, comme le mot lui-même.
+ */
+export function itemNounForms(id: FeatureId): {
+    /** « appareil » */
+    noun: string;
+    /** « cet appareil » */
+    dem: string;
+    /** « Cet appareil » */
+    Dem: string;
+    /** « l'appareil » */
+    def: string;
+    /** « L'appareil » */
+    Def: string;
+    /** « de l'appareil » */
+    ofThe: string;
+} {
+    const d = maybeFeatureDescriptor(id);
+    const noun = d?.itemNoun ?? 'élément';
+    const feminine = (d?.itemNounGender ?? 'm') === 'f';
+    const vowel = elides(noun);
+
+    const dem = feminine ? `cette ${noun}` : vowel ? `cet ${noun}` : `ce ${noun}`;
+    const def = vowel ? `l\u2019${noun}` : `${feminine ? 'la' : 'le'} ${noun}`;
+    const ofThe = vowel ? `de l\u2019${noun}` : feminine ? `de la ${noun}` : `du ${noun}`;
+
+    return { noun, dem, Dem: capitalise(dem), def, Def: capitalise(def), ofThe };
 }
 
 /**

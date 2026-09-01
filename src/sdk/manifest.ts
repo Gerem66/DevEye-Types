@@ -184,6 +184,12 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
     hasItems: boolean;
     /** Singular noun for item-scope screen titles. Required when `hasItems`. */
     itemNoun?: string;
+    /**
+     * Its gender, without which the French titles that precede it with a
+     * determiner cannot agree (« cette cible » against « ce dépôt »).
+     * Masculine by default.
+     */
+    itemNounGender?: 'm' | 'f';
     /** Feature-scope reusable settings (API keys, destinations). Opens the Sources tab. */
     sources?: { hint: string };
     /**
@@ -416,6 +422,7 @@ export function externalDescriptorOf(
         notifies: m.notifies,
         hasItems: m.hasItems,
         itemNoun: m.itemNoun,
+        itemNounGender: m.itemNounGender,
         sources: m.sources,
         shareTier: m.shareTier
     };

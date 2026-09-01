@@ -29,6 +29,8 @@ import type {
     CloudSyncStatePush
 } from '../protocol/agent';
 
+export { isPublicIp, isSafePublicUrl } from './net';
+
 /**
  * Server-side SDK surface: what a feature module's handlers and background
  * service are given, and nothing else.

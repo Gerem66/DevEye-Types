@@ -41,7 +41,12 @@ test('validateManifest rejects the classic mistakes', () => {
 
 test('externalDescriptorOf projects the identity fields only, and refuses a native id', () => {
     assert.deepEqual(
-        externalDescriptorOf({ ...base, itemNoun: 'thing', sources: { hint: 'keys' } }),
+        externalDescriptorOf({
+            ...base,
+            itemNoun: 'thing',
+            itemNounGender: 'f',
+            sources: { hint: 'keys' }
+        }),
         {
             id: 'x-demo',
             label: 'Demo',
@@ -50,6 +55,7 @@ test('externalDescriptorOf projects the identity fields only, and refuses a nati
             notifies: false,
             hasItems: false,
             itemNoun: 'thing',
+            itemNounGender: 'f',
             sources: { hint: 'keys' },
             shareTier: 'never'
         }

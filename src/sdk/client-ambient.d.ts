@@ -418,6 +418,7 @@ declare module 'deveye-sdk-client' {
         can: (c: WorkspaceCapability) => boolean;
         canFeature: (f: FeatureId, level?: FeatureAccess) => boolean;
         canChannels: (f: FeatureId) => boolean;
+        canManageItemGrants: (f: FeatureId) => boolean;
         canExtra: (f: FeatureId, key: string) => boolean;
         extraValue: (
             f: FeatureId,

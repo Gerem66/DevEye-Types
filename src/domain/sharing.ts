@@ -62,12 +62,16 @@ export const itemShareStateSchema = z.object({
 export type ItemShareState = z.infer<typeof itemShareStateSchema>;
 
 /**
- * Ce qu'un rôle peut faire sur un élément. Restrictif seulement : `none` ou
- * `read` abaissent ce que le rôle a sur la fonctionnalité, jamais l'inverse ;
- * le droit de feature reste le plafond, et l'écran des rôles dit à lui seul
- * qui voit quoi.
+ * Ce qu'un rôle peut faire sur un élément, **en surcharge** de ce que la
+ * fonctionnalité lui donne : `none` masque, `read` passe en lecture seule,
+ * `write` ouvre l'écriture à un rôle qui ne l'a qu'en lecture ailleurs.
+ *
+ * Un plancher demeure : sans au moins la LECTURE sur la fonctionnalité, aucun
+ * élément n'existe pour le rôle et rien ne se surcharge. C'est ce qui garde à
+ * l'écran des rôles sa réponse à « qui a accès à Uptime ? » ; sous ce plancher,
+ * il faudrait parcourir tous les éléments de l'espace pour le savoir.
  */
-export const itemAccessSchema = z.enum(['none', 'read']);
+export const itemAccessSchema = z.enum(['none', 'read', 'write']);
 export type ItemAccess = z.infer<typeof itemAccessSchema>;
 
 export const itemRoleGrantSchema = z.object({
@@ -75,6 +79,15 @@ export const itemRoleGrantSchema = z.object({
     /** Absent de la liste = le rôle garde ce que la fonctionnalité lui donne. */
     access: itemAccessSchema
 });
+
+/**
+ * Les permissions propres surchargées sur un élément : `true` accorde, `false`
+ * retire, une clé absente suit la fonctionnalité. Les deux sens, contrairement
+ * au niveau d'antan : confier le terminal sur UNE machine à un rôle qui ne l'a
+ * pas partout est le cas qui a fait sauter la règle du « restrictif seulement ».
+ */
+export const itemExtraOverridesSchema = z.record(z.string().max(24), z.boolean());
+export type ItemExtraOverrides = z.infer<typeof itemExtraOverridesSchema>;
 export type ItemRoleGrant = z.infer<typeof itemRoleGrantSchema>;
 
 /**
@@ -91,16 +104,12 @@ export const itemRoleGrantViewSchema = z.object({
      * effective quand `access` est `null`.
      */
     featureAccess: z.enum(['none', 'read', 'write']),
-    /** L'exception posée sur cet élément, ou `null` : « comme la fonctionnalité ». */
+    /** La surcharge posée sur cet élément, ou `null` : « comme la fonctionnalité ». */
     access: itemAccessSchema.nullable(),
-    /**
-     * Les permissions propres que le rôle tient sur la **fonctionnalité** :
-     * l'autre plafond. Une clé absente d'ici ne se refuse pas sur un élément,
-     * elle est déjà fermée partout.
-     */
+    /** Les permissions propres que le rôle tient sur la **fonctionnalité** : l'héritage. */
     featureExtras: z.array(z.string().max(24)).default([]),
-    /** Celles que cet élément-ci refuse au rôle, sous-ensemble de `featureExtras`. */
-    deniedExtras: z.array(z.string().max(24)).default([])
+    /** Celles que cet élément-ci accorde (`true`) ou retire (`false`) au rôle. */
+    extraOverrides: itemExtraOverridesSchema.default({})
 });
 export type ItemRoleGrantView = z.infer<typeof itemRoleGrantViewSchema>;
 
@@ -109,10 +118,9 @@ export const itemGrantStateSchema = z.object({
     workspaceId: z.number().int().positive(),
     workspaceName: z.string(),
     /**
-     * Les permissions propres de la fonctionnalité qui se refusent élément par
+     * Les permissions propres de la fonctionnalité qui se surchargent élément par
      * élément, intitulés compris : les booléens seulement. Un choix borné n'a
-     * pas d'ordre que le socle connaisse, donc pas de « moins que » à poser ici,
-     * et reste réglé à l'échelle de la fonctionnalité.
+     * pas d'ordre que le socle connaisse, et reste réglé sur le rôle.
      */
     extras: z.array(z.object({ key: z.string().max(24), label: z.string() })).default([]),
     roles: z.array(itemRoleGrantViewSchema)
@@ -161,10 +169,10 @@ export interface ItemRoleGrantRow {
     feature: string;
     item_id: string;
     role_id: number;
-    /** `null` quand la ligne n'existe que pour des permissions refusées. */
+    /** `null` quand la ligne n'existe que pour des permissions surchargées. */
     access: ItemAccess | null;
-    /** Tableau JSON des clés refusées sur cet élément ; `null` ou `[]` = aucune. */
-    denied_extras: string | null;
+    /** Objet JSON `clé → booléen` des permissions surchargées ; `null` = aucune. */
+    extra_overrides: string | null;
 }
 
 export { featureAccessSchema };

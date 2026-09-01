@@ -2,11 +2,11 @@ import { z } from 'zod';
 
 import {
     itemAccessSchema,
+    itemExtraOverridesSchema,
     itemGrantStateSchema,
     itemRefSchema,
     itemShareStateSchema
 } from '../domain/sharing';
-import { MAX_EXTRA_PERMISSIONS } from '../sdk/manifest';
 
 /**
  * Le partage d'un élément et ses restrictions par rôle. Un module transversal :
@@ -49,14 +49,17 @@ export const itemGrantList = {
 };
 
 /**
- * Abaisse (ou rétablit) ce qu'un rôle peut faire sur cet élément, dans l'espace
- * visé (`workspaceId` absent = l'actif). Les deux volets se règlent seuls : un
- * champ omis reste inchangé, comme pour la configuration d'un appareil.
+ * Surcharge ce qu'un rôle peut faire sur cet élément, dans l'espace visé
+ * (`workspaceId` absent = l'actif). Les deux volets se règlent seuls : un champ
+ * omis reste inchangé, comme pour la configuration d'un appareil.
  *
- * `access: null` retire la restriction de niveau, `deniedExtras: []` rend
- * toutes les permissions propres : le rôle reprend alors ce que la
- * fonctionnalité lui donne. On ne fait qu'abaisser — refuser une permission que
- * le rôle n'a pas est sans effet, et rien ici n'en accorde.
+ * `access: null` et `extraOverrides: {}` rendent l'élément à l'héritage : le
+ * rôle reprend ce que la fonctionnalité lui donne. Une surcharge va dans les
+ * deux sens, le plancher de visibilité mis à part : il faut au moins la lecture
+ * sur la fonctionnalité pour que l'élément existe (cf. `itemAccessSchema`).
+ *
+ * Écrire exige `workspace.roles` sur l'espace visé, ou le champ
+ * `itemPermissions` du grant de cette fonctionnalité.
  */
 export const itemGrantSet = {
     command: 'share.grantSet' as const,
@@ -65,10 +68,10 @@ export const itemGrantSet = {
             workspaceId: z.number().int().positive().optional(),
             roleId: z.number().int().positive(),
             access: itemAccessSchema.nullable().optional(),
-            /** Remplace l'ensemble des permissions refusées sur cet élément. */
-            deniedExtras: z.array(z.string().max(24)).max(MAX_EXTRA_PERMISSIONS).optional()
+            /** Remplace l'ensemble des permissions surchargées sur cet élément. */
+            extraOverrides: itemExtraOverridesSchema.optional()
         })
-        .refine((v) => v.access !== undefined || v.deniedExtras !== undefined, {
+        .refine((v) => v.access !== undefined || v.extraOverrides !== undefined, {
             message: 'No grant field provided'
         }),
     output: itemGrantStateSchema

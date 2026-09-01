@@ -558,6 +558,7 @@ export type { FeatureDescriptor } from './domain/featureRegistry';
 export {
     foreignRefSchema,
     itemAccessSchema,
+    itemExtraOverridesSchema,
     itemGrantStateSchema,
     itemRefSchema,
     itemRoleGrantSchema,
@@ -569,6 +570,7 @@ export {
 export type {
     ForeignRef,
     ItemAccess,
+    ItemExtraOverrides,
     ItemGrantState,
     ItemRef,
     ItemRoleGrant,

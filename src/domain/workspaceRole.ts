@@ -148,6 +148,17 @@ export const workspaceFeatureGrantSchema = z.object({
      */
     channels: z.boolean(),
     /**
+     * Régler ce que chaque rôle peut faire d'un élément pris séparément (l'onglet
+     * Permissions d'un élément). Distinct de `access` : surcharger un appareil
+     * n'est pas gérer la flotte, et distinct de la capacité `workspace.roles`,
+     * qui gouverne les rôles eux-mêmes — on peut confier le réglage par élément
+     * d'une fonctionnalité sans ouvrir l'écran des rôles.
+     *
+     * Ce droit-ci ne se surcharge PAS par élément, sans quoi il servirait à
+     * s'accorder tout le reste. Sans effet sur une fonctionnalité sans éléments.
+     */
+    itemPermissions: z.boolean().default(false),
+    /**
      * Permissions déclarées par la feature elle-même (`extraPermissions` du
      * manifest) : booléen pour un `toggle`, valeur d'un `choice`. Une clé
      * absente vaut « refusé » pour un toggle et « valeur par défaut du manifest »

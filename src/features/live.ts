@@ -56,6 +56,53 @@ export const liveTypersPushSchema = z.object({
 });
 export type LiveTypersPush = z.infer<typeof liveTypersPushSchema>;
 
+/**
+ * La bulle : le texte libre qu'un pair écrit à son curseur, à la Figma. Même
+ * voie rapide et même projection que les curseurs, mais un canal distinct du
+ * leur, parce que `liveCursorSchema` voyage aussi dans le roster, lequel part à
+ * tout l'espace alors que seul son `path` est tronqué par droits.
+ *
+ * `message: null` = plus de bulle. Le client n'émet jamais la chaîne vide.
+ */
+export const LIVE_SAY_COMMAND = 'live.say' as const;
+
+/**
+ * La voie rapide court-circuite le scope, l'audit et l'autorisation : cette
+ * borne est le seul rempart contre une trame abusive.
+ */
+export const SAY_MAX_LENGTH = 140;
+
+/**
+ * Et son plafond en lignes. La longueur seule ne borne pas la hauteur : cent
+ * retours à la ligne tiennent dans cent caractères, et la boîte descendrait
+ * sous le bas de l'écran. La saisie applique le même plafond.
+ */
+export const SAY_MAX_LINES = 10;
+
+const sayTextSchema = z
+    .string()
+    .max(SAY_MAX_LENGTH)
+    .refine((text) => text.split('\n').length <= SAY_MAX_LINES, {
+        message: `Au plus ${SAY_MAX_LINES} lignes`
+    });
+
+export const liveSayFrameSchema = z.object({ message: sayTextSchema.nullable() });
+export type LiveSayFrame = z.infer<typeof liveSayFrameSchema>;
+
+/** Ce que disent les pairs situés au **même chemin exactement**. */
+export const LIVE_SAYS_EVENT = 'live.says' as const;
+export const liveSaysPushSchema = z.object({
+    workspaceId: z.number().int().positive(),
+    says: z.array(
+        z.object({
+            connId: z.string().min(1),
+            userId: z.number().int().positive(),
+            text: sayTextSchema
+        })
+    )
+});
+export type LiveSaysPush = z.infer<typeof liveSaysPushSchema>;
+
 /** Roster de la salle. Projeté par destinataire : les chemins y sont tronqués. */
 export const LIVE_PEERS_EVENT = 'live.peers' as const;
 export const livePeersPushSchema = z.object({

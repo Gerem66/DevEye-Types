@@ -456,6 +456,8 @@ export {
     LIVE_CURSOR_COMMAND,
     LIVE_CURSORS_EVENT,
     LIVE_PEERS_EVENT,
+    LIVE_SAY_COMMAND,
+    LIVE_SAYS_EVENT,
     LIVE_TYPERS_EVENT,
     LIVE_TYPING_COMMAND,
     liveChangedPushSchema,
@@ -464,14 +466,20 @@ export {
     liveCursorsPushSchema,
     liveHere,
     livePeersPushSchema,
+    liveSayFrameSchema,
+    liveSaysPushSchema,
     liveTypersPushSchema,
-    liveTypingFrameSchema
+    liveTypingFrameSchema,
+    SAY_MAX_LENGTH,
+    SAY_MAX_LINES
 } from './features/live';
 export type {
     LiveChangedPush,
     LiveCursorFrame,
     LiveCursorsPush,
     LivePeersPush,
+    LiveSayFrame,
+    LiveSaysPush,
     LiveTypersPush,
     LiveTypingFrame
 } from './features/live';

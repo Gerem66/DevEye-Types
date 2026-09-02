@@ -217,6 +217,13 @@ declare module 'deveye-sdk-client' {
         /** Shown to a caller without write access. */
         readOnlyHint: string;
     }>;
+    /**
+     * A read-only refusal inside a settings panel: one silhouette for every
+     * feature, lock glyph included. Pass the sentence as children, nothing
+     * else. What blocks for another reason (an archived device, an item that
+     * cannot be projected) keeps its own wording.
+     */
+    export const ReadOnlyNotice: ComponentType<{ children: ReactNode }>;
     /** The canonical settings row classes (channelRow, field, sectionHint...). */
     export const settingsStyles: Readonly<Record<string, string>>;
     /** A plain count on a home card: a big number, a noun, a secondary line. */

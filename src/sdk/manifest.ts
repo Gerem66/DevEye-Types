@@ -131,6 +131,13 @@ export interface CustomTabRef {
     label: string;
     /** Icon class suffix; defaults to `settings`. */
     icon?: string;
+    /**
+     * Drop the tab entirely without write access, instead of rendering it
+     * read-only. For a tab holding nothing but gestures (Mail's cache
+     * rebuild): one that shows values stays visible and read-only, since the
+     * values are worth reading.
+     */
+    requiresWrite?: boolean;
 }
 
 const CUSTOM_TAB_PATTERN = /^[a-z][a-z0-9]{1,23}$/;

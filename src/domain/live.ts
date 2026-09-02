@@ -131,6 +131,12 @@ export const nativeLiveTopicSchema = z.enum([
     /** Réglages de compte (avatar, couleur, thème, chiffrement). */
     'account',
     /**
+     * Les comptes du site et leurs invitations : ce que la page Utilisateurs
+     * montre. Jamais diffusé dans une salle, la page n'appartient à aucun
+     * espace : les administrateurs sont visés par compte (`userChanged`).
+     */
+    'admin',
+    /**
      * Les canaux d'alerte de l'espace et les routes qui pointent dessus. Un
      * sujet à part : les canaux se relisent depuis les réglages de n'importe
      * quelle fonctionnalité, et un canal change pour toutes à la fois alors que
@@ -190,6 +196,9 @@ export const TOPIC_FEATURE: Record<NativeLiveTopic, WorkspaceFeatureId | null> =
     workspace: null,
     home: null,
     account: null,
+    // Réservé aux administrateurs, mais la garde est à l'émission : seuls
+    // leurs comptes reçoivent la trame.
+    admin: null,
     // Aucun droit de feature à vérifier : la relecture déclenchée est gardée
     // côté commande. Même nature que `workspace`.
     notify: null

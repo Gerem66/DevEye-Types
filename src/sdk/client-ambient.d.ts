@@ -459,9 +459,9 @@ declare module 'deveye-sdk-client' {
     /** The members of the active workspace, as the session lists them (empty before it answers). */
     export function useWorkspaceMembers(): readonly MinimalUser[];
     /**
-     * A member's identity dot: their avatar, or their initial on their account
-     * colour (the same one as the live presence). `user` may be undefined: a
-     * deleted account must not break a row.
+     * A member's identity dot: their avatar, or the default picture until they
+     * upload one. `user` may be undefined: a deleted account must not break a
+     * row.
      */
     export const Avatar: ComponentType<{
         user: MinimalUser | undefined;

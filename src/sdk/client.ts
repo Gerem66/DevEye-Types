@@ -107,6 +107,8 @@ export interface UptimeLinkedService {
     name: string;
     url: string;
     enabled: boolean;
+    /** Projected here from another workspace. */
+    foreign?: boolean;
     status: string;
     lastCheckedAt: number | null;
     ratio24h: number | null;
@@ -199,6 +201,8 @@ export interface UptimeClientProvider {
 export interface DatabaseLinkedCandidate {
     id: number;
     name: string;
+    /** Projected here from another workspace. */
+    foreign?: boolean;
     /** The engine as the module labels it (« MySQL », « PostgreSQL »). */
     engineLabel: string;
     /** How many projects of the workspace already use it. */
@@ -236,6 +240,8 @@ export interface DatabaseClientProvider {
 export interface DeployLinkedCandidate {
     id: number;
     name: string;
+    /** Projected here from another workspace. */
+    foreign?: boolean;
     /** The instance host, as the module labels it (« dokploy.example.com »). */
     host: string;
 }
@@ -276,6 +282,8 @@ export interface GitLinkedCandidate {
     id: number;
     owner: string;
     repo: string;
+    /** Projected here from another workspace. */
+    foreign?: boolean;
 }
 
 /**
@@ -305,6 +313,8 @@ export interface GitClientProvider {
 export interface AudienceLinkedCandidate {
     id: number;
     name: string;
+    /** Projected here from another workspace. */
+    foreign?: boolean;
 }
 
 /**

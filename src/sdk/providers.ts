@@ -97,12 +97,14 @@ export interface DatabaseBackupProvider {
 export const DATABASE_ITEMS_PROVIDER = 'database.items' as const;
 
 export interface DatabaseItemsProvider {
-    /** Does this database live in this workspace? Its home only, never a projection. */
+    /** Is this database visible from this workspace: its home, or one it is projected into? */
     exists(databaseId: number, workspaceId: number): Promise<boolean>;
     /**
-     * The item's display name under the OPEN cipher of `workspaceId`, its home;
-     * `null` when it is gone or unreadable. What a window onto a projected
-     * project shows for a link it cannot open: a name, never an id.
+     * The item's display name as seen from `workspaceId` (its home, or a
+     * workspace it is projected into): the provider resolves the home and its
+     * OPEN cipher itself. `null` when it is gone or unreadable. What a window
+     * onto a projected project shows for a link it cannot open: a name, never
+     * an id.
      */
     labelOf(databaseId: number, workspaceId: number): Promise<string | null>;
 }
@@ -156,12 +158,14 @@ export const MAIL_CLIENT_PROVIDER = 'mail.client' as const;
 export const AUDIENCE_ITEMS_PROVIDER = 'audience.items' as const;
 
 export interface AudienceItemsProvider {
-    /** Does this site live in this workspace? Its home only, never a projection. */
+    /** Is this site visible from this workspace: its home, or one it is projected into? */
     exists(siteId: number, workspaceId: number): Promise<boolean>;
     /**
-     * The item's display name under the OPEN cipher of `workspaceId`, its home;
-     * `null` when it is gone or unreadable. What a window onto a projected
-     * project shows for a link it cannot open: a name, never an id.
+     * The item's display name as seen from `workspaceId` (its home, or a
+     * workspace it is projected into): the provider resolves the home and its
+     * OPEN cipher itself. `null` when it is gone or unreadable. What a window
+     * onto a projected project shows for a link it cannot open: a name, never
+     * an id.
      */
     labelOf(siteId: number, workspaceId: number): Promise<string | null>;
 }
@@ -182,12 +186,14 @@ export const AUDIENCE_CLIENT_PROVIDER = 'audience.client' as const;
 export const GIT_ITEMS_PROVIDER = 'git.items' as const;
 
 export interface GitItemsProvider {
-    /** Does this repository live in this workspace? Its home only, never a projection. */
+    /** Is this repository visible from this workspace: its home, or one it is projected into? */
     exists(repoId: number, workspaceId: number): Promise<boolean>;
     /**
-     * The item's display name under the OPEN cipher of `workspaceId`, its home;
-     * `null` when it is gone or unreadable. What a window onto a projected
-     * project shows for a link it cannot open: a name, never an id.
+     * The item's display name as seen from `workspaceId` (its home, or a
+     * workspace it is projected into): the provider resolves the home and its
+     * OPEN cipher itself. `null` when it is gone or unreadable. What a window
+     * onto a projected project shows for a link it cannot open: a name, never
+     * an id.
      */
     labelOf(repoId: number, workspaceId: number): Promise<string | null>;
 }
@@ -208,12 +214,14 @@ export const GIT_CLIENT_PROVIDER = 'git.client' as const;
 export const DEPLOY_ITEMS_PROVIDER = 'deploy.items' as const;
 
 export interface DeployItemsProvider {
-    /** Does this target live in this workspace? Its home only, never a projection. */
+    /** Is this target visible from this workspace: its home, or one it is projected into? */
     exists(targetId: number, workspaceId: number): Promise<boolean>;
     /**
-     * The item's display name under the OPEN cipher of `workspaceId`, its home;
-     * `null` when it is gone or unreadable. What a window onto a projected
-     * project shows for a link it cannot open: a name, never an id.
+     * The item's display name as seen from `workspaceId` (its home, or a
+     * workspace it is projected into): the provider resolves the home and its
+     * OPEN cipher itself. `null` when it is gone or unreadable. What a window
+     * onto a projected project shows for a link it cannot open: a name, never
+     * an id.
      */
     labelOf(targetId: number, workspaceId: number): Promise<string | null>;
 }
@@ -262,13 +270,15 @@ export interface ProjectsUsageProvider {
     /** How many projects of the workspace link each item of this feature (absent = zero). */
     countByItem(feature: string, workspaceId: number): Promise<ReadonlyMap<number, number>>;
     /**
-     * The item leaves the workspace: drop every link pointing at it from
-     * there, and answer how many projects lost one. A link never spans two
-     * workspaces, so a departing item takes none with it; left alone the rows
-     * would keep naming an item that lives elsewhere now.
+     * The item is no longer visible from the workspace (deleted, moved away,
+     * or its projection withdrawn): drop every link pointing at it from there,
+     * and answer how many projects lost one. A link lives in the project's
+     * workspace and points at an item visible there, so an item that leaves
+     * takes none with it; left alone the rows would keep naming an item that
+     * is not there any more.
      *
-     * Called by the app when an item is moved out, not by the module that owns
-     * the item. Idempotent, and zero for a feature that links nothing.
+     * Called by the app, never by the module that owns the item. Idempotent,
+     * and zero for a feature that links nothing.
      */
     detach(feature: string, itemId: number, workspaceId: number): Promise<number>;
     /**
@@ -306,12 +316,14 @@ export interface ProjectsUsageProvider {
 export const UPTIME_ITEMS_PROVIDER = 'uptime.items' as const;
 
 export interface UptimeItemsProvider {
-    /** Does this service live in this workspace? Its home only, never a projection. */
+    /** Is this service visible from this workspace: its home, or one it is projected into? */
     exists(serviceId: number, workspaceId: number): Promise<boolean>;
     /**
-     * The item's display name under the OPEN cipher of `workspaceId`, its home;
-     * `null` when it is gone or unreadable. What a window onto a projected
-     * project shows for a link it cannot open: a name, never an id.
+     * The item's display name as seen from `workspaceId` (its home, or a
+     * workspace it is projected into): the provider resolves the home and its
+     * OPEN cipher itself. `null` when it is gone or unreadable. What a window
+     * onto a projected project shows for a link it cannot open: a name, never
+     * an id.
      */
     labelOf(serviceId: number, workspaceId: number): Promise<string | null>;
 }

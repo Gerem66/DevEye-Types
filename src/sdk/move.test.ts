@@ -79,17 +79,18 @@ describe('resealCells', () => {
         });
 
         assert.equal(await resealCells(q, CELLS, 7, ciphers), 3);
+        // Une écriture par colonne, toutes ses lignes en un paquet.
         assert.deepEqual(
             writes.map((w) => w.params),
             [
-                ['B:corps', 7, 7],
-                ['B:un', 1, 7],
-                ['B:deux', 2, 7]
+                [7, 'B:corps', 7, 7],
+                [1, 'B:un', 2, 'B:deux', 1, 2, 7]
             ]
         );
         // La ligne se cible par son identifiant ET son propriétaire : une
         // conversion ne peut pas déborder sur un voisin.
-        assert.match(writes[1]!.sql, /WHERE id = \? AND item_id = \?/);
+        assert.match(writes[1]!.sql, /CASE id WHEN \? THEN \? WHEN \? THEN \? END/);
+        assert.match(writes[1]!.sql, /WHERE id IN \(\?, \?\) AND item_id = \?/);
     });
 
     it('annule tout sur une cellule illisible, sans avoir écrit une seule ligne', async () => {
@@ -121,9 +122,9 @@ describe('resealCells', () => {
         await resealCells(q, indirect, 7, ciphers);
         assert.match(
             writes[0]!.sql,
-            /WHERE id = \? AND child_id IN \(SELECT id FROM ft_x_children WHERE item_id = \?\)/
+            /WHERE id IN \(\?\) AND child_id IN \(SELECT id FROM ft_x_children WHERE item_id = \?\)/
         );
-        assert.deepEqual(writes[0]!.params, ['B:feuille', 5, 7]);
+        assert.deepEqual(writes[0]!.params, [5, 'B:feuille', 5, 7]);
     });
 
     it('compte ce qu’il y aurait à convertir sans rien convertir', async () => {

@@ -981,6 +981,9 @@ function ownerFilter(cell: MovableCell): string {
         : `${cell.ownerColumn} = ?`;
 }
 
+/** Rows rewritten per `UPDATE` by {@link resealCells}. */
+const RESEAL_BATCH = 100;
+
 /** How many cells {@link resealCells} would convert: a `plan`'s `rows`. */
 export async function countMovableCells(
     q: SdkQueryable,
@@ -1035,13 +1038,22 @@ export async function resealCells(
         }
     }
 
-    for (const { cell, id, value } of pending) {
-        // La garde du propriétaire dans le `WHERE` même quand l'identifiant
-        // suffit : une conversion ne peut alors pas déborder sur un voisin.
-        await q.execute(
-            `UPDATE ${cell.table} SET ${cell.column} = ? WHERE ${cell.idColumn} = ? AND ${ownerFilter(cell)}`,
-            [value, id, ownerId]
-        );
+    // Par paquets et non ligne à ligne : un dépôt de quelques milliers de
+    // commits vaut autant d'allers-retours, et le geste doit tenir en secondes.
+    for (const cell of cells) {
+        const mine = pending.filter((p) => p.cell === cell);
+        for (let at = 0; at < mine.length; at += RESEAL_BATCH) {
+            const batch = mine.slice(at, at + RESEAL_BATCH);
+            const cases = batch.map(() => 'WHEN ? THEN ?').join(' ');
+            const ids = batch.map(() => '?').join(', ');
+            // La garde du propriétaire dans le `WHERE` même quand l'identifiant
+            // suffit : une conversion ne peut alors pas déborder sur un voisin.
+            await q.execute(
+                `UPDATE ${cell.table} SET ${cell.column} = CASE ${cell.idColumn} ${cases} END
+                  WHERE ${cell.idColumn} IN (${ids}) AND ${ownerFilter(cell)}`,
+                [...batch.flatMap((p) => [p.id, p.value]), ...batch.map((p) => p.id), ownerId]
+            );
+        }
     }
     return pending.length;
 }

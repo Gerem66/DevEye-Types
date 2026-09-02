@@ -109,6 +109,8 @@ export interface RecordedCalls {
     agentRequests: { method: string; deviceId: string }[];
     /** Instants pinned through `telemetry.pinInstant`. */
     pinnedInstants: { deviceId: string; ts: number }[];
+    /** Frames pushed through `live.publish`, in order. */
+    livePublishes: { workspaceId: number; event: string; payload: unknown }[];
 }
 
 function recordingNotify(
@@ -306,7 +308,8 @@ export function createTestContext<Repo = undefined>(
         liveMessages: [],
         audits: [],
         agentRequests: [],
-        pinnedInstants: []
+        pinnedInstants: [],
+        livePublishes: []
     };
     const isOwner = overrides.isOwner ?? true;
     const workspaceId = overrides.workspaceId ?? 1;
@@ -353,6 +356,11 @@ export function createTestContext<Repo = undefined>(
             sealBytes: (plain) => `sealed:${Buffer.from(plain).toString('base64')}`,
             openBytes: () => null,
             derive: fakeDerive
+        },
+        live: {
+            publish(event, payload) {
+                recorded.livePublishes.push({ workspaceId, event, payload });
+            }
         },
         items: {
             restrictions: () => Promise.resolve(restrictions),
@@ -472,6 +480,7 @@ export function createTestServiceDeps<Repo = undefined>(
         audits: [],
         agentRequests: [],
         pinnedInstants: [],
+        livePublishes: [],
         tickers: [],
         liveChanges: [],
         liveTopicChanges: []
@@ -535,6 +544,9 @@ export function createTestServiceDeps<Repo = undefined>(
             changed(workspaceId, topics) {
                 recorded.liveChanges.push(workspaceId);
                 if (topics) recorded.liveTopicChanges.push({ workspaceId, topics });
+            },
+            publish(workspaceId, event, payload) {
+                recorded.livePublishes.push({ workspaceId, event, payload });
             }
         },
         audit: (entry) => {

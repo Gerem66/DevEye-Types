@@ -545,6 +545,31 @@ export interface SdkLive {
      * this data.
      */
     changed(workspaceId: number, topics?: readonly string[]): void;
+    /**
+     * Pushes one frame to every member of `workspaceId` connected right now
+     * and holding `read` on YOUR feature (capability `'live.publish'`). The
+     * client reads it with `onServerEvent(event, schema, cb)`.
+     *
+     * The lane for what must be seen AS it happens rather than re-fetched: a
+     * cell someone just drew on a shared board. It carries the CHANGE, never
+     * the whole state, and it is best-effort by construction, so a client that
+     * missed one must be able to recover on its own (a periodic epoch, a
+     * re-fetch on reconnection) rather than assume every frame lands.
+     *
+     * `event` must start with `<manifest.id>.`, like a command; a `requestId`
+     * is never attached, so it can never be mistaken for a reply.
+     */
+    publish(workspaceId: number, event: string, payload: unknown): void;
+}
+
+/**
+ * The live engine seen from a HANDLER, where the workspace is the caller's.
+ * Invalidation stays declarative there (`mutates` on the command), so the only
+ * thing left to do by hand is the push lane.
+ */
+export interface SdkContextLive {
+    /** {@link SdkLive.publish}, in the workspace of the call. */
+    publish(event: string, payload: unknown): void;
 }
 
 /** The whole fleet, sessionless (capability `'devices.read'`), for services. */
@@ -601,6 +626,8 @@ export interface SdkFeatureContext<Repo = unknown> {
     requestId: string;
     /** The server key derivations, the same `keys` a service gets. */
     keys: SdkServerKeys;
+    /** The push lane, in this workspace (capability `'live.publish'`). */
+    live: SdkContextLive;
     /**
      * Where DevEye lives, as URLs without a trailing slash: `app` is the
      * origin members use (`PUBLIC_ORIGIN`), `public` the one reachable

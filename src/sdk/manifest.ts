@@ -99,7 +99,15 @@ export type NativeCapability =
      * Declared, because opening a door is the one thing a module must not do
      * quietly. See `FeatureService.publicRoutes`.
      */
-    | 'routes.public';
+    | 'routes.public'
+    /**
+     * Push frames of your own to the workspace's connected members
+     * (`ctx.live.publish`, `deps.live.publish`). The lane for state that must
+     * be seen AS it changes rather than re-fetched: a shared board, a cursor
+     * of your own. Declared, because it lets a module put bytes on someone
+     * else's socket without them asking. See `SdkLive.publish`.
+     */
+    | 'live.publish';
 
 /**
  * Settings tabs the shell can render for you.

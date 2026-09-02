@@ -185,6 +185,12 @@ declare module 'deveye-sdk-client' {
          * nothing else announces the item. The shell never declares the level.
          */
         onOpenChange?: (open: boolean) => void;
+        /**
+         * The item was deleted or moved to another workspace from inside the
+         * shell, which has closed: the view that mounted the button leaves the
+         * item (the same handler as its back button).
+         */
+        onGone?: () => void;
     }>;
     /**
      * One provider of a feature and the key it wants. The row carries the state

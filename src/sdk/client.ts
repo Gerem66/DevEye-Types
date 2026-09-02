@@ -23,12 +23,18 @@ export interface SettingsPanelProps {
     /** Caller has `write` on the feature. Render read-only when false. */
     canWrite: boolean;
     /**
-     * Closes the settings dialog. For a panel that removes the very item being
-     * configured: the scope it was opened on no longer exists, and the shell
-     * would otherwise fall back to the feature's own tabs under the item's name.
-     * Not a substitute for saving — every other change applies in place.
+     * Closes the settings dialog, nothing more. For a gesture best followed on
+     * the screen underneath (a full resync whose progress the item's view
+     * draws). Not a substitute for saving: every other change applies in place.
      */
     close(): void;
+    /**
+     * The item being configured no longer exists here (deleted, moved to
+     * another workspace): the shell closes, then the view that opened it
+     * leaves the item. The scope it was opened on is gone, and the shell would
+     * otherwise fall back to the feature's own tabs under the item's name.
+     */
+    gone(): void;
 }
 
 export interface FeatureViewProps {
@@ -177,10 +183,9 @@ export interface UptimeClientProvider {
     }>;
     /** The three-window availability ratios of a service. */
     Ratios: ComponentType<{ service: UptimeLinkedService; compact?: boolean }>;
-    /** The feature's service form: `service: null` declares a new one. */
+    /** The feature's service form, to declare a new service from a project. */
     ServiceDialog: ComponentType<{
         open: boolean;
-        service: UptimeLinkedService | null;
         onClose: () => void;
         onSaved: (service: UptimeLinkedService) => void;
     }>;

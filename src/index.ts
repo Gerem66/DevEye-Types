@@ -265,6 +265,29 @@ export {
 } from './domain/logs';
 export type { LogCategory, LogEntry, LogLevelName, LogRow, LogSource } from './domain/logs';
 export {
+    FEEDBACK_ERRORS_KEPT,
+    FEEDBACK_MESSAGE_MAX,
+    FEEDBACK_REQUESTS_KEPT,
+    FEEDBACK_VIEWS_KEPT,
+    feedbackEntrySchema,
+    feedbackErrorTraceSchema,
+    feedbackKindSchema,
+    feedbackRequestTraceSchema,
+    feedbackSnapshotSchema,
+    feedbackStatusSchema,
+    feedbackViewTraceSchema
+} from './domain/feedback';
+export type {
+    FeedbackEntry,
+    FeedbackErrorTrace,
+    FeedbackKind,
+    FeedbackRequestTrace,
+    FeedbackRow,
+    FeedbackSnapshot,
+    FeedbackStatus,
+    FeedbackViewTrace
+} from './domain/feedback';
+export {
     DEVICE_LOG_LEVELS,
     DEVICE_LOG_OFFSET_MAX,
     DEVICE_LOG_PAGE_DEFAULT,
@@ -799,6 +822,17 @@ export {
     logsList
 } from './features/logs';
 export type { LogFilter } from './features/logs';
+export {
+    FEEDBACK_PAGE_DEFAULT,
+    FEEDBACK_PAGE_MAX,
+    feedbackCommands,
+    feedbackDelete,
+    feedbackFilterSchema,
+    feedbackList,
+    feedbackSetStatus,
+    feedbackSubmit
+} from './features/feedback';
+export type { FeedbackFilter } from './features/feedback';
 
 export {
     changePasswordRequestSchema,

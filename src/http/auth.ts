@@ -20,7 +20,13 @@ export const sessionBundleSchema = z.object({
     theme: themeStateSchema.nullable(),
     homeLayout: homeLayoutSchema.nullable(),
     /** Droits de l'appelant dans l'espace actif, pour que l'UI masque le reste. */
-    permissions: workspacePermissionsSchema
+    permissions: workspacePermissionsSchema,
+    /**
+     * Ce serveur accepte-t-il les signalements (`FEEDBACK_ENABLED`) ? Porté par
+     * le bundle plutôt que par une requête à part : le client doit le savoir
+     * avant son premier rendu, pour ne pas faire clignoter le bouton.
+     */
+    feedbackEnabled: z.boolean()
 });
 
 export type SessionBundle = z.infer<typeof sessionBundleSchema>;

@@ -60,7 +60,7 @@ export type FeedbackErrorTrace = z.infer<typeof feedbackErrorTraceSchema>;
 /** A view the user opened, in order: the shortest path to a reproduction. */
 export const feedbackViewTraceSchema = z.object({
     ago: z.number().int().nonnegative(),
-    /** View id (`logs`, `x-audit`, `device:…`), or `home` when it closed. */
+    /** View id (`logs`, `x-audit`, `devices`), or `home` when it closed. */
     view: z.string().max(64)
 });
 export type FeedbackViewTrace = z.infer<typeof feedbackViewTraceSchema>;

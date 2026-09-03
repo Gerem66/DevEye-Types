@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { homeLayoutSchema } from '../domain/home';
-import { userSchema } from '../domain/user';
+import { usernameSchema, userSchema } from '../domain/user';
 import { workspaceSchema } from '../domain/workspace';
 import { workspacePermissionsSchema } from '../domain/workspaceRole';
 import { themeStateSchema } from '../features/user';
@@ -41,11 +41,7 @@ export type LoginRequest = z.infer<typeof loginRequestSchema>;
 /** L'inscription exige un jeton d'invitation émis par un administrateur. */
 export const registerRequestSchema = z.object({
     inviteToken: z.string().min(1),
-    username: z
-        .string()
-        .min(3)
-        .max(64)
-        .regex(/^[a-zA-Z0-9_.-]+$/, 'username may only contain letters, digits, _ . -'),
+    username: usernameSchema,
     email: z.string().email().max(320),
     password: z.string().min(8).max(512)
 });

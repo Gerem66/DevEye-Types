@@ -488,6 +488,7 @@ export {
     minimalUserSchema,
     USER_COLORS,
     userColorSchema,
+    usernameSchema,
     userSchema,
     userSecuritySchema,
     userSettingFlagSchema,
@@ -754,7 +755,8 @@ export {
     userSetAvatar,
     userSetColor,
     userSetSetting,
-    userSetTheme
+    userSetTheme,
+    userSetUsername
 } from './features/user';
 export type { ThemeStateDTO } from './features/user';
 export {

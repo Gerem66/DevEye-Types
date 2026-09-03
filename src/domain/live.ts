@@ -21,8 +21,8 @@ import {
  *
  * Le `kind` identifie le **niveau** (`view`, `account`, `folder`…), la valeur
  * identifie le nœud à ce niveau. La valeur peut elle-même contenir des
- * deux-points — une vue d'appareil est `view:device:<uuid>` — donc **on découpe
- * au premier deux-points, jamais avec un `split` complet.**
+ * deux-points : la coquille de réglages d'un élément est `settings:item:devices`,
+ * donc **on découpe au premier deux-points, jamais avec un `split` complet.**
  */
 export const livePathSegmentSchema = z
     .string()
@@ -213,8 +213,6 @@ export const TOPIC_FEATURE: Record<NativeLiveTopic, WorkspaceFeatureId | null> =
  */
 export type LivePathGate = FeatureId | 'public' | 'private';
 
-const DEVICE_VIEW_PREFIX = 'device:';
-
 export function livePathGate(rootSegment: string | undefined): LivePathGate {
     if (!rootSegment) return 'public';
     if (segmentKind(rootSegment) !== 'view') return 'private';
@@ -224,8 +222,5 @@ export function livePathGate(rootSegment: string | undefined): LivePathGate {
     // Une vue de module externe est gardée par le droit du module, comme une
     // feature native : même règle, reconnue au préfixe plutôt qu'à l'enum.
     if (isExternalFeatureId(viewId)) return viewId;
-    // La page Appareils et chaque vue d'appareil relèvent du même droit — miroir
-    // exact de `featureBehind` côté client.
-    if (viewId === 'clients' || viewId.startsWith(DEVICE_VIEW_PREFIX)) return 'devices';
     return 'private';
 }

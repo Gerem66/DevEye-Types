@@ -41,6 +41,17 @@ export function defaultUserColor(userId: number): UserColor {
     return USER_COLORS[Math.abs(userId) % USER_COLORS.length];
 }
 
+/**
+ * The account name: what one logs in with, and what the other members see.
+ * Unique across the site (`users.username` carries a UNIQUE index), and narrow
+ * enough to travel through a URL, a log line or a shell without escaping.
+ */
+export const usernameSchema = z
+    .string()
+    .min(3)
+    .max(64)
+    .regex(/^[a-zA-Z0-9_.-]+$/, 'username may only contain letters, digits, _ . -');
+
 export const minimalUserSchema = z.object({
     id: z.number().int().nonnegative(),
     email: z.string().email(),

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { userColorSchema, userSettingFlagSchema } from '../domain/user';
+import { usernameSchema, userColorSchema, userSettingFlagSchema } from '../domain/user';
 
 /**
  * Upper bound on the avatar data URL length (characters ≈ bytes for base64
@@ -83,4 +83,20 @@ export const userSetSetting = {
     output: z.object({ settings: z.array(z.string()) })
 };
 
-export const userCommands = [userSetAvatar, userSetTheme, userSetColor, userSetSetting] as const;
+/**
+ * Renames the account. Same rule as registration (`usernameSchema`), and the
+ * same uniqueness: the server rejects a name another account already holds.
+ */
+export const userSetUsername = {
+    command: 'user.setUsername' as const,
+    input: z.object({ username: usernameSchema }),
+    output: z.object({ username: usernameSchema })
+};
+
+export const userCommands = [
+    userSetAvatar,
+    userSetTheme,
+    userSetColor,
+    userSetSetting,
+    userSetUsername
+] as const;

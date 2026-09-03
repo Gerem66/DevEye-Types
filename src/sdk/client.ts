@@ -130,9 +130,8 @@ export type UptimeHistoryResolution = 'raw' | 'hour' | 'day';
 
 /**
  * What the Devices module offers the app's own screens (`DEVICES_CLIENT_PROVIDER`):
- * the workspace's devices as a live store, the panel of one device (the home
- * renders one view per placed device), and its compact tile. Without the
- * module the home places no device and the topbar counts none.
+ * the workspace's devices as a live store, and the compact tile of one of them.
+ * Without the module the home places no device and the topbar counts none.
  */
 export interface DevicesClientProvider {
     /** The active workspace's devices, refreshed by the `devices` live topic. */
@@ -140,7 +139,6 @@ export interface DevicesClientProvider {
     refreshDevices(): void;
     /** Forgets every loaded device (the app calls it when the session ends). */
     resetDevices(): void;
-    DevicePanel: ComponentType<{ deviceId: string }>;
     DeviceWidget: ComponentType<{ deviceId: string; hideStatus?: boolean }>;
 }
 

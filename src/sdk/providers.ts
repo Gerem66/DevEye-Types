@@ -125,20 +125,40 @@ export interface MailSender {
     address: string;
 }
 
+/**
+ * A file carried along a message: the `.ics` invitation of a booking, a small
+ * report. `Uint8Array` rather than `Buffer`: the published package does not
+ * depend on Node's types beyond `node:net`, and the adapter bridges it.
+ */
+export interface MailAttachment {
+    filename: string;
+    contentType: string;
+    content: Uint8Array;
+}
+
 export interface MailTransportProvider {
     /** The workspace's ready senders (open tier, enabled). */
     listSenders(workspaceId: number): Promise<readonly MailSender[]>;
     /** Is this account a ready sender of this workspace right now? */
     isReady(accountId: number, workspaceId: number): Promise<boolean>;
     /**
-     * Sends one plain-text message from this account. Resolves `true` when the
-     * provider accepted it; `false` (never a throw) when the account is not a
-     * ready sender or the send failed, the failure logged by the module.
+     * Sends one message from this account. Resolves `true` when the provider
+     * accepted it; `false` (never a throw) when the account is not a ready
+     * sender or the send failed, the failure logged by the module.
+     *
+     * `text` stays mandatory whatever else is given: a recipient whose client
+     * shows no HTML must lose nothing.
      */
     send(
         accountId: number,
         workspaceId: number,
-        message: { to: string; subject: string; text: string }
+        message: {
+            to: string;
+            subject: string;
+            text: string;
+            html?: string;
+            attachments?: readonly MailAttachment[];
+        }
     ): Promise<boolean>;
 }
 

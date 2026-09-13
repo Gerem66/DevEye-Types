@@ -690,6 +690,18 @@ export interface SdkPublicRequest {
      * What a ticketed GET (a download URL, an OAuth callback) carries.
      */
     query?: unknown;
+    /**
+     * Path parameters the host decoded (`/rdv/:ref` reads `{ ref: 'abc' }`).
+     * `unknown` like `body` and `query`: re-read it through a schema. Absent
+     * from a route that declares none.
+     */
+    params?: unknown;
+    /**
+     * The request's host, normalised by the host: `Host`, or `X-Forwarded-Host`
+     * behind a trusted proxy, port included. UNTRUSTED data: it proves nothing,
+     * it only picks among what the database already verified.
+     */
+    host?: string;
     ip: string;
 }
 

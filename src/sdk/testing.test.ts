@@ -2,7 +2,13 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { z } from 'zod';
 
-import { createTestContext, createTestServiceDeps, testDevice } from './testing';
+import {
+    createTestContext,
+    createTestDomainsContext,
+    createTestServiceDeps,
+    testDevice,
+    testDomain
+} from './testing';
 
 test('createTestContext follows the manifest for extras, and records what handlers do', async () => {
     const manifest = {
@@ -59,4 +65,30 @@ test('createTestServiceDeps: one store per workspace, hand-driven tickers, a wra
 
     assert.equal(deps.devicesFor(1).isOnline('d1'), false);
     assert.equal((await deps.devicesFor(1).list()).length, 1);
+});
+
+test('the harness scopes domains to the workspace, and finds a host whatever its spelling', async () => {
+    const domains = [
+        testDomain({ id: 1, host: 'a.example.com' }),
+        testDomain({ id: 2, host: 'b.example.com', verified: false, verifiedAt: null }),
+        testDomain({ id: 3, host: 'c.example.com', workspaceId: 2 })
+    ];
+    const ctx = createTestContext({ domains });
+    assert.deepEqual(
+        (await ctx.domains.list()).map((d) => d.id),
+        [1, 2]
+    );
+    assert.deepEqual(
+        (await ctx.domains.verified()).map((d) => d.id),
+        [1]
+    );
+    assert.equal(await ctx.domains.get(3), null, 'another workspace');
+
+    const deps = createTestServiceDeps({ domains });
+    assert.equal((await deps.domains.findByHost('C.Example.com:443.'))?.id, 3);
+    assert.equal(await deps.domains.findByHost('nope.example.com'), null);
+
+    const hooks = createTestDomainsContext({ dns: { txt: () => Promise.resolve(['v=spf1']) } });
+    assert.deepEqual(await hooks.dns.txt('x'), ['v=spf1']);
+    assert.deepEqual(await hooks.dns.mx('x'), []);
 });

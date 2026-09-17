@@ -1,9 +1,13 @@
 import type { ZodType } from 'zod';
 import type { ItemAccess } from '../domain/sharing';
+import { normaliseDomainHost } from './domains';
 import { resolveExtras, type FeatureManifest } from './manifest';
 import {
     FeatureError,
     type DevEyeFacade,
+    type FeatureDomainsContext,
+    type SdkDns,
+    type SdkDomain,
     type FeatureServiceDeps,
     type FeatureStore,
     type SdkCipher,
@@ -236,6 +240,20 @@ function fakeDerive(salt: string, info: string, length: number): Uint8Array {
     return out;
 }
 
+function memoryDomains(domains: readonly SdkDomain[]) {
+    return {
+        in: (workspaceId: number) => domains.filter((d) => d.workspaceId === workspaceId),
+        byHost: (host: string) => domains.find((d) => d.host === normaliseDomainHost(host)) ?? null
+    };
+}
+
+/** Lookups that find nothing, unless the test says otherwise. */
+const emptyDns: SdkDns = {
+    txt: () => Promise.resolve([]),
+    mx: () => Promise.resolve([]),
+    cname: () => Promise.resolve([])
+};
+
 /** The named contracts a test hands to the module (`providers` override). */
 function fakeProviders(table: Readonly<Record<string, unknown>>): SdkProviders {
     return { get: <T>(key: string) => table[key] as T | undefined };
@@ -296,6 +314,8 @@ export interface TestContextOverrides<Repo> {
      * identity cipher either way.
      */
     shares?: Readonly<Record<string, number>>;
+    /** The feature's domains, every workspace mixed: `ctx.domains` answers for the active one. Default none. */
+    domains?: readonly SdkDomain[];
     /** The named contracts the host holds (`ctx.providers.get(key)`). */
     providers?: Readonly<Record<string, unknown>>;
 }
@@ -418,6 +438,21 @@ export function createTestContext<Repo = undefined>(
             sendSyncChunk: () => 0,
             syncChunkBuffered: () => 0
         },
+        domains: {
+            list: () => Promise.resolve(memoryDomains(overrides.domains ?? []).in(workspaceId)),
+            get: (id) =>
+                Promise.resolve(
+                    memoryDomains(overrides.domains ?? [])
+                        .in(workspaceId)
+                        .find((d) => d.id === id) ?? null
+                ),
+            verified: () =>
+                Promise.resolve(
+                    memoryDomains(overrides.domains ?? [])
+                        .in(workspaceId)
+                        .filter((d) => d.verified)
+                )
+        },
         providers: fakeProviders(overrides.providers ?? {}),
         audit: (entry) => {
             recorded.audits.push({ action: entry.action, description: entry.description });
@@ -462,6 +497,8 @@ export interface TestServiceOverrides<Repo> {
     origins?: { app: string; public: string };
     /** Instants `telemetry.snapshot` answers (matched within a second). Default none. */
     snapshots?: readonly SdkTelemetrySnapshot[];
+    /** The feature's domains, every workspace mixed. Default none. */
+    domains?: readonly SdkDomain[];
     /** The named contracts the host holds (`deps.providers.get(key)`). */
     providers?: Readonly<Record<string, unknown>>;
 }
@@ -564,11 +601,75 @@ export function createTestServiceDeps<Repo = undefined>(
             openBytes: (sealed) => sealedBytes.get(sealed) ?? null,
             derive: fakeDerive
         },
+        domains: {
+            findByHost: (host) =>
+                Promise.resolve(memoryDomains(overrides.domains ?? []).byHost(host)),
+            get: (workspaceId, id) =>
+                Promise.resolve(
+                    memoryDomains(overrides.domains ?? [])
+                        .in(workspaceId)
+                        .find((d) => d.id === id) ?? null
+                ),
+            listVerified: (workspaceId) =>
+                Promise.resolve(
+                    memoryDomains(overrides.domains ?? [])
+                        .in(workspaceId)
+                        .filter((d) => d.verified)
+                )
+        },
         providers: fakeProviders(overrides.providers ?? {}),
         createTicker({ intervalMs, tick }) {
             recorded.tickers.push({ intervalMs, tick });
             return { start: () => undefined, stop: () => undefined };
         },
+        logger: silentLogger
+    };
+}
+
+/** A domain row for a test, verified by default. */
+export function testDomain(over: Partial<SdkDomain> & { id: number; host: string }): SdkDomain {
+    return { workspaceId: 1, token: 'a'.repeat(32), verified: true, verifiedAt: 1, ...over };
+}
+
+/**
+ * What the `domains` hooks of a server entry receive, in memory: identity
+ * cipher, one store per workspace, and lookups that find nothing unless `dns`
+ * says otherwise.
+ */
+export function createTestDomainsContext<Repo = undefined>(
+    overrides: {
+        repo?: Repo;
+        dns?: Partial<SdkDns>;
+        origins?: { app: string; public: string };
+    } = {}
+): FeatureDomainsContext<Repo> {
+    const stores = new Map<number, TestFeatureStore>();
+    const sealedBytes = new Map<string, Uint8Array>();
+    return {
+        repo: overrides.repo as Repo,
+        origins: overrides.origins ?? {
+            app: 'https://deveye.test',
+            public: 'https://public.deveye.test'
+        },
+        cipherFor: () => identityCipher,
+        storeFor(workspaceId) {
+            let store = stores.get(workspaceId);
+            if (!store) {
+                store = memoryStore();
+                stores.set(workspaceId, store);
+            }
+            return store;
+        },
+        keys: {
+            sealBytes: (plain) => {
+                const handle = `sealed:${sealedBytes.size}`;
+                sealedBytes.set(handle, Uint8Array.from(plain));
+                return handle;
+            },
+            openBytes: (sealed) => sealedBytes.get(sealed) ?? null,
+            derive: fakeDerive
+        },
+        dns: { ...emptyDns, ...overrides.dns },
         logger: silentLogger
     };
 }

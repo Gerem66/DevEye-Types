@@ -25,6 +25,7 @@ declare module 'deveye-sdk-client' {
     } from 'react';
     import type {
         FeatureAccess,
+        FeatureDomain,
         FeatureId,
         MinimalUser,
         User,
@@ -464,6 +465,17 @@ declare module 'deveye-sdk-client' {
     export function useFeatureLifecycle(hooks: { onUnmount?: () => void }): void;
     /** The members of the active workspace, as the session lists them (empty before it answers). */
     export function useWorkspaceMembers(): readonly MinimalUser[];
+    /**
+     * The domains of a feature whose manifest declares `domains`, in the
+     * active workspace, kept live. For a form that designates one (filter on
+     * `verifiedAt !== null`); declaring and verifying happen in the Domains
+     * tab, opened with `<FeatureSettingsButton initialSection='domains' />`.
+     */
+    export function useDomains(feature: FeatureId): {
+        domains: readonly FeatureDomain[];
+        loading: boolean;
+        error: string | null;
+    };
     /**
      * A member's identity dot: their avatar, or the default picture until they
      * upload one. `user` may be undefined: a deleted account must not break a

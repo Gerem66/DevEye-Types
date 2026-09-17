@@ -683,6 +683,21 @@ export {
 } from './features/sharing';
 export { SHAREABLE_FEATURES, SHARE_WIRED_FEATURES } from './domain/featureRegistry';
 export {
+    DNS_RECORD_TYPES,
+    FEATURE_DOMAIN_HOST_MAX,
+    dnsRecordSchema,
+    domainStateSchema,
+    featureDomainSchema
+} from './domain/featureDomain';
+export type { DnsRecord, DomainState, FeatureDomain } from './domain/featureDomain';
+export {
+    domainAdd,
+    domainCommands,
+    domainList,
+    domainRemove,
+    domainVerify
+} from './features/domain';
+export {
     metricSeriesPointSchema,
     metricSnapshotSchema,
     metricsBatchSchema,

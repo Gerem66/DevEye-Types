@@ -142,7 +142,13 @@ export const nativeLiveTopicSchema = z.enum([
      * quelle fonctionnalité, et un canal change pour toutes à la fois alors que
      * `mutates` est déclaré par commande.
      */
-    'notify'
+    'notify',
+    /**
+     * Les domaines déclarés par une fonctionnalité de l'espace, et leur état de
+     * vérification. À part pour la même raison que `notify` : ils se relisent
+     * depuis les réglages de n'importe quelle fonctionnalité qui en gère.
+     */
+    'domain'
 ]);
 export type NativeLiveTopic = z.infer<typeof nativeLiveTopicSchema>;
 
@@ -201,7 +207,10 @@ export const TOPIC_FEATURE: Record<NativeLiveTopic, WorkspaceFeatureId | null> =
     admin: null,
     // Aucun droit de feature à vérifier : la relecture déclenchée est gardée
     // côté commande. Même nature que `workspace`.
-    notify: null
+    notify: null,
+    // Même régime : la trame ne porte aucune donnée, et `domain.list` vérifie
+    // le droit sur la fonctionnalité visée.
+    domain: null
 };
 
 /**

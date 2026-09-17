@@ -7,6 +7,7 @@ import type { AuthWindow, DeviceReport, IntegrityReport, ReportProcess } from '.
 import type { AgentManifest } from '../http/device';
 import type { MetricSnapshot } from '../domain/metrics';
 import type { UserColor } from '../domain/user';
+import type { SdkDnsRecord } from './domains';
 import type {
     AgentSyncAckPayload,
     AgentSyncApplyChunkPayload,
@@ -30,6 +31,12 @@ import type {
 } from '../protocol/agent';
 
 export { isPublicIp, isSafePublicUrl } from './net';
+export {
+    DOMAIN_HOST_PATTERN,
+    domainOwnershipRecord,
+    normaliseDomainHost,
+    type SdkDnsRecord
+} from './domains';
 
 /**
  * Server-side SDK surface: what a feature module's handlers and background
@@ -579,6 +586,77 @@ export interface SdkFleetDevices {
     isOnline(deviceId: string): boolean;
 }
 
+/**
+ * One of your feature's domains (manifest `domains`). Declared and verified
+ * in the Domains tab the shell renders; your module only reads them.
+ */
+export interface SdkDomain {
+    id: number;
+    workspaceId: number;
+    host: string;
+    /** Published in the DNS by nature, so not a secret. */
+    token: string;
+    /** Both stages have passed, and neither has failed three times in a row since. */
+    verified: boolean;
+    verifiedAt: number | null;
+}
+
+/** Your feature's domains in the caller's workspace. Throws `forbidden` unless the manifest declares `domains`. */
+export interface SdkDomains {
+    list(): Promise<readonly SdkDomain[]>;
+    get(id: number): Promise<SdkDomain | null>;
+    verified(): Promise<readonly SdkDomain[]>;
+}
+
+/** Your feature's domains, sessionless: for a service or a public route. */
+export interface SdkFleetDomains {
+    /** Whatever the workspace. `host` is normalised for you: pass the raw `Host` header. */
+    findByHost(host: string): Promise<SdkDomain | null>;
+    get(workspaceId: number, id: number): Promise<SdkDomain | null>;
+    listVerified(workspaceId: number): Promise<readonly SdkDomain[]>;
+}
+
+/** DNS lookups, injected so a probe is testable. A name that does not exist yields `[]`, not a throw. */
+export interface SdkDns {
+    /** One string per record, the 255-byte chunks rejoined. */
+    txt(name: string): Promise<string[]>;
+    mx(name: string): Promise<{ exchange: string; priority: number }[]>;
+    cname(name: string): Promise<string[]>;
+}
+
+/** What the domain hooks receive. Sessionless: they also run from the background pass. */
+export interface FeatureDomainsContext<Repo = unknown> {
+    repo: Repo;
+    origins: { app: string; public: string };
+    /** Open tier only. */
+    cipherFor(workspaceId: number): SdkCipher;
+    storeFor(workspaceId: number): SessionlessFeatureStore;
+    keys: SdkServerKeys;
+    dns: SdkDns;
+    logger: SdkLogger;
+}
+
+export type SdkDomainProbe = { ok: true } | { ok: false; error: string };
+
+/**
+ * Your half of domain verification, required when the manifest declares
+ * `domains`. Ownership (the TXT record) is always DevEye's check; yours is
+ * the second stage: is the domain really wired to what you serve?
+ */
+export interface FeatureDomainsEntry<Repo = unknown> {
+    /** What to publish on top of the ownership record (a CNAME, an MX...). Shown in the records dialog. */
+    records(ctx: FeatureDomainsContext<Repo>, domain: SdkDomain): Promise<readonly SdkDnsRecord[]>;
+    /** Called only once ownership holds. A failed check is a returned sentence, never a throw. */
+    probe(ctx: FeatureDomainsContext<Repo>, domain: SdkDomain): Promise<SdkDomainProbe>;
+    /** How many of your items designate each domain, by domain id. Shown on the row and in the removal warning. */
+    useCount?(
+        ctx: FeatureDomainsContext<Repo>,
+        workspaceId: number
+    ): Promise<ReadonlyMap<number, number>>;
+    /** Runs before the row is deleted: drop your references. A throw aborts the removal. */
+    onRemoved?(ctx: FeatureDomainsContext<Repo>, domain: SdkDomain): Promise<void>;
+}
+
 /** What a handler receives. One request, one workspace, rights pre-resolved. */
 export interface SdkFeatureContext<Repo = unknown> {
     userId: number;
@@ -613,6 +691,8 @@ export interface SdkFeatureContext<Repo = unknown> {
     items: SdkItems;
     /** Projections into the active workspace. Throws `forbidden` when the manifest says `shareTier: 'never'`. */
     sharing: SdkSharing;
+    /** Your feature's domains in this workspace (manifest `domains`). */
+    domains: SdkDomains;
     /** The named contracts the host holds, see `SdkProviders`. */
     providers: SdkProviders;
     /** Fire-and-forget audit line; actor, IP and workspace are pre-bound. */
@@ -809,6 +889,8 @@ export interface FeatureServiceDeps<Repo = unknown> {
     secrecy: { redeem(ticket: string): Promise<SdkRedeemedTicket | null> };
     /** Where DevEye lives (the same `origins` a request context gets): for a page or a link a route hands to the browser. */
     origins: { app: string; public: string };
+    /** Your feature's domains, whatever the workspace (manifest `domains`). */
+    domains: SdkFleetDomains;
     /** The named contracts the host holds, see `SdkProviders`. */
     providers: SdkProviders;
     /**
@@ -841,6 +923,8 @@ export interface FeatureServer<Repo = unknown> {
      * notifies (the channels screen names the item a route points to).
      */
     items?: FeatureItemsEntry<Repo>;
+    /** Required when the manifest declares `domains`, refused otherwise. */
+    domains?: FeatureDomainsEntry<Repo>;
 }
 
 /**

@@ -111,8 +111,10 @@ export type NativeCapability =
 
 /**
  * Settings tabs the shell can render for you.
- *  - `'notifications'` and `'permissions'` are fully generic: DevEye renders
- *    them from the manifest alone, you write no component.
+ *  - `'notifications'`, `'permissions'` and `'domains'` are fully generic:
+ *    DevEye renders them from the manifest alone, you write no component.
+ *    `'domains'` (feature scope only) needs the manifest's `domains` and a
+ *    `domains` entry on the server side.
  *  - `'general'`, `'sources'`, `'sync'` and `'encryption'` need a panel
  *    component, provided by your client entry (`settingsPanels`), keyed by
  *    the tab id. `'sync'` (item scope only) is the cadence and maintenance of
@@ -122,7 +124,7 @@ export type NativeCapability =
  *    places the tab, the module owns the choice.
  */
 export type SettingsTab =
-    'general' | 'sources' | 'notifications' | 'permissions' | 'sync' | 'encryption';
+    'general' | 'sources' | 'domains' | 'notifications' | 'permissions' | 'sync' | 'encryption';
 
 /** A custom settings tab. Needs a matching panel in `settingsPanels`. */
 export interface CustomTabRef {
@@ -144,12 +146,16 @@ const CUSTOM_TAB_PATTERN = /^[a-z][a-z0-9]{1,23}$/;
 const BUILTIN_TABS: readonly string[] = [
     'general',
     'sources',
+    'domains',
     'notifications',
     'permissions',
     'sync',
     'encryption',
     'sharing'
 ];
+
+/** The built-in ids a manifest may list: `sharing` is the shell's alone. */
+const DECLARABLE_TABS: readonly string[] = BUILTIN_TABS.filter((id) => id !== 'sharing');
 
 /** See {@link FeatureManifest.alsoInvalidatedBy}. */
 export interface CrossTopicInvalidation {
@@ -207,6 +213,22 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
     itemNounGender?: 'm' | 'f';
     /** Feature-scope reusable settings (API keys, destinations). Opens the Sources tab. */
     sources?: { hint: string };
+    /**
+     * The feature serves something under domain names the workspace owns (a
+     * public page, a mailbox). Opens the Domains tab, which DevEye renders:
+     * declaring, the DNS records to publish, verification. Commits the server
+     * entry to `domains` (`FeatureDomainsEntry`).
+     */
+    domains?: {
+        /** Lead sentence of the tab. */
+        hint: string;
+        /** The one sentence of the second step: how the domain gets wired to what you serve. */
+        service: string;
+        /** Placeholder of the host field. */
+        placeholder?: string;
+        /** Warning of the removal confirm when items designate the domain. */
+        removal?: string;
+    };
     /**
      * Whether an item can be projected into another workspace. Decided by
      * encryption: only the open tier is readable by the server alone. Anything
@@ -392,6 +414,11 @@ export function validateManifest(m: FeatureManifest): void {
         }
     }
 
+    if (m.domains) {
+        if (!m.domains.hint.trim()) fail(m.id, 'domains: empty hint');
+        if (!m.domains.service.trim()) fail(m.id, 'domains: empty service');
+    }
+
     for (const scope of ['feature', 'item'] as const) {
         for (const tab of m.settings?.[scope] ?? []) {
             if (typeof tab === 'string') {
@@ -402,8 +429,15 @@ export function validateManifest(m: FeatureManifest): void {
                 if (tab === 'sources' && scope === 'item') {
                     fail(m.id, 'sources is a feature-scope tab');
                 }
+                if (tab === 'domains' && !m.domains) fail(m.id, 'domains tab requires domains');
+                if (tab === 'domains' && scope === 'item') {
+                    fail(m.id, 'domains is a feature-scope tab');
+                }
                 if (tab === 'encryption' && scope === 'feature') {
                     fail(m.id, 'encryption is an item-scope tab');
+                }
+                if (!DECLARABLE_TABS.includes(tab)) {
+                    fail(m.id, `unknown settings tab « ${String(tab)} »`);
                 }
             } else {
                 if (!CUSTOM_TAB_PATTERN.test(tab.id) || BUILTIN_TABS.includes(tab.id)) {

@@ -100,3 +100,36 @@ test('resolveExtras: the owner holds everything, a member what the grant says, u
     assert.equal(owner.extraValue('reset'), '');
     assert.equal(resolveExtras(undefined, true, { reset: true }).canExtra('reset'), false);
 });
+
+test('validateManifest ties the domains tab to the domains field', () => {
+    const domains = { hint: 'Your own names.', service: 'Point the name here.' };
+    assert.doesNotThrow(() =>
+        validateManifest({ ...base, domains, settings: { feature: ['domains'] } })
+    );
+    assert.throws(
+        () => validateManifest({ ...base, settings: { feature: ['domains'] } }),
+        /domains tab requires domains/
+    );
+    assert.throws(
+        () =>
+            validateManifest({
+                ...base,
+                hasItems: true,
+                itemNoun: 'thing',
+                domains,
+                settings: { item: ['domains'] }
+            }),
+        /feature-scope/
+    );
+    assert.throws(
+        () => validateManifest({ ...base, domains: { ...domains, service: ' ' } }),
+        /empty service/
+    );
+});
+
+test('validateManifest refuses a tab id it does not know', () => {
+    assert.throws(
+        () => validateManifest({ ...base, settings: { feature: ['nope' as 'general'] } }),
+        /unknown settings tab/
+    );
+});

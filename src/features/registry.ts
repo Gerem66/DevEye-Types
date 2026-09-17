@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { agentCommands } from './agent';
+import { domainCommands } from './domain';
 import { feedbackCommands } from './feedback';
 import { homeCommands } from './home';
 import { liveCommands } from './live';
@@ -30,6 +31,7 @@ export const featureCommands = [
     ...homeCommands,
     ...notifyCommands,
     ...sharingCommands,
+    ...domainCommands,
     ...liveCommands
 ] as const;
 

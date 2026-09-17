@@ -88,7 +88,14 @@ export const workspaceFeatureIdSchema = z.enum([
      * Veille CVE. `read` = lire le fil et chercher dans le catalogue, `write` =
      * épingler une CVE pour tout l'espace et poser la clé d'API du NVD.
      */
-    'cve'
+    'cve',
+    /**
+     * Serveur mail. `read` = voir les adresses hébergées et leur activité,
+     * `write` = créer une adresse, régler son quota, déclarer un domaine.
+     * Réinitialiser un mot de passe et purger la file d'envoi sont des
+     * permissions propres du module.
+     */
+    'mailserver'
 ]);
 
 export type WorkspaceFeatureId = z.infer<typeof workspaceFeatureIdSchema>;

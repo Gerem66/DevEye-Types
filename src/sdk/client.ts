@@ -343,13 +343,33 @@ export interface AudienceClientProvider {
  * the ready senders (open tier, enabled) an email notification channel picks
  * from, and the feature's own account dialog.
  */
+/** What a caller already knows of the mailbox it sends to Mail's account form. */
+export interface MailAccountPrefill {
+    displayName: string;
+    emailAddress: string;
+    imap: { host: string; port: number; username: string; password: string };
+    smtp: { host: string; port: number; username: string; password: string };
+}
+
 export interface MailClientProvider {
     /** The workspace's ready senders, as the module lists them. */
     listSenders(): Promise<readonly { id: number; label: string; address: string }[]>;
     /**
+     * The account holding this address among those the caller can read, or
+     * null. A guarded account of a locked session does not show its address:
+     * it reads as absent.
+     */
+    findByAddress(address: string): Promise<{ id: number } | null>;
+    /**
      * The feature's account form (manual connection or OAuth consent), to
      * declare a mailbox from the channel form. `onSaved` fires when a mailbox
-     * came out of it; the host re-lists to find which.
+     * came out of it; the host re-lists to find which. With `prefill`, the
+     * form opens on the manual connection, filled in and ready to save.
      */
-    AccountDialog: ComponentType<{ open: boolean; onClose: () => void; onSaved: () => void }>;
+    AccountDialog: ComponentType<{
+        open: boolean;
+        onClose: () => void;
+        onSaved: () => void;
+        prefill?: MailAccountPrefill;
+    }>;
 }

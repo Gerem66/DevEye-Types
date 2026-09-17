@@ -270,6 +270,18 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         sources: {
             hint: 'La clé d’API du NVD, facultative : sans elle le catalogue se remplit quand même, elle ne fait que relever le quota de requêtes.'
         }
+    },
+    {
+        id: 'mailserver',
+        label: 'Serveur mail',
+        description:
+            'Lecture : les adresses hébergées et leur activité. Écriture : créer une adresse, régler son quota, déclarer un domaine.',
+        icon: 'at',
+        notifies: false,
+        hasItems: true,
+        itemNoun: 'adresse',
+        itemNounGender: 'f',
+        shareTier: 'open'
     }
 ];
 

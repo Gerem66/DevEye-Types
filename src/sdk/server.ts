@@ -418,14 +418,20 @@ export interface SdkProviders {
 }
 
 /**
- * Raw bytes under the SERVER key (the `Encryption.encryptWithKey` wire format,
- * byte-compatible with what native code wrote). For wrapping module-owned key
- * material; never for user data, which goes through ciphers and the store.
+ * Raw bytes under the SERVER key, for wrapping module-owned key material; never
+ * for user data, which goes through ciphers and the store. The host seals under
+ * a sub-key of its own for each module: a blob sealed by one module never opens
+ * in another, nor as one of the app's own sealed keys.
  */
 export interface SdkServerKeys {
-    sealBytes(plain: Uint8Array): string;
-    /** null when the sealed blob cannot be opened (tampered, or server keys changed). */
-    openBytes(sealed: string): Uint8Array | null;
+    /**
+     * `context` binds the blob to the row it belongs to (authenticated, not
+     * stored): pass the same string to `openBytes`. Recommended shape
+     * `<table>:<column>:<id>`, so a blob copied onto another row does not open.
+     */
+    sealBytes(plain: Uint8Array, context?: string): string;
+    /** null when the sealed blob cannot be opened (tampered, wrong context, or server keys changed). */
+    openBytes(sealed: string, context?: string): Uint8Array | null;
     /**
      * A key DERIVED from the server key (HKDF-SHA256 over the same material
      * as `sealBytes`), never stored anywhere. For material that must survive

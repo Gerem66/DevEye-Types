@@ -58,7 +58,10 @@ export interface UserSecretKeyRow {
     kdf_salt: Uint8Array | null;
     recovery_wrapped: string | null;
     recovery_salt: Uint8Array | null;
+    /** Argon2id profile the password wrap was derived under; rows re-wrap to the current one on unlock. */
     version: number;
+    /** Argon2id profile of the recovery wrap; upgraded when the code is next used or renewed. */
+    recovery_version: number;
     created: number;
     updated: number;
 }

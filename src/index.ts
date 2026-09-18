@@ -831,6 +831,7 @@ export {
     secrecyHold,
     secrecyLock,
     secrecyRecover,
+    secrecyRegenerateRecovery,
     secrecySetReauth,
     secrecyStatus,
     secrecyTouch,

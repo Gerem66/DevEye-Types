@@ -24,7 +24,7 @@ export const twoFactorEnable = {
 /** Disable 2FA (requires a valid current code or backup code). */
 export const twoFactorDisable = {
     command: 'twofa.disable' as const,
-    input: z.object({ code: z.string().min(6).max(16) }),
+    input: z.object({ code: z.string().min(6).max(24) }),
     output: z.object({ status: twoFactorStatusSchema })
 };
 

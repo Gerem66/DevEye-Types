@@ -75,7 +75,7 @@ export type LoginResponse = z.infer<typeof loginResponseSchema>;
 
 export const twoFactorChallengeRequestSchema = z.object({
     /** A 6-digit TOTP code or a recovery backup code. */
-    code: z.string().min(6).max(16)
+    code: z.string().min(6).max(24)
 });
 
 export type TwoFactorChallengeRequest = z.infer<typeof twoFactorChallengeRequestSchema>;

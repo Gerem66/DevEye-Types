@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { secrecyStatusSchema } from '../domain/secrecy';
 
+/** A password being verified: whatever the account already has. Bounded so Argon2 never eats a megabyte. */
+const existingPassword = z.string().min(1).max(512);
+/** A password being set: the account policy (`http/auth.ts`). */
+const newPassword = z.string().min(8).max(512);
+
 /** Current state of password-based encryption for the caller. */
 export const secrecyStatus = {
     command: 'secrecy.status' as const,
@@ -14,7 +19,7 @@ export const secrecyStatus = {
  */
 export const secrecyUnlock = {
     command: 'secrecy.unlock' as const,
-    input: z.object({ password: z.string().min(1) }),
+    input: z.object({ password: existingPassword }),
     output: z.object({ status: secrecyStatusSchema })
 };
 
@@ -26,7 +31,7 @@ export const secrecyUnlock = {
 export const secrecyEnable = {
     command: 'secrecy.enable' as const,
     input: z.object({
-        password: z.string().min(1),
+        password: existingPassword,
         recovery: z.boolean()
     }),
     output: z.object({
@@ -39,7 +44,7 @@ export const secrecyEnable = {
 /** Disable the feature: re-wrap the DEK with the server key. */
 export const secrecyDisable = {
     command: 'secrecy.disable' as const,
-    input: z.object({ password: z.string().min(1) }),
+    input: z.object({ password: existingPassword }),
     output: z.object({ status: secrecyStatusSchema })
 };
 
@@ -91,15 +96,23 @@ export const secrecyLock = {
 
 /**
  * Recover access after a forgotten password using the recovery code, choosing
- * a new password to re-wrap the DEK with.
+ * a new password to re-wrap the DEK with. The code that served is replaced: the
+ * new one is returned exactly once. Every other session of the account closes.
  */
 export const secrecyRecover = {
     command: 'secrecy.recover' as const,
     input: z.object({
-        recoveryCode: z.string().min(1),
-        newPassword: z.string().min(1)
+        recoveryCode: z.string().min(1).max(64),
+        newPassword
     }),
-    output: z.object({ status: secrecyStatusSchema })
+    output: z.object({ status: secrecyStatusSchema, recoveryCode: z.string().min(1) })
+};
+
+/** Replace the recovery code (password required). The previous code stops working at once. */
+export const secrecyRegenerateRecovery = {
+    command: 'secrecy.regenerateRecovery' as const,
+    input: z.object({ password: existingPassword }),
+    output: z.object({ status: secrecyStatusSchema, recoveryCode: z.string().min(1) })
 };
 
 export const secrecyCommands = [
@@ -111,5 +124,6 @@ export const secrecyCommands = [
     secrecyHold,
     secrecyTouch,
     secrecyLock,
-    secrecyRecover
+    secrecyRecover,
+    secrecyRegenerateRecovery
 ] as const;

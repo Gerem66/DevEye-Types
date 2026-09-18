@@ -11,17 +11,18 @@ import { devicePlatformSchema, deviceSchema } from '../domain/device';
  *  4. The user confirms the device in the Clients page to activate it.
  */
 
-/** Hard cap on a custom code lifetime (30 days), to bound never-pruned rows. */
+/**
+ * Hard cap on a code lifetime (30 days). A link code is a standing key to the
+ * workspace: it always expires.
+ */
 export const LINK_CODE_TTL_MAX_SECONDS = 30 * 24 * 60 * 60;
 
 /**
- * Request a new link code. `ttlSeconds`:
- *  - omitted   → server default lifetime,
- *  - `null`    → no expiry (valid until used or deleted),
- *  - a number  → custom lifetime in seconds.
+ * Request a new link code. `ttlSeconds` omitted → server default lifetime,
+ * otherwise a lifetime in seconds.
  */
 export const linkCodeRequestSchema = z.object({
-    ttlSeconds: z.number().int().positive().max(LINK_CODE_TTL_MAX_SECONDS).nullable().optional(),
+    ttlSeconds: z.number().int().positive().max(LINK_CODE_TTL_MAX_SECONDS).optional(),
     /**
      * Approve the device the moment it enrols with this code, instead of
      * leaving it `pending` for manual approval. Defaults to `false`.

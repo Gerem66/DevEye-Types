@@ -424,6 +424,12 @@ declare module 'deveye-sdk-client' {
     export function isWinPath(p: string): boolean;
     export function joinPath(base: string, name: string): string;
     /**
+     * The `href` for a link whose address comes from data (a remote feed, another
+     * member's input, a probe): only http(s) and mailto come out, anything else is
+     * `undefined`. Use it on every `<a href>` you do not write yourself.
+     */
+    export function safeHref(url: string | null | undefined): string | undefined;
+    /**
      * The DevEye version this interface was built from: what an agent's
      * reported version is compared against to offer a self-update.
      */

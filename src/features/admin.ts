@@ -84,12 +84,12 @@ export const adminInviteCreate = {
         email: z.string().max(320),
         /** Espace rejoint à la création du compte ; `null` = aucun. */
         workspaceId: z.number().int().positive().nullable(),
+        /** Une invitation crée un compte : elle expire toujours, au plus tard dans 30 jours. */
         ttlSeconds: z
             .number()
             .int()
             .positive()
-            .max(30 * 24 * 3600)
-            .nullable(),
+            .max(30 * 24 * 3600),
         maxUses: z.number().int().positive().max(100).nullable()
     }),
     output: z.object({ invite: adminInviteSchema })

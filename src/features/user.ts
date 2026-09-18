@@ -37,17 +37,29 @@ export const THEME_SLOT_COUNT = 5;
  */
 export const THEME_SLOT_IMAGE_MAX_LENGTH = 1_500_000;
 
+/**
+ * A wallpaper value: an image data URL, or an https URL. The theme belongs to
+ * the workspace, so every member's browser loads what one member saved: a free
+ * string would let `http:` or any other scheme through to all of them.
+ */
+const THEME_IMAGE =
+    /^(data:image\/(png|jpeg|webp|avif|gif);base64,[A-Za-z0-9+/]+=*|https:\/\/[^\s"'()\\]+)$/;
+
 export const themeStateSchema = z.object({
-    accent: z.string().nullable(),
-    bgPreset: z.string().nullable(),
-    bgImage: z.string().max(THEME_IMAGE_MAX_LENGTH).nullable(),
+    /** A hex colour: it is written as-is into CSS custom properties on every member's page. */
+    accent: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .nullable(),
+    bgPreset: z.string().max(40).nullable(),
+    bgImage: z.string().max(THEME_IMAGE_MAX_LENGTH).regex(THEME_IMAGE).nullable(),
     /**
      * Saved background gallery: up to THEME_SLOT_COUNT slots, each a compressed
      * data URL / raw URL, or null for an empty slot. Defaults to empty so themes
      * saved before this field parse cleanly.
      */
     bgImages: z
-        .array(z.string().max(THEME_SLOT_IMAGE_MAX_LENGTH).nullable())
+        .array(z.string().max(THEME_SLOT_IMAGE_MAX_LENGTH).regex(THEME_IMAGE).nullable())
         .max(THEME_SLOT_COUNT)
         .default([]),
     bgDim: z.number().int().min(0).max(100),

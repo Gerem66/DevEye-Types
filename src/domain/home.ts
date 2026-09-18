@@ -12,7 +12,7 @@ import {
  * tenant des tuiles ordonnées de n'importe quels genres (appareil,
  * fonctionnalité, raccourci, dossier). Aucune section par défaut ; l'intitulé
  * est facultatif. Stockée en clair : métadonnée de personnalisation, jamais de
- * charge zero-knowledge.
+ * contenu utilisateur.
  */
 
 /**
@@ -108,7 +108,9 @@ export const shortcutItemSchema = z.object({
     id: z.string().min(1).max(64),
     /** Unknown/legacy templates degrade to a generic link rather than dropping the tile. */
     template: shortcutTemplateSchema.catch('link'),
-    url: z.string().url().max(SHORTCUT_URL_MAX_LENGTH),
+    // http(s) seulement : `z.string().url()` accepte `javascript:` et `data:`, et
+    // cette valeur devient le `href` d'une tuile.
+    url: z.url({ protocol: /^https?$/ }).max(SHORTCUT_URL_MAX_LENGTH),
     /** Optional: empty → the tile falls back to the fetched name (account, og:title…). */
     title: z.string().max(80),
     description: z.string().max(200).optional(),
@@ -245,7 +247,7 @@ export const shortcutPreviewSchema = z.object({
     ok: z.boolean(),
     title: z.string().nullable(),
     subtitle: z.string().nullable(),
-    imageUrl: z.string().url().nullable(),
+    imageUrl: z.url({ protocol: /^https?$/ }).nullable(),
     stats: z.array(z.object({ label: z.string(), value: z.string() })).max(4),
     /**
      * Optional live/online status, rendered as a small green/red dot in the tile

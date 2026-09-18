@@ -61,17 +61,20 @@ export const enrollDeviceRequestSchema = z.object({
     code: z.string().min(6).max(32),
     name: z.string().min(1).max(128),
     fingerprint: z.string().min(1).max(128),
-    platform: devicePlatformSchema.default('linux'),
-    /** X25519 public key (base64) for command signature verification. */
-    publicKey: z.string().min(1).max(256)
+    platform: devicePlatformSchema.default('linux')
 });
 
 export type EnrollDeviceRequest = z.infer<typeof enrollDeviceRequestSchema>;
 
 export const enrollDeviceResponseSchema = z.object({
     deviceId: z.uuid(),
-    /** Long-lived device token (JWT). Stored only on the agent. */
+    /** Device token (JWT), rotated by the server before it expires. Stored only on the agent. */
     deviceToken: z.string().min(1),
+    /**
+     * The server's order-signing public key (Ed25519, base64): the agent pins it
+     * and refuses any high-impact order that does not carry its signature.
+     */
+    orderSigningKey: z.string().length(44),
     device: deviceSchema
 });
 

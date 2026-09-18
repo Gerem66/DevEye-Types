@@ -580,6 +580,10 @@ export const AGENT_COLLECT = 'agent.collect' as const;
 export const AGENT_SCAN = 'agent.scan' as const;
 /** Push the per-device collection config (cadences + capture mode) to the agent. */
 export const AGENT_CONFIG = 'agent.config' as const;
+/** Server → agent: a fresh device token replacing the one about to expire; the agent persists it. */
+export const AGENT_TOKEN_ROTATE = 'agent.tokenRotate' as const;
+export const agentTokenRotatePayloadSchema = z.object({ token: z.string().min(1).max(4096) });
+export type AgentTokenRotatePayload = z.infer<typeof agentTokenRotatePayloadSchema>;
 /** Tell the agent to self-destruct (wipe its local config + binary) and exit. */
 export const AGENT_DESTROY = 'agent.destroy' as const;
 /** Tell the agent to download, verify and swap in a newer signed binary. */
@@ -1107,10 +1111,44 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_SYNC_DELETE),
         payload: agentSyncDeletePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_TOKEN_ROTATE),
+        payload: agentTokenRotatePayloadSchema
     })
 ]);
 
 export type AgentServerMessage = z.infer<typeof agentServerMessageSchema>;
+
+/**
+ * Signature of a high-impact order, carried next to `command` and `payload` as
+ * `sig`. Ed25519 over `command \n nonce \n issuedAt \n` followed by the exact
+ * bytes of the payload as sent. The agent verifies it against the key pinned at
+ * enrolment, refuses an `issuedAt` more than five minutes off, and refuses a
+ * nonce it has already seen.
+ */
+export const orderSignatureSchema = z.object({
+    nonce: z.string().length(32),
+    issuedAt: z.number().int().positive(),
+    signature: z.string().length(88)
+});
+export type OrderSignature = z.infer<typeof orderSignatureSchema>;
+
+/**
+ * The orders the server signs (`ORDER_SIGNING_KEY`) and the agent refuses
+ * unsigned: what runs code, writes or deletes files, changes the agent's
+ * privileges or its life. Mirror of `SIGNED_COMMANDS` in `agent/src/protocol.rs`.
+ */
+export const SIGNED_AGENT_COMMANDS: ReadonlySet<string> = new Set([
+    AGENT_TERM_OPEN,
+    AGENT_FILES_MUTATE,
+    AGENT_FILES_UPLOAD,
+    AGENT_SERVICE,
+    AGENT_POWER,
+    AGENT_DESTROY,
+    AGENT_PKG_UPGRADE,
+    AGENT_LIFECYCLE
+]);
 
 /**
  * Server -> web client push events (no requestId), carried in the standard

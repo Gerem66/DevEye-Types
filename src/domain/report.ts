@@ -204,6 +204,22 @@ export type TcpConnection = z.infer<typeof tcpConnectionSchema>;
 export const agentServiceScopeSchema = z.enum(['none', 'user', 'system']);
 export type AgentServiceScope = z.infer<typeof agentServiceScopeSchema>;
 
+/**
+ * What the machine's own operator allows this server to order, read from the
+ * `[policy]` section of `agent.toml`. No frame can change it: it is the one
+ * thing on the device the server does not decide. `false` = the agent refuses
+ * the order, whatever the caller's permissions say.
+ */
+export const agentPolicySchema = z.object({
+    terminal: z.boolean(),
+    filesWrite: z.boolean(),
+    power: z.boolean(),
+    pkgUpgrade: z.boolean(),
+    serviceElevate: z.boolean(),
+    destroy: z.boolean()
+});
+export type AgentPolicy = z.infer<typeof agentPolicySchema>;
+
 export const agentInfoSchema = z.object({
     /** Running as root (Unix euid 0) / elevated (Windows). */
     privileged: z.boolean(),
@@ -223,7 +239,17 @@ export const agentInfoSchema = z.object({
      * ne dit pas (elle vaut `0.0.0` sur une construction locale). Vide par
      * défaut : un agent qui ne dit rien n'a pas ces sondes.
      */
-    probes: z.array(z.string().max(32)).max(16).default([])
+    probes: z.array(z.string().max(32)).max(16).default([]),
+    policy: agentPolicySchema.default({
+        terminal: true,
+        filesWrite: true,
+        power: true,
+        pkgUpgrade: true,
+        serviceElevate: true,
+        destroy: true
+    }),
+    /** The agent reaches this server over plain http/ws (opted in locally): everything, shell included, travels in clear. */
+    insecureTransport: z.boolean().default(false)
 });
 
 export type AgentInfo = z.infer<typeof agentInfoSchema>;
@@ -446,6 +472,12 @@ export const authWindowSchema = z.object({
      * La source n'a pas pu être lue (pas de journal, pas les droits) : sans ce
      * drapeau, une machine aveugle passerait pour une machine tranquille.
      */
-    unavailable: z.boolean().default(false)
+    unavailable: z.boolean().default(false),
+    /**
+     * Le plafond de lignes a été atteint : seules les plus récentes ont été
+     * comptées, les compteurs sont donc minorés. Un flot qui sature le relevé
+     * ne doit pas se lire comme une fenêtre calme.
+     */
+    truncated: z.boolean().default(false)
 });
 export type AuthWindow = z.infer<typeof authWindowSchema>;

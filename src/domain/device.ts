@@ -120,10 +120,14 @@ export interface DeviceRow {
     fingerprint: string;
     platform: string;
     status: DeviceStatus;
-    /** X25519 public key (base64) used for command signature verification. */
-    public_key: string | null;
     /** SHA-256 hash of the device token (the raw token lives only on the agent). */
     token_hash: string;
+    /**
+     * Hash of the token being replaced, during a rotation: accepted until the
+     * agent has authenticated once with the new one (a rotation frame can be
+     * lost in flight), then cleared.
+     */
+    token_hash_prev: string | null;
     last_seen: number | null;
     created: number;
     /** Agent version from the last `agent.hello`; null until first connection. */

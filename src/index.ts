@@ -183,12 +183,18 @@ export {
     packageListPushSchema,
     packageProgressPushSchema,
     packageStartedPushSchema,
+    AGENT_TOKEN_ROTATE,
+    agentTokenRotatePayloadSchema,
+    orderSignatureSchema,
+    SIGNED_AGENT_COMMANDS,
     syncIndexEntrySchema,
     syncShareAssignmentSchema
 } from './protocol/agent';
 export type {
     AgentClientMessage,
     AgentConfigPayload,
+    AgentTokenRotatePayload,
+    OrderSignature,
     AgentFilesAnalyzePayload,
     AgentFilesDownloadPayload,
     AgentFilesListPayload,
@@ -553,6 +559,7 @@ export { packageManagerIdSchema, packageManagerSchema } from './domain/packages'
 export type { PackageManager, PackageManagerId } from './domain/packages';
 export {
     agentInfoSchema,
+    agentPolicySchema,
     agentServiceScopeSchema,
     AUTH_LOGIN_LIMIT,
     AUTH_SOURCE_LIMIT,
@@ -579,6 +586,7 @@ export {
 } from './domain/report';
 export type {
     AgentInfo,
+    AgentPolicy,
     AgentServiceScope,
     AuthLogin,
     AuthSource,

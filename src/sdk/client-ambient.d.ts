@@ -74,6 +74,29 @@ declare module 'deveye-sdk-client' {
         disabled?: boolean;
     }): ReactNode;
     /**
+     * A single choice where each option explains itself: one card per option,
+     * label and consequences together. For two or three choices that commit
+     * the user; a harmless setting stays a `SegmentedControl`. A description
+     * may hold its own clickable elements without checking the card.
+     */
+    export function ChoiceCards<T extends string>(props: {
+        value: T;
+        options: readonly {
+            value: T;
+            label: string;
+            description: ReactNode;
+            /** Icon class (`icon-lock`...), shown next to the label. */
+            icon?: string;
+            /** Why the option is not offered: makes it inert, shown under the description. */
+            unavailable?: ReactNode;
+        }[];
+        onChange: (value: T) => void;
+        disabled?: boolean;
+        /** The choice being applied: its card says so, the others wait. */
+        pending?: T | null;
+        'aria-label'?: string;
+    }): ReactNode;
+    /**
      * Le bouton d'enregistrement d'un panneau de réglages : « Enregistrement… »
      * pendant l'aller-retour, « Enregistré » quelques secondes, puis l'intitulé
      * de départ. Les erreurs restent au panneau, elles ne s'effacent pas seules.

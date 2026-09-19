@@ -94,6 +94,8 @@ declare module 'deveye-sdk-client' {
         disabled?: boolean;
         /** The choice being applied: its card says so, the others wait. */
         pending?: T | null;
+        /** A pointer click on a card, the current choice included: for a choice that advances a step. */
+        onPick?: (value: T) => void;
         'aria-label'?: string;
     }): ReactNode;
     /**

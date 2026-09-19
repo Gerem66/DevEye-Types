@@ -487,9 +487,10 @@ export interface SdkSecrecy {
 export interface SdkItems {
     /**
      * The items the caller's role sees differently from the others: `'none'`
-     * hidden, `'read'` read-only. Restrictive only: it can lower what the
-     * feature grants, never raise it. Empty for the owner and for a member
-     * without a role. Listings filter with it.
+     * hidden, `'read'` read-only, `'write'` writable where the feature grants
+     * reading only. An override REPLACES what the feature gives, in both
+     * directions. Empty for the owner and for a member without a role.
+     * Listings filter with it.
      */
     restrictions(): Promise<ReadonlyMap<string, ItemAccess>>;
     /**
@@ -498,6 +499,13 @@ export interface SdkItems {
      * item call it first.
      */
     assert(itemId: string, level?: FeatureAccess): Promise<void>;
+    /**
+     * Does the caller hold this extra permission ON THIS ITEM: the item's
+     * override when it carries one, the role's grant otherwise. For a guard
+     * that covers only part of a command (the dates of a card, say). A command
+     * gated as a whole declares `access.extras` and needs nothing here.
+     */
+    canExtra(itemId: string, key: string): Promise<boolean>;
     /**
      * The item no longer exists: drops its projections, its role restrictions
      * and its notification route. Call it from your delete handler; nothing

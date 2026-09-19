@@ -309,6 +309,11 @@ export interface TestContextOverrides<Repo> {
     /** The caller's role restrictions on items, by item id. Default none. */
     itemRestrictions?: Readonly<Record<string, ItemAccess>>;
     /**
+     * Extra permissions overridden on one item, by item id then key. What
+     * `items.canExtra` answers there; elsewhere it follows `extras`.
+     */
+    itemExtras?: Readonly<Record<string, Readonly<Record<string, boolean>>>>;
+    /**
      * Items projected INTO the workspace, as `itemId → home workspace id`.
      * Default none: every item is at home. `sharing.scope().cipherFor` is the
      * identity cipher either way.
@@ -357,6 +362,11 @@ export function createTestContext<Repo = undefined>(
     const restrictions = new Map<string, ItemAccess>(
         Object.entries(overrides.itemRestrictions ?? {})
     );
+    const extras = resolveExtras(
+        overrides.manifest?.extraPermissions,
+        isOwner,
+        overrides.extras ?? {}
+    );
     const homes = new Map<string, number>(Object.entries(overrides.shares ?? {}));
     const forgotten: string[] = [];
     const orders: { itemId: string; order: number }[] = [];
@@ -399,6 +409,11 @@ export function createTestContext<Repo = undefined>(
                 }
                 return Promise.resolve();
             },
+            canExtra(itemId, key) {
+                return Promise.resolve(
+                    overrides.itemExtras?.[itemId]?.[key] ?? extras.canExtra(key)
+                );
+            },
             forget(itemId) {
                 forgotten.push(itemId);
                 return Promise.resolve();
@@ -426,7 +441,7 @@ export function createTestContext<Repo = undefined>(
         isOwner,
         isAdmin: overrides.isAdmin ?? false,
         canWrite: overrides.canWrite ?? true,
-        ...resolveExtras(overrides.manifest?.extraPermissions, isOwner, overrides.extras ?? {}),
+        ...extras,
         repo: overrides.repo as Repo,
         store: memoryStore(),
         cipher: (mode) =>

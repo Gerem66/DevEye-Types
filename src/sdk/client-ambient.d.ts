@@ -158,6 +158,15 @@ declare module 'deveye-sdk-client' {
         body: ReactNode;
         width?: number;
     }): Promise<unknown>;
+    /** The technical terms the app's glossary defines. */
+    export type GlossaryTermId =
+        'zeroKnowledge' | 'encryption' | 'twoFactor' | 'webhook' | 'imap' | 'smtp' | 'proxy';
+    /**
+     * A technical term inside a sentence: reads like the surrounding text and
+     * opens its plain-language definition on click. `children` is the term as
+     * the sentence spells it; it defaults to the definition's title.
+     */
+    export function Term(props: { id: GlossaryTermId; children?: ReactNode }): ReactNode;
     /** Request the enclosing Dialog's guarded close (the unsaved-changes prompt included). */
     export function useDialogClose(): () => void;
     /** Register `fn` as the enclosing Dialog's primary action (Enter triggers it); `null` clears it. */

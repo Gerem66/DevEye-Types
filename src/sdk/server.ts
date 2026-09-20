@@ -952,6 +952,12 @@ export interface FeatureServiceDeps<Repo = unknown> {
     devices: SdkFleetDevices;
     /** Capability `'accounts.read'`. */
     accounts: SdkAccounts;
+    /**
+     * {@link SdkQuota} for a workspace, sessionless: for what gets created
+     * outside any command (bytes an agent uploads). Same account rule, the
+     * owner of that workspace.
+     */
+    quotaFor(workspaceId: number): SdkQuota;
     /** The devices' telemetry, sessionless (capability `'telemetry.read'`). */
     telemetry: SdkTelemetry;
     /** Live invalidation of your feature's resources, from a service. */

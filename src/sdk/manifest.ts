@@ -70,8 +70,10 @@ export const MAX_FEATURE_QUOTAS = 8;
 export interface FeatureQuotaSpec {
     /** Same shape as an extra permission key. The plan names it `<featureId>.<key>`. */
     key: string;
-    /** Plural noun, as a limit reads: "5 monitors". */
+    /** Plural noun, as a limit reads: "5 monitors". For `bytes`, what is measured: "of storage". */
     label: string;
+    /** What the number counts. `bytes`: the host writes the limit as a size ("1 GB"). Default: things. */
+    unit?: 'bytes';
 }
 
 /** Hard cap on `extraPermissions`: keeps role editors legible. */

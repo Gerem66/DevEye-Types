@@ -545,6 +545,8 @@ export interface TestServiceOverrides<Repo> {
     devices?: readonly SdkDevice[];
     /** The accounts `deps.accounts` knows. Default none. */
     accounts?: readonly SdkAccount[];
+    /** The plan's limits `deps.quotaFor` applies, by YOUR quota key. Default none (unlimited). */
+    quotaLimits?: Record<string, number>;
     /** What `deveyeFor(...).notify.hasRoute` answers. Default true. */
     hasRoute?: boolean;
     /** What `deveyeFor(...).notify.send` resolves. Default true; recorded either way. */
@@ -648,6 +650,19 @@ export function createTestServiceDeps<Repo = undefined>(
                 recorded.accountChanges.push(userId);
             }
         },
+        quotaFor: () => ({
+            limit: (key) => Promise.resolve(overrides.quotaLimits?.[key] ?? null),
+            async assert(key, countAfter) {
+                const limit = overrides.quotaLimits?.[key];
+                if (limit === undefined) return;
+                if ((await countAfter(overrides.workspaceIds ?? [1])) > limit) {
+                    throw new FeatureError('quota_exceeded', `quota « ${key} » reached`, {
+                        key,
+                        limit
+                    });
+                }
+            }
+        }),
         accounts: {
             find: (userId) =>
                 Promise.resolve((overrides.accounts ?? []).find((a) => a.id === userId) ?? null),

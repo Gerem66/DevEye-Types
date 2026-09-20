@@ -870,8 +870,17 @@ export {
     loginRequestSchema,
     loginResponseSchema,
     meResponseSchema,
+    passwordSchema,
     refreshResponseSchema,
     sessionBundleSchema,
+    signupAvailabilitySchema,
+    signupCompleteRequestSchema,
+    signupCompleteResponseSchema,
+    signupStartRequestSchema,
+    signupStartResponseSchema,
+    signupStatusSchema,
+    signupVerifyRequestSchema,
+    signupVerifyResponseSchema,
     twoFactorChallengeRequestSchema
 } from './http/auth';
 export type {
@@ -882,6 +891,14 @@ export type {
     MeResponse,
     RefreshResponse,
     SessionBundle,
+    SignupAvailability,
+    SignupCompleteRequest,
+    SignupCompleteResponse,
+    SignupStartRequest,
+    SignupStartResponse,
+    SignupStatus,
+    SignupVerifyRequest,
+    SignupVerifyResponse,
     TwoFactorChallengeRequest
 } from './http/auth';
 export {

@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { secrecyStatusSchema } from '../domain/secrecy';
+import { passwordSchema } from '../http/auth';
 
 /** A password being verified: whatever the account already has. Bounded so Argon2 never eats a megabyte. */
 const existingPassword = z.string().min(1).max(512);
-/** A password being set: the account policy (`http/auth.ts`). */
-const newPassword = z.string().min(8).max(512);
+const newPassword = passwordSchema;
 
 /** Current state of password-based encryption for the caller. */
 export const secrecyStatus = {

@@ -464,6 +464,19 @@ declare module 'deveye-sdk-client' {
      */
     export function safeHref(url: string | null | undefined): string | undefined;
     /**
+     * A v4 UUID, secure context or not. `crypto.randomUUID` is only exposed over
+     * HTTPS or on localhost, so an instance served in the clear on a LAN address
+     * does not have it: use this instead of calling it yourself.
+     */
+    export function randomUuid(): string;
+    /**
+     * Writes `value` to the clipboard and says whether it worked: on `false` the
+     * gesture still needs to be confirmed some other way, never silently dropped.
+     * `navigator.clipboard` only exists in a secure context, so this falls back to
+     * an offscreen selection. Never call the browser API directly.
+     */
+    export function copyText(value: string): Promise<boolean>;
+    /**
      * The DevEye version this interface was built from: what an agent's
      * reported version is compared against to offer a self-update.
      */

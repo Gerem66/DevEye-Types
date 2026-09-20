@@ -295,6 +295,8 @@ export interface SdkAccount {
     id: number;
     email: string;
     username: string;
+    /** A global administrator of this DevEye. */
+    isAdmin: boolean;
     /** Milliseconds since the epoch. */
     created: number;
 }
@@ -302,6 +304,7 @@ export interface SdkAccount {
 /** Any account, sessionless (capability `'accounts.read'`), for services. */
 export interface SdkAccounts {
     find(userId: number): Promise<SdkAccount | null>;
+    findByEmail(email: string): Promise<SdkAccount | null>;
     list(userIds: readonly number[]): Promise<readonly SdkAccount[]>;
 }
 

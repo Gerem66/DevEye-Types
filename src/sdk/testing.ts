@@ -374,6 +374,7 @@ export function createTestContext<Repo = undefined>(
                         id: overrides.userId ?? 1,
                         email: `user${overrides.userId ?? 1}@deveye.test`,
                         username: `user${overrides.userId ?? 1}`,
+                        isAdmin: overrides.isAdmin ?? false,
                         created: 0
                     }
                 )
@@ -650,6 +651,12 @@ export function createTestServiceDeps<Repo = undefined>(
         accounts: {
             find: (userId) =>
                 Promise.resolve((overrides.accounts ?? []).find((a) => a.id === userId) ?? null),
+            findByEmail: (email) =>
+                Promise.resolve(
+                    (overrides.accounts ?? []).find(
+                        (a) => a.email === email.trim().toLowerCase()
+                    ) ?? null
+                ),
             list: (userIds) =>
                 Promise.resolve((overrides.accounts ?? []).filter((a) => userIds.includes(a.id)))
         },

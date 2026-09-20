@@ -94,6 +94,39 @@ export interface DatabaseBackupProvider {
  * feature links to: same shape and reason as `UPTIME_ITEMS_PROVIDER`
  * (`project_database_links` is Projects' table).
  */
+/**
+ * Key of the read-only measurement the Projects module consumes for its custom
+ * dashboard KPIs: the query goes through the SAME access as the monitoring (SSH
+ * tunnel or SOCKS proxy included), and only the Databases feature knows how to
+ * decrypt a connection.
+ */
+export const DATABASE_MEASURE_PROVIDER = 'database.measure' as const;
+
+/** One measured number, or the reason there is none. */
+export interface DatabaseNumberOutcome {
+    value: number | null;
+    error: string | null;
+}
+
+export interface DatabaseMeasureProvider {
+    /**
+     * Measures read-only queries against a database visible from this
+     * workspace, in ONE session (tunnel included) whatever the number of
+     * queries: opening one per query would cost far more than the figures are
+     * worth.
+     *
+     * Each query must be a single read statement returning exactly one row and
+     * one column; one that is refused or faulty yields its error and does not
+     * interrupt the others, the way an alert's conditions behave. Answers
+     * `null`, never throws, when the database is not visible from there.
+     */
+    measure(
+        databaseId: number,
+        workspaceId: number,
+        queries: readonly string[]
+    ): Promise<readonly DatabaseNumberOutcome[] | null>;
+}
+
 export const DATABASE_ITEMS_PROVIDER = 'database.items' as const;
 
 export interface DatabaseItemsProvider {
@@ -284,6 +317,21 @@ export interface ProjectUsage {
     status: 'draft' | 'active' | 'paused' | 'done';
 }
 
+/**
+ * A project an item of another feature can be attached to, in ONE workspace.
+ * Open tier and at home only: a guarded project links nothing, and a link is
+ * posed in the project's own workspace, never through a projection of it.
+ */
+export interface ProjectLinkTarget {
+    projectId: number;
+    title: string;
+    status: 'draft' | 'active' | 'paused' | 'done';
+    /** Filed away: listed only while it still links the item, so the link can be undone. */
+    archived: boolean;
+    /** This project already links the item asked about. */
+    linked: boolean;
+}
+
 export interface ProjectsUsageProvider {
     /** The workspace's projects linking this item of this feature, in Projects' display order. */
     usageOf(feature: string, itemId: number, workspaceId: number): Promise<readonly ProjectUsage[]>;
@@ -301,6 +349,40 @@ export interface ProjectsUsageProvider {
      * and zero for a feature that links nothing.
      */
     detach(feature: string, itemId: number, workspaceId: number): Promise<number>;
+    /**
+     * The projects of ONE workspace an item of this feature can be attached to,
+     * each saying whether it already links it. What the app's settings shell
+     * lists on an item, workspace by workspace.
+     *
+     * Only projects living in that workspace at the open tier: a link is posed
+     * at the project's home, and a guarded project links nothing. Filed-away
+     * projects appear only while they still hold a link, so a dead link can be
+     * undone without unfiling the project.
+     *
+     * Empty for a feature this provider links nothing of, so a caller never has
+     * to know which features are linkable.
+     */
+    linkTargets(
+        feature: string,
+        itemId: number,
+        workspaceId: number
+    ): Promise<readonly ProjectLinkTarget[]>;
+    /**
+     * Attaches the item to one project of this workspace. Idempotent: the same
+     * link declared twice is the same fact, not an error.
+     *
+     * The caller owns the authorisation (`projects: write` in that workspace)
+     * and has checked the item is visible from there; this only refuses what
+     * its own tables cannot hold, silently: an unknown or projected project,
+     * and a guarded one.
+     */
+    link(feature: string, itemId: number, workspaceId: number, projectId: number): Promise<void>;
+    /**
+     * Drops that one link, and never touches the item itself. Idempotent.
+     * Unlike {@link ProjectsUsageProvider.detach}, which drops every link of an
+     * item that left the workspace, this answers one screen's single switch.
+     */
+    unlink(feature: string, itemId: number, workspaceId: number, projectId: number): Promise<void>;
     /**
      * Writes one line in a project's timeline (a deployment triggered from a
      * project's tab). Open tier only: an event aimed at a guarded project is

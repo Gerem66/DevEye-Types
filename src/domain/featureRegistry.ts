@@ -403,6 +403,22 @@ export const SHAREABLE_FEATURES: readonly WorkspaceFeatureId[] = FEATURE_REGISTR
  */
 export const SHARE_WIRED_FEATURES: readonly WorkspaceFeatureId[] = ['backup'];
 
+/**
+ * Celles dont un projet relie les éléments : le module Projets tient une table
+ * de liaison par famille, et son contrat d'usage (`PROJECTS_USAGE_PROVIDER`) ne
+ * connaît que celles-ci. Partagée entre client et serveur, comme
+ * {@link SHARE_WIRED_FEATURES} : le serveur rend une liste vide pour une autre,
+ * le client n'affiche pas l'onglet. En relier une de plus, c'est une entrée ici
+ * et une dans le `Record` du contrat.
+ */
+export const PROJECT_LINKED_FEATURES: readonly WorkspaceFeatureId[] = [
+    'git',
+    'database',
+    'audience',
+    'deploy',
+    'uptime'
+];
+
 /** Les fonctionnalités qui savent prévenir, dans l'ordre du registre. */
 export const NOTIFYING_FEATURES: readonly WorkspaceFeatureId[] = FEATURE_REGISTRY.filter(
     (f) => f.notifies

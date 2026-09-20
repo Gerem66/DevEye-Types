@@ -392,8 +392,21 @@ export type {
     FileSearchFilter,
     FileUsageEntry
 } from './domain/deviceFiles';
-export { projectStatusSchema } from './domain/project';
-export type { ProjectStatus } from './domain/project';
+export {
+    itemProjectGroupSchema,
+    itemProjectSchema,
+    itemProjectsBlockerSchema,
+    itemProjectsStateSchema,
+    projectStatusSchema,
+    PROJECT_STATUS_LABELS
+} from './domain/project';
+export type {
+    ItemProject,
+    ItemProjectGroup,
+    ItemProjectsBlocker,
+    ItemProjectsState,
+    ProjectStatus
+} from './domain/project';
 export { presenceEventSchema } from './domain/presence';
 export type { PresenceEvent, PresenceRow } from './domain/presence';
 export { userRoleSchema } from './domain/role';
@@ -689,7 +702,12 @@ export {
     shareSet,
     sharingCommands
 } from './features/sharing';
-export { SHAREABLE_FEATURES, SHARE_WIRED_FEATURES } from './domain/featureRegistry';
+export { linksCommands, projectLinksGet, projectLinksSet } from './features/links';
+export {
+    PROJECT_LINKED_FEATURES,
+    SHAREABLE_FEATURES,
+    SHARE_WIRED_FEATURES
+} from './domain/featureRegistry';
 export {
     DNS_RECORD_TYPES,
     FEATURE_DOMAIN_HOST_MAX,

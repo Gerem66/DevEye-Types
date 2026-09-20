@@ -3,6 +3,7 @@ import { agentCommands } from './agent';
 import { domainCommands } from './domain';
 import { feedbackCommands } from './feedback';
 import { homeCommands } from './home';
+import { linksCommands } from './links';
 import { liveCommands } from './live';
 import { logsCommands } from './logs';
 import { notifyCommands } from './notify';
@@ -31,6 +32,7 @@ export const featureCommands = [
     ...homeCommands,
     ...notifyCommands,
     ...sharingCommands,
+    ...linksCommands,
     ...domainCommands,
     ...liveCommands
 ] as const;

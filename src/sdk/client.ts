@@ -113,6 +113,38 @@ export interface FeatureClient {
  * Deliberately a subset of the module's own contract: what a linked-service
  * block needs, and nothing the module may want to change later.
  */
+/**
+ * One figure of a project's dashboard tile. The module formats it, the host only
+ * places it: neither has to know the other's vocabulary.
+ */
+export interface SdkTileMetric {
+    /** Stable key of the figure inside its tile, so the host never orders by accident. */
+    key: string;
+    label: string;
+    /** Already formatted by the module (« 1 240 », « 99,95 % », « il y a 3 h »). */
+    value: string;
+    /** What the theme must say of this value. Never a colour. */
+    tone?: 'neutral' | 'accent' | 'good' | 'warn' | 'bad';
+}
+
+/**
+ * What a module answers about ONE of its items, for a dashboard tile. Always one
+ * entry per id asked for, so the host never has to guess which one is missing.
+ */
+export interface SdkTileSummary {
+    itemId: number;
+    /** The item's name; the host makes it the tile's heading. */
+    title: string;
+    /** Two or three figures, never more: a tile is not a screen. */
+    metrics: readonly SdkTileMetric[];
+    /**
+     * Why it cannot be measured, in one sentence (item gone, token revoked,
+     * monitoring off). The host shows it inside the tile and does NOT turn it
+     * into a screen error: a dashboard shows what it can.
+     */
+    unavailable?: string;
+}
+
 export interface UptimeLinkedService {
     id: number;
     name: string;
@@ -172,6 +204,13 @@ export interface UptimeClientProvider {
     /** The workspace's services, as `uptime.list` returns them. */
     listServices(): Promise<readonly UptimeLinkedService[]>;
     /**
+     * The given services, summarised for a project's dashboard tile. ONE round
+     * trip whatever their number: a dashboard that opened one per tile would
+     * cost far more than the figures are worth. An id the caller cannot read,
+     * or that is gone, comes back `unavailable`, never as a throw.
+     */
+    summarize(serviceIds: readonly number[]): Promise<readonly SdkTileSummary[]>;
+    /**
      * A service's history for the strip. `stamp` is what re-reads it (pass
      * `service.lastCheckedAt`); no timer.
      */
@@ -227,6 +266,13 @@ export interface DatabaseClientProvider {
     /** The workspace's databases, as `database.list` returns them. */
     listDatabases(): Promise<readonly DatabaseLinkedCandidate[]>;
     /**
+     * The given databases, summarised for a project's dashboard tile. ONE round
+     * trip whatever their number: a dashboard that opened one per tile would
+     * cost far more than the figures are worth. An id the caller cannot read,
+     * or that is gone, comes back `unavailable`, never as a throw.
+     */
+    summarize(databaseIds: readonly number[]): Promise<readonly SdkTileSummary[]>;
+    /**
      * A database linked to a project, shown in full: header (name, address,
      * actions, its own settings button), state, alerts, table explorer. Loads
      * itself by `database.get`, follows the feature's invalidations, and
@@ -263,6 +309,13 @@ export interface DeployLinkedCandidate {
 export interface DeployClientProvider {
     /** The workspace's targets, as `deploy.list` returns them. */
     listTargets(): Promise<readonly DeployLinkedCandidate[]>;
+    /**
+     * The given targets, summarised for a project's dashboard tile. ONE round
+     * trip whatever their number: a dashboard that opened one per tile would
+     * cost far more than the figures are worth. An id the caller cannot read,
+     * or that is gone, comes back `unavailable`, never as a throw.
+     */
+    summarize(targetIds: readonly number[]): Promise<readonly SdkTileSummary[]>;
     /**
      * A target linked to a project, shown in full: identity, last deployment,
      * trigger, its own settings button. Loads itself by `deploy.get`, follows
@@ -304,6 +357,13 @@ export interface GitClientProvider {
     /** The workspace's repositories, as `git.repoList` returns them. */
     listRepos(): Promise<readonly GitLinkedCandidate[]>;
     /**
+     * The given repositories, summarised for a project's dashboard tile. ONE round
+     * trip whatever their number: a dashboard that opened one per tile would
+     * cost far more than the figures are worth. An id the caller cannot read,
+     * or that is gone, comes back `unavailable`, never as a throw.
+     */
+    summarize(repoIds: readonly number[]): Promise<readonly SdkTileSummary[]>;
+    /**
      * A repository linked to a project, shown in full: header (name, sync
      * state, actions, its own settings button), graph and panels. Loads
      * itself by `git.repoGet`, follows the feature's invalidations and the
@@ -334,6 +394,13 @@ export interface AudienceLinkedCandidate {
 export interface AudienceClientProvider {
     /** The workspace's sites, as `audience.list` returns them. */
     listSites(): Promise<readonly AudienceLinkedCandidate[]>;
+    /**
+     * The given sites, summarised for a project's dashboard tile. ONE round
+     * trip whatever their number: a dashboard that opened one per tile would
+     * cost far more than the figures are worth. An id the caller cannot read,
+     * or that is gone, comes back `unavailable`, never as a throw.
+     */
+    summarize(siteIds: readonly number[]): Promise<readonly SdkTileSummary[]>;
     /**
      * A site linked to a project, shown in full: its sticky heading, actions
      * (install, its own settings button), stats, funnels. Loads itself by

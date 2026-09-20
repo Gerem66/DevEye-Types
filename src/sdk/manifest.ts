@@ -283,13 +283,13 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
     quotas?: readonly FeatureQuotaSpec[];
 
     /**
-     * An entry of the user menu, under "Security", opening
-     * `FeatureClient.AccountView`. For what belongs to the account, whatever
-     * the active workspace. `signupHint`: the view opens by itself right after
+     * An entry of the user menu, under "Security", drawn with the module's
+     * `icon` and opening `FeatureClient.AccountView`. For what belongs to the
+     * account, whatever the active workspace. `signupHint`: the view opens by itself right after
      * a sign-up that carried a hint (`/signup?plan=…`), and receives it. One
      * installed module at most may ask for it.
      */
-    accountEntry?: { label: string; icon: string; signupHint?: boolean };
+    accountEntry?: { label: string; signupHint?: boolean };
     /**
      * The module lives in the user menu only: no card, no row in the roles
      * screen, `Widget` and `Full` not required. Requires `accountEntry`, no
@@ -436,9 +436,7 @@ export function validateManifest(m: FeatureManifest): void {
         if (!quota.label.trim()) fail(m.id, `quota « ${quota.key} »: empty label`);
     }
 
-    if (m.accountEntry && (!m.accountEntry.label.trim() || !m.accountEntry.icon.trim())) {
-        fail(m.id, 'accountEntry requires a label and an icon');
-    }
+    if (m.accountEntry && !m.accountEntry.label.trim()) fail(m.id, 'accountEntry requires a label');
     if (m.accountOnly) {
         if (!m.accountEntry) fail(m.id, 'accountOnly requires accountEntry');
         if (m.hasItems) fail(m.id, 'accountOnly modules own no items');

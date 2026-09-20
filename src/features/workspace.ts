@@ -75,8 +75,8 @@ export const workspaceRemoveMember = {
 
 /**
  * Ajoute un membre à l'espace actif, désigné par son adresse. Pas de lien ni
- * d'acceptation : le compte existe déjà (inscription sur invitation), et un
- * lien serait un secret transmissible de plus.
+ * d'acceptation : le compte existe déjà, et un lien serait un secret
+ * transmissible de plus.
  */
 export const workspaceAddMember = {
     command: 'workspace.addMember' as const,

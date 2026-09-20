@@ -25,23 +25,6 @@ export const adminUserSchema = z.object({
 
 export type AdminUser = z.infer<typeof adminUserSchema>;
 
-/** Invitation à créer un compte, en attente d'être consommée. */
-export const adminInviteSchema = z.object({
-    token: z.string(),
-    url: z.string(),
-    /** Adresse sur laquelle l'invitation est verrouillée, ou `null`. */
-    email: z.string().nullable(),
-    /** Espace rejoint dès la création du compte, ou `null`. */
-    workspaceName: z.string().nullable(),
-    expiresAt: z.number().int().nullable(),
-    maxUses: z.number().int().positive().nullable(),
-    uses: z.number().int().nonnegative(),
-    createdBy: z.string(),
-    created: z.number().int().nonnegative()
-});
-
-export type AdminInvite = z.infer<typeof adminInviteSchema>;
-
 export const adminUserList = {
     command: 'admin.userList' as const,
     input: z.object({}),
@@ -71,42 +54,9 @@ export const adminDeleteUser = {
     output: z.object({ userId: z.number().int().positive() })
 };
 
-export const adminInviteList = {
-    command: 'admin.inviteList' as const,
-    input: z.object({}),
-    output: z.object({ invites: z.array(adminInviteSchema) })
-};
-
-export const adminInviteCreate = {
-    command: 'admin.inviteCreate' as const,
-    input: z.object({
-        /** Verrouille l'invitation sur une adresse ; vide = ouverte. */
-        email: z.string().max(320),
-        /** Espace rejoint à la création du compte ; `null` = aucun. */
-        workspaceId: z.number().int().positive().nullable(),
-        /** Une invitation crée un compte : elle expire toujours, au plus tard dans 30 jours. */
-        ttlSeconds: z
-            .number()
-            .int()
-            .positive()
-            .max(30 * 24 * 3600),
-        maxUses: z.number().int().positive().max(100).nullable()
-    }),
-    output: z.object({ invite: adminInviteSchema })
-};
-
-export const adminInviteRevoke = {
-    command: 'admin.inviteRevoke' as const,
-    input: z.object({ token: z.string().min(1) }),
-    output: z.object({ token: z.string().min(1) })
-};
-
 export const adminCommands = [
     adminUserList,
     adminSetUserRole,
     adminSetUserStatus,
-    adminDeleteUser,
-    adminInviteList,
-    adminInviteCreate,
-    adminInviteRevoke
+    adminDeleteUser
 ] as const;

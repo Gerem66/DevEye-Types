@@ -131,9 +131,9 @@ export const nativeLiveTopicSchema = z.enum([
     /** Réglages de compte (avatar, couleur, thème, chiffrement). */
     'account',
     /**
-     * Les comptes du site et leurs invitations : ce que la page Utilisateurs
-     * montre. Jamais diffusé dans une salle, la page n'appartient à aucun
-     * espace : les administrateurs sont visés par compte (`userChanged`).
+     * Les comptes du site : ce que la page Utilisateurs montre. Jamais diffusé
+     * dans une salle, la page n'appartient à aucun espace : les administrateurs
+     * sont visés par compte (`userChanged`).
      */
     'admin',
     /**

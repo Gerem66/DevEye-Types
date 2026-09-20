@@ -188,7 +188,7 @@ export const workspaceRoleSchema = z.object({
     position: z.number().int().nonnegative(),
     capabilities: z.array(workspaceCapabilitySchema),
     features: z.array(workspaceFeatureGrantSchema),
-    /** Attribué d'office à qui rejoint l'espace par invitation. */
+    /** Attribué d'office à qui rejoint l'espace. */
     isDefault: z.boolean(),
     memberCount: z.number().int().nonnegative()
 });

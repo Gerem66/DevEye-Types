@@ -741,16 +741,12 @@ export type {
 export {
     adminCommands,
     adminDeleteUser,
-    adminInviteCreate,
-    adminInviteList,
-    adminInviteRevoke,
-    adminInviteSchema,
     adminSetUserRole,
     adminSetUserStatus,
     adminUserList,
     adminUserSchema
 } from './features/admin';
-export type { AdminInvite, AdminUser } from './features/admin';
+export type { AdminUser } from './features/admin';
 export {
     workspaceActivate,
     workspaceAdd,
@@ -875,7 +871,6 @@ export {
     loginResponseSchema,
     meResponseSchema,
     refreshResponseSchema,
-    registerRequestSchema,
     sessionBundleSchema,
     twoFactorChallengeRequestSchema
 } from './http/auth';
@@ -886,7 +881,6 @@ export type {
     LoginResponse,
     MeResponse,
     RefreshResponse,
-    RegisterRequest,
     SessionBundle,
     TwoFactorChallengeRequest
 } from './http/auth';

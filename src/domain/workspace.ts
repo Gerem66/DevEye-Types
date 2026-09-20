@@ -7,7 +7,7 @@ import { minimalUserSchema } from './user';
  * - `personal` : créé avec le compte, un seul membre (son propriétaire), ni
  *   quittable ni supprimable, jamais partageable. C'est le repli implicite quand
  *   une commande ne vise aucun espace en particulier.
- * - `shared` : créé à la demande, plusieurs membres, rôles et invitations.
+ * - `shared` : créé à la demande, plusieurs membres et rôles.
  */
 export const workspaceKindSchema = z.enum(['personal', 'shared']);
 export type WorkspaceKind = z.infer<typeof workspaceKindSchema>;

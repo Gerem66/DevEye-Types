@@ -526,6 +526,14 @@ export { secrecyStatusSchema, secrecyWrapModeSchema } from './domain/secrecy';
 export type { SecrecyStatus, SecrecyWrapMode, UserSecretKeyRow } from './domain/secrecy';
 export { workspaceKindSchema, workspaceSchema } from './domain/workspace';
 export {
+    REMOTE_INSTANCES_MAX,
+    REMOTE_LABEL_MAX,
+    normalizeRemoteOrigin,
+    remoteInstanceSchema,
+    remoteOriginSchema
+} from './domain/remoteInstance';
+export type { RemoteInstance, RemoteInstanceRow } from './domain/remoteInstance';
+export {
     EXTERNAL_FEATURE_ID_PATTERN,
     externalFeatureIdSchema,
     featureAccessSchema,
@@ -669,7 +677,12 @@ export {
     itemExtraOverridesSchema,
     itemGrantStateSchema,
     itemMoveDependencySchema,
+    ITEM_COPY_CHUNK_CHARS,
+    itemCopyManifestSchema,
+    itemCopyPlanSchema,
+    itemCopyTargetSchema,
     itemMovePreviewSchema,
+    itemTierSchema,
     itemRefSchema,
     itemRoleGrantSchema,
     itemRoleGrantViewSchema,
@@ -683,6 +696,9 @@ export type {
     ItemExtraOverrides,
     ItemGrantState,
     ItemMoveDependency,
+    ItemCopyManifest,
+    ItemCopyPlan,
+    ItemCopyTarget,
     ItemMovePreview,
     ItemRef,
     ItemRoleGrant,
@@ -697,6 +713,13 @@ export {
     itemGrantList,
     itemGrantSet,
     itemMove,
+    itemCopyBegin,
+    itemCopyChunk,
+    itemCopyCommit,
+    itemCopyExport,
+    itemCopyPlan,
+    itemCopyPut,
+    itemCopyTarget,
     itemMovePreview,
     shareGet,
     shareSet,
@@ -782,6 +805,14 @@ export {
     workspaceRoleUpdate,
     workspaceSetFavorite
 } from './features/workspace';
+export {
+    remoteAdd,
+    remoteCommands,
+    remoteList,
+    remoteRemove,
+    remoteRename,
+    remoteReorder
+} from './features/remote';
 export {
     AVATAR_MAX_LENGTH,
     THEME_IMAGE_MAX_LENGTH,
@@ -891,8 +922,10 @@ export {
     loginResponseSchema,
     meResponseSchema,
     passwordSchema,
+    refreshRequestSchema,
     refreshResponseSchema,
     sessionBundleSchema,
+    sessionTokensSchema,
     signupAvailabilitySchema,
     signupCompleteRequestSchema,
     signupCompleteResponseSchema,
@@ -901,7 +934,8 @@ export {
     signupStatusSchema,
     signupVerifyRequestSchema,
     signupVerifyResponseSchema,
-    twoFactorChallengeRequestSchema
+    twoFactorChallengeRequestSchema,
+    wsTicketResponseSchema
 } from './http/auth';
 export type {
     ChangePasswordRequest,
@@ -909,8 +943,10 @@ export type {
     LoginRequest,
     LoginResponse,
     MeResponse,
+    RefreshRequest,
     RefreshResponse,
     SessionBundle,
+    SessionTokens,
     SignupAvailability,
     SignupCompleteRequest,
     SignupCompleteResponse,
@@ -919,7 +955,8 @@ export type {
     SignupStatus,
     SignupVerifyRequest,
     SignupVerifyResponse,
-    TwoFactorChallengeRequest
+    TwoFactorChallengeRequest,
+    WsTicketResponse
 } from './http/auth';
 export {
     AGENT_TARGETS,

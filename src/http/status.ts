@@ -35,6 +35,8 @@ export const serverStatusSchema = z.object({
     ready: z.boolean(),
     /** DevEye server version (its `package.json`). */
     version: z.string(),
+    /** Does this server let another instance's page open a session (`FEDERATION_ORIGINS`)? */
+    federation: z.boolean(),
     tasks: z.array(bootTaskSchema)
 });
 

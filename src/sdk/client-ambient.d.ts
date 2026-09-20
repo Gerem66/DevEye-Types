@@ -469,13 +469,21 @@ declare module 'deveye-sdk-client' {
      */
     export const APP_VERSION: string;
     /**
-     * A validated GET on one of the app's HTTP routes (the session cookie
-     * rides along; an expired access token is renewed and the call replayed
+     * A validated GET on one of the app's HTTP routes, authenticated as the
+     * session is (an expired access token is renewed and the call replayed
      * once). For the routes that stay HTTP because they serve binaries.
+     *
+     * Always pass a PATH, never an absolute URL: the active workspace may live
+     * on a remote DevEye instance, and the host routes the call there.
      */
     export function httpGet<T>(path: string, outputSchema?: ZodType<T>): Promise<T>;
-    /** Renews the access cookie before a raw `fetch` that bypasses the client (a download). */
-    export function ensureFreshAccess(): Promise<void>;
+    /**
+     * A raw `fetch` on one of the app's HTTP routes, for a response that is not
+     * the usual JSON envelope (a binary to download). Same routing and
+     * authentication as {@link httpGet}; a bare `fetch('/api/...')` would reach
+     * the wrong server from a remote workspace.
+     */
+    export function httpFetch(path: string, init?: RequestInit): Promise<Response>;
     /**
      * The account's plan, kept live. `null` while loading AND when this DevEye
      * has no plan provider (everything unlimited): never read it as "free".

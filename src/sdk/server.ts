@@ -1,3 +1,4 @@
+import type { ItemTree, ItemTreeRows } from './copy';
 import type { z, ZodType } from 'zod';
 import type { ErrorCode } from '../protocol/error';
 import type { FeatureAccess } from '../domain/workspaceRole';
@@ -1062,6 +1063,74 @@ export interface FeatureItemsEntry<Repo = unknown> {
      * credential, a destination) that cannot follow it.
      */
     move?: FeatureItemsMove<Repo>;
+    /**
+     * Copy this item to another workspace, of this DevEye or of ANOTHER one.
+     * You describe what the item is made of, the app reads and writes it (see
+     * `copy.ts`). Omit it and your items cannot be copied: the screen says so.
+     */
+    copy?: FeatureItemsCopy<Repo>;
+}
+
+/** What copying one item leaves behind, decided on the SOURCE before a row is read. */
+export interface SdkCopyPlan {
+    /** Why the copy is impossible, in sentences the screen shows as they are. Empty means it can go. */
+    blockers: readonly string[];
+    /**
+     * What the copy will NOT carry, named one by one for the confirmation: a
+     * token of the origin workspace, a history the destination rebuilds.
+     */
+    drops: readonly string[];
+}
+
+/** See {@link FeatureItemsEntry.copy}. */
+export interface FeatureItemsCopy<Repo = unknown> {
+    /**
+     * What an item is made of. Build your `move` cells from the same tree
+     * (`movableCellsOf`) and you hold one list instead of two.
+     */
+    tree: ItemTree;
+    /** SOURCE side. Reads only; the destination is unknown here, it may be another DevEye. */
+    plan?(ctx: FeatureItemsCopyPlanContext<Repo>): Promise<SdkCopyPlan>;
+    /**
+     * DESTINATION side, inside the transaction, before the first row is
+     * written. Refuse by throwing a `FeatureError` (a name already taken there,
+     * a quota reached), or amend `rows` in place: they are in the clear (a
+     * title to suffix, a derived column to recompute).
+     */
+    admit?(ctx: FeatureItemsCopyAdmitContext<Repo>): Promise<void>;
+    /**
+     * DESTINATION side, same transaction, once the rows are written: give the
+     * copy its place (the end of its list).
+     */
+    settle?(ctx: FeatureItemsCopySettleContext<Repo>): Promise<void>;
+}
+
+export interface FeatureItemsCopyPlanContext<Repo = unknown> {
+    q: SdkQueryable;
+    repo: Repo;
+    itemId: string;
+    workspaceId: number;
+}
+
+export interface FeatureItemsCopyAdmitContext<Repo = unknown> {
+    /** Transactional, see {@link FeatureItemsMoveContext.q}. */
+    q: SdkQueryable;
+    /** Your repo. For reads only. */
+    repo: Repo;
+    toWorkspaceId: number;
+    /** The rows about to be written, sealed cells in the clear. Yours to amend. */
+    rows: ItemTreeRows;
+    /** The quotas of the DESTINATION workspace's owner, as `ctx.quota` in a handler. */
+    quota: SdkQuota;
+}
+
+export interface FeatureItemsCopySettleContext<Repo = unknown> {
+    /** Transactional, see {@link FeatureItemsMoveContext.q}. */
+    q: SdkQueryable;
+    repo: Repo;
+    toWorkspaceId: number;
+    /** The id the copy was given. */
+    itemId: string;
 }
 
 /**
@@ -1245,6 +1314,23 @@ export async function resealCells(
     }
     return pending.length;
 }
+
+export {
+    countItemTreeRows,
+    exportItemTree,
+    importItemTree,
+    itemTierOf,
+    itemTreeProblem,
+    movableCellsOf
+} from './copy';
+export type {
+    ItemTier,
+    ItemTree,
+    ItemTreeDestination,
+    ItemTreeRow,
+    ItemTreeRows,
+    ItemTreeTable
+} from './copy';
 
 // Le conteneur chiffré que CloudSync et Backup partagent (voir `devb.ts`).
 export {

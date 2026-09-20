@@ -7,6 +7,7 @@ import { linksCommands } from './links';
 import { liveCommands } from './live';
 import { logsCommands } from './logs';
 import { notifyCommands } from './notify';
+import { remoteCommands } from './remote';
 import { sharingCommands } from './sharing';
 import { secrecyCommands } from './secrecy';
 import { twoFactorCommands } from './twoFactor';
@@ -22,6 +23,7 @@ export interface FeatureCommandDescriptor<C extends string = string> {
 
 export const featureCommands = [
     ...workspaceCommands,
+    ...remoteCommands,
     ...adminCommands,
     ...userCommands,
     ...agentCommands,

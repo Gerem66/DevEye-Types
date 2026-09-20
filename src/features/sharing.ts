@@ -1,13 +1,19 @@
 import { z } from 'zod';
 
 import {
+    ITEM_COPY_CHUNK_CHARS,
     itemAccessSchema,
+    itemCopyManifestSchema,
+    itemCopyPlanSchema,
+    itemCopyTargetSchema,
     itemExtraOverridesSchema,
     itemGrantStateSchema,
     itemMovePreviewSchema,
     itemRefSchema,
-    itemShareStateSchema
+    itemShareStateSchema,
+    itemTierSchema
 } from '../domain/sharing';
+import { featureIdSchema } from '../domain/workspaceRole';
 
 /**
  * Le partage d'un élément et ses restrictions par rôle. Un module transversal :
@@ -104,11 +110,81 @@ export const itemMove = {
     output: z.object({ workspaceId: z.number().int().positive() })
 };
 
+/**
+ * Copier un élément vers un autre espace, d'ici ou d'une AUTRE instance. Le
+ * même chemin dans les deux cas : la source rend l'élément en clair, par
+ * tranches, au navigateur, qui le remet à la destination, laquelle le scelle
+ * sous sa propre clé. Les deux serveurs ne se parlent pas, et la moitié
+ * « source » ne sait rien de la cible.
+ *
+ * Les trois premières commandes visent l'espace de l'élément, les quatre
+ * suivantes l'espace d'arrivée, porté par l'enveloppe.
+ */
+export const itemCopyPlan = {
+    command: 'share.copyPlan' as const,
+    input: itemRefSchema,
+    output: itemCopyPlanSchema
+};
+
+/** Lit l'élément et le tient prêt, quelques minutes. `locked` : un élément gardé veut le coffre ouvert. */
+export const itemCopyExport = {
+    command: 'share.copyExport' as const,
+    input: itemRefSchema,
+    output: itemCopyManifestSchema.extend({ exportId: z.string().uuid() })
+};
+
+/** Une tranche du paquet. La dernière rendue, la source l'oublie. */
+export const itemCopyChunk = {
+    command: 'share.copyChunk' as const,
+    input: z.object({ exportId: z.string().uuid(), index: z.number().int().nonnegative() }),
+    output: z.object({ data: z.string().max(ITEM_COPY_CHUNK_CHARS) })
+};
+
+export const itemCopyTarget = {
+    command: 'share.copyTarget' as const,
+    input: z.object({ feature: featureIdSchema, tier: itemTierSchema }),
+    output: itemCopyTargetSchema
+};
+
+export const itemCopyBegin = {
+    command: 'share.copyBegin' as const,
+    input: itemCopyManifestSchema.extend({ feature: featureIdSchema }),
+    output: z.object({ importId: z.string().uuid() })
+};
+
+export const itemCopyPut = {
+    command: 'share.copyPut' as const,
+    input: z.object({
+        importId: z.string().uuid(),
+        index: z.number().int().nonnegative(),
+        data: z.string().max(ITEM_COPY_CHUNK_CHARS)
+    }),
+    output: z.object({ received: z.number().int().nonnegative() })
+};
+
+/**
+ * Vérifie le paquet, puis écrit l'élément d'un seul tenant. `locked` : le palier
+ * gardé veut le coffre ouvert. `feature` redit celle du transfert : c'est sur
+ * elle que le serveur prévient ceux qui regardent la liste d'arrivée.
+ */
+export const itemCopyCommit = {
+    command: 'share.copyCommit' as const,
+    input: z.object({ importId: z.string().uuid(), feature: featureIdSchema }),
+    output: z.object({ itemId: z.string() })
+};
+
 export const sharingCommands = [
     shareGet,
     shareSet,
     itemGrantList,
     itemGrantSet,
     itemMovePreview,
-    itemMove
+    itemMove,
+    itemCopyPlan,
+    itemCopyExport,
+    itemCopyChunk,
+    itemCopyTarget,
+    itemCopyBegin,
+    itemCopyPut,
+    itemCopyCommit
 ] as const;

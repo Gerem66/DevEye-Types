@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { homeLayoutSchema } from '../domain/home';
+import { remoteInstanceSchema } from '../domain/remoteInstance';
 import { usernameSchema, userSchema } from '../domain/user';
 import { workspaceSchema } from '../domain/workspace';
 import { workspacePermissionsSchema } from '../domain/workspaceRole';
@@ -15,6 +16,8 @@ import { themeStateSchema } from '../features/user';
 export const sessionBundleSchema = z.object({
     user: userSchema,
     workspaces: z.array(workspaceSchema),
+    /** Les instances distantes du compte, dans l'ordre du menu. Leurs espaces se lisent là-bas. */
+    remoteInstances: z.array(remoteInstanceSchema),
     /** Espace chargé à l'ouverture : le favori s'il est encore accessible, sinon le personnel. */
     activeWorkspaceId: z.number().int().positive(),
     theme: themeStateSchema.nullable(),
@@ -38,6 +41,21 @@ export const loginRequestSchema = z.object({
 
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 
+/**
+ * The tokens of a federated session: one opened by the page of ANOTHER DevEye
+ * instance, whose origin this server lists in `FEDERATION_ORIGINS`. Such a page
+ * cannot hold this server's cookies, so it carries the tokens itself: the access
+ * token as `Authorization: Bearer`, the refresh token in the body of `/refresh`.
+ */
+export const sessionTokensSchema = z.object({
+    access: z.string(),
+    refresh: z.string(),
+    /** Lifetime of `access`, so the page can renew it before it lapses. */
+    accessTtlSeconds: z.number().int().positive()
+});
+
+export type SessionTokens = z.infer<typeof sessionTokensSchema>;
+
 /** A password being chosen: the one account policy, at sign-up and at change. */
 export const passwordSchema = z.string().min(8).max(512);
 
@@ -48,34 +66,61 @@ export const changePasswordRequestSchema = z.object({
 
 export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;
 
-export const changePasswordResponseSchema = z.object({ changed: z.literal(true) });
+export const changePasswordResponseSchema = z.object({
+    changed: z.literal(true),
+    /** The renewed tokens of a federated session. */
+    tokens: sessionTokensSchema.optional()
+});
 
 export type ChangePasswordResponse = z.infer<typeof changePasswordResponseSchema>;
 
 /**
  * The auth flow returns the authenticated user and its workspaces in one shot.
- * Tokens are delivered as HttpOnly cookies, never in the JSON body.
+ * Tokens are delivered as HttpOnly cookies, never in the JSON body, except to a
+ * federated origin (`tokens`, see {@link sessionTokensSchema}).
  *
  * When 2FA is enabled, login first replies with `twoFactorRequired` and an
- * interim challenge token (cookie); the client then posts a TOTP/backup code.
+ * interim challenge token (a cookie, or `challenge` for a federated origin); the
+ * client then posts a TOTP/backup code.
  */
 export const loginResponseSchema = z.discriminatedUnion('twoFactorRequired', [
-    sessionBundleSchema.extend({ twoFactorRequired: z.literal(false) }),
-    z.object({ twoFactorRequired: z.literal(true) })
+    sessionBundleSchema.extend({
+        twoFactorRequired: z.literal(false),
+        tokens: sessionTokensSchema.optional()
+    }),
+    z.object({ twoFactorRequired: z.literal(true), challenge: z.string().optional() })
 ]);
 
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
 
 export const twoFactorChallengeRequestSchema = z.object({
     /** A 6-digit TOTP code or a recovery backup code. */
-    code: z.string().min(6).max(24)
+    code: z.string().min(6).max(24),
+    /** The challenge handed by `/login`, from a federated origin (no cookie holds it there). */
+    challenge: z.string().max(2048).optional()
 });
 
 export type TwoFactorChallengeRequest = z.infer<typeof twoFactorChallengeRequestSchema>;
 
-export const refreshResponseSchema = sessionBundleSchema;
+/** Body of `/refresh` and `/logout` from a federated origin; a same-origin page sends none. */
+export const refreshRequestSchema = z.object({ refreshToken: z.string().max(2048) });
+
+export type RefreshRequest = z.infer<typeof refreshRequestSchema>;
+
+export const refreshResponseSchema = sessionBundleSchema.extend({
+    tokens: sessionTokensSchema.optional()
+});
 
 export type RefreshResponse = z.infer<typeof refreshResponseSchema>;
+
+/**
+ * `POST /api/auth/ws-ticket`: what a federated page opens the socket with
+ * (`/ws?ticket=`), a browser being unable to set a header on a WebSocket.
+ * Seconds-lived and single-use.
+ */
+export const wsTicketResponseSchema = z.object({ ticket: z.string() });
+
+export type WsTicketResponse = z.infer<typeof wsTicketResponseSchema>;
 
 export const meResponseSchema = sessionBundleSchema;
 

@@ -64,9 +64,54 @@ export const itemShareStateSchema = z.object({
      * pas pourquoi : c'est `share.movePreview`, une fois la cible choisie, qui
      * porte les motifs.
      */
-    movable: z.boolean().default(false)
+    movable: z.boolean().default(false),
+    /**
+     * L'élément peut être copié ailleurs : sa fonctionnalité sait décrire ce
+     * dont il est fait, et l'appelant peut le lire. Vers où, c'est l'écran qui
+     * le propose : la cible peut être une autre instance, que ce serveur ignore.
+     */
+    copyable: z.boolean().default(false)
 });
 export type ItemShareState = z.infer<typeof itemShareStateSchema>;
+
+/** Le palier d'un élément : sous la clé de l'espace, ou sous celle du mot de passe de son auteur. */
+export const itemTierSchema = z.enum(['open', 'private']);
+
+/** Ce que la SOURCE dit d'une copie, avant d'avoir rien lu. */
+export const itemCopyPlanSchema = z.object({
+    /** L'intitulé de l'élément, pour la confirmation ; `null` quand il est illisible d'ici. */
+    label: z.string().nullable(),
+    tier: itemTierSchema,
+    /** Pourquoi la copie est impossible, en phrases prêtes à afficher. Vide : elle peut partir. */
+    blockers: z.array(z.string()),
+    /** Ce que la copie n'emportera pas, à énumérer dans la confirmation. */
+    drops: z.array(z.string())
+});
+export type ItemCopyPlan = z.infer<typeof itemCopyPlanSchema>;
+
+/** Ce que la DESTINATION dit d'une copie, avant de rien recevoir. */
+export const itemCopyTargetSchema = z.object({
+    workspaceName: z.string(),
+    /**
+     * Le palier que la copie aura là-bas. Une copie `private` devient `open`
+     * dans un espace partagé, qui n'a pas de palier gardé : ses membres la liront.
+     */
+    tier: itemTierSchema,
+    blockers: z.array(z.string())
+});
+export type ItemCopyTarget = z.infer<typeof itemCopyTargetSchema>;
+
+/** Un paquet de copie découpé : de quoi le transporter, et vérifier à l'arrivée qu'il est entier. */
+export const itemCopyManifestSchema = z.object({
+    bytes: z.number().int().nonnegative(),
+    chunks: z.number().int().positive().max(4096),
+    /** Condensé du paquet entier : la destination refuse ce qui a changé en route. */
+    sha256: z.string().regex(/^[0-9a-f]{64}$/)
+});
+export type ItemCopyManifest = z.infer<typeof itemCopyManifestSchema>;
+
+/** Taille d'une tranche, en caractères : bien sous le plafond d'une trame. */
+export const ITEM_COPY_CHUNK_CHARS = 512 * 1024;
 
 /**
  * Une liaison que le déplacement va rompre. Une liaison ne traverse jamais un

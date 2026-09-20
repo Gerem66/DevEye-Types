@@ -31,7 +31,7 @@ declare module 'deveye-sdk-client' {
         User,
         WorkspaceCapability
     } from '@deveye/types';
-    import type { FeatureManifest, ManifestCommand } from '@deveye/types/sdk';
+    import type { AccountPlan, FeatureManifest, ManifestCommand } from '@deveye/types/sdk';
     import type { SdkDeviceSummary } from '@deveye/types/sdk/client';
 
     // ── UI kit ─────────────────────────────────────────────────────────────
@@ -476,6 +476,13 @@ declare module 'deveye-sdk-client' {
     export function httpGet<T>(path: string, outputSchema?: ZodType<T>): Promise<T>;
     /** Renews the access cookie before a raw `fetch` that bypasses the client (a download). */
     export function ensureFreshAccess(): Promise<void>;
+    /**
+     * The account's plan, kept live. `null` while loading AND when this DevEye
+     * has no plan provider (everything unlimited): never read it as "free".
+     */
+    export function useAccountPlan(): AccountPlan | null;
+    /** Opens an account view (`manifest.accountEntry`): the given module's, or the first one. No-op without any. */
+    export function openAccountView(featureId?: string): void;
     export interface LiveOutlineProps {
         'data-live-peer'?: true;
         style?: CSSProperties;

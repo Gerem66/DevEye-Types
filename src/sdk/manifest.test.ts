@@ -133,3 +133,30 @@ test('validateManifest refuses a tab id it does not know', () => {
         /unknown settings tab/
     );
 });
+
+test('validateManifest checks quotas and the account entry', () => {
+    const rejects = (patch: Partial<FeatureManifest>, fragment: string) =>
+        assert.throws(() => validateManifest({ ...base, ...patch }), new RegExp(fragment));
+    assert.doesNotThrow(() =>
+        validateManifest({
+            ...base,
+            quotas: [{ key: 'monitors', label: 'monitors' }],
+            accountEntry: { label: 'Subscription', icon: 'x-demo-icon' },
+            accountOnly: true
+        })
+    );
+    rejects({ quotas: [{ key: 'Bad key', label: 'x' }] }, 'invalid quota key');
+    rejects(
+        {
+            quotas: [
+                { key: 'monitors', label: 'a' },
+                { key: 'monitors', label: 'b' }
+            ]
+        },
+        'duplicate quota key'
+    );
+    rejects({ quotas: [{ key: 'monitors', label: ' ' }] }, 'empty label');
+    rejects({ accountOnly: true }, 'accountOnly requires accountEntry');
+    rejects({ accountOnly: true, accountEntry: { label: 'S', icon: 'i' }, tile: {} }, 'no tile');
+    rejects({ accountEntry: { label: '', icon: 'i' } }, 'label and an icon');
+});

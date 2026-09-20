@@ -10,6 +10,7 @@ import {
     type SdkDomain,
     type FeatureServiceDeps,
     type FeatureStore,
+    type SdkAccount,
     type SdkCipher,
     type SdkDevice,
     type SdkFeatureContext,
@@ -115,6 +116,8 @@ export interface RecordedCalls {
     pinnedInstants: { deviceId: string; ts: number }[];
     /** Frames pushed through `live.publish`, in order. */
     livePublishes: { workspaceId: number; event: string; payload: unknown }[];
+    /** Accounts beaten through `live.accountChanged`, in order. */
+    accountChanges: number[];
 }
 
 function recordingNotify(
@@ -276,6 +279,12 @@ export interface TestContextOverrides<Repo> {
     isAdmin?: boolean;
     /** What `deveye.workspaces.list()` answers. Default none. */
     workspaces?: readonly SdkWorkspaceSummary[];
+    /** What `deveye.accounts.me()` answers. Default: an account named after `userId`. */
+    account?: SdkAccount;
+    /** The plan's limits, by YOUR quota key. An absent key is unlimited. Default none. */
+    quotaLimits?: Record<string, number>;
+    /** The workspaces the owner account owns, handed to a quota counter. Default: the workspace of the call. */
+    ownerWorkspaceIds?: readonly number[];
     canWrite?: boolean;
     /** Extra permissions the caller holds, as the grant would carry them. */
     extras?: Record<string, boolean | string>;
@@ -334,7 +343,8 @@ export function createTestContext<Repo = undefined>(
         audits: [],
         agentRequests: [],
         pinnedInstants: [],
-        livePublishes: []
+        livePublishes: [],
+        accountChanges: []
     };
     const isOwner = overrides.isOwner ?? true;
     const workspaceId = overrides.workspaceId ?? 1;
@@ -357,6 +367,17 @@ export function createTestContext<Repo = undefined>(
         devices: recordingDevices(overrides.devices ?? []),
         telemetry: recordingTelemetry(recorded, overrides.snapshots ?? []),
         agents: recordingAgents(recorded),
+        accounts: {
+            me: () =>
+                Promise.resolve(
+                    overrides.account ?? {
+                        id: overrides.userId ?? 1,
+                        email: `user${overrides.userId ?? 1}@deveye.test`,
+                        username: `user${overrides.userId ?? 1}`,
+                        created: 0
+                    }
+                )
+        },
         ...overrides.deveye
     };
     const restrictions = new Map<string, ItemAccess>(
@@ -390,6 +411,25 @@ export function createTestContext<Repo = undefined>(
         live: {
             publish(event, payload) {
                 recorded.livePublishes.push({ workspaceId, event, payload });
+            },
+            accountChanged(userId) {
+                recorded.accountChanges.push(userId);
+            }
+        },
+        quota: {
+            limit: (key) => Promise.resolve(overrides.quotaLimits?.[key] ?? null),
+            // The exact rule of the app: never counted when unlimited, refused
+            // once the count AFTER creation passes the limit.
+            async assert(key, countAfter) {
+                const limit = overrides.quotaLimits?.[key];
+                if (limit === undefined) return;
+                const count = await countAfter(overrides.ownerWorkspaceIds ?? [workspaceId]);
+                if (count > limit) {
+                    throw new FeatureError('quota_exceeded', `quota « ${key} » reached`, {
+                        key,
+                        limit
+                    });
+                }
             }
         },
         items: {
@@ -502,6 +542,8 @@ export interface TestServiceOverrides<Repo> {
     workspaceIds?: readonly number[];
     /** Devices every workspace reveals. Default none. */
     devices?: readonly SdkDevice[];
+    /** The accounts `deps.accounts` knows. Default none. */
+    accounts?: readonly SdkAccount[];
     /** What `deveyeFor(...).notify.hasRoute` answers. Default true. */
     hasRoute?: boolean;
     /** What `deveyeFor(...).notify.send` resolves. Default true; recorded either way. */
@@ -533,6 +575,7 @@ export function createTestServiceDeps<Repo = undefined>(
         agentRequests: [],
         pinnedInstants: [],
         livePublishes: [],
+        accountChanges: [],
         tickers: [],
         liveChanges: [],
         liveTopicChanges: []
@@ -599,7 +642,16 @@ export function createTestServiceDeps<Repo = undefined>(
             },
             publish(workspaceId, event, payload) {
                 recorded.livePublishes.push({ workspaceId, event, payload });
+            },
+            accountChanged(userId) {
+                recorded.accountChanges.push(userId);
             }
+        },
+        accounts: {
+            find: (userId) =>
+                Promise.resolve((overrides.accounts ?? []).find((a) => a.id === userId) ?? null),
+            list: (userIds) =>
+                Promise.resolve((overrides.accounts ?? []).filter((a) => userIds.includes(a.id)))
         },
         audit: (entry) => {
             recorded.audits.push({ action: entry.action, description: entry.description });

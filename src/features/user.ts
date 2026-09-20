@@ -105,7 +105,23 @@ export const userSetUsername = {
     output: z.object({ username: usernameSchema })
 };
 
+/** The plan of an account, as a plan provider states it (`sdk/providers.ts`). */
+export const accountPlanSchema = z.object({
+    id: z.string(),
+    label: z.string(),
+    limits: z.record(z.string(), z.number().int().nonnegative()),
+    trialEndsAt: z.number().int().nonnegative().optional()
+});
+
+/** The caller's plan. `null`: this DevEye has no plan provider, everything is unlimited. */
+export const userPlan = {
+    command: 'user.plan' as const,
+    input: z.object({}),
+    output: z.object({ plan: accountPlanSchema.nullable() })
+};
+
 export const userCommands = [
+    userPlan,
     userSetAvatar,
     userSetTheme,
     userSetColor,

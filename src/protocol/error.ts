@@ -9,6 +9,9 @@ export const ErrorCodeSchema = z.enum([
     'conflict',
     'validation',
     'rate_limited',
+    // The account's plan does not allow one more of what the command creates.
+    // `details` carries `{ feature, key, limit, plan }`.
+    'quota_exceeded',
     'internal',
     'unsupported_version',
     // Password-based encryption is enabled but the session has not yet been

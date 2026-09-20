@@ -42,6 +42,15 @@ export interface FeatureViewProps {
     closeFeature(): void;
 }
 
+/** Props of {@link FeatureClient.AccountView}. */
+export interface AccountViewProps {
+    close(): void;
+    /** The viewer is a global administrator of this DevEye. */
+    isAdmin: boolean;
+    /** The hint a sign-up carried (`manifest.accountEntry.signupHint`), delivered once. */
+    hint?: string;
+}
+
 /**
  * Your package's `./client` export.
  */
@@ -51,9 +60,11 @@ export interface FeatureClient {
      * data comes from `useResource`, so the card and the full view share one
      * cache and refresh together.
      */
-    Widget: ComponentType;
-    /** The full view, opened when the card expands. */
-    Full: ComponentType<FeatureViewProps>;
+    Widget?: ComponentType;
+    /** The full view, opened when the card expands. Required with `Widget` unless `manifest.accountOnly`. */
+    Full?: ComponentType<FeatureViewProps>;
+    /** The view `manifest.accountEntry` opens from the user menu. */
+    AccountView?: ComponentType<AccountViewProps>;
     /**
      * The vignette shown on your card in the home grid's add market and on
      * your "About" sheet. Without one, the host draws a neutral module mark:

@@ -92,3 +92,25 @@ test('the harness scopes domains to the workspace, and finds a host whatever its
     assert.deepEqual(await hooks.dns.txt('x'), ['v=spf1']);
     assert.deepEqual(await hooks.dns.mx('x'), []);
 });
+
+test('the harness bounds a quota like the app: never counted when unlimited, refused past the limit', async () => {
+    let counted = 0;
+    const count = (ids: readonly number[]) => {
+        counted++;
+        return Promise.resolve(ids.length + 2);
+    };
+    const free = createTestContext();
+    await free.quota.assert('monitors', count);
+    assert.equal(counted, 0);
+
+    const bounded = createTestContext({ quotaLimits: { monitors: 3 }, ownerWorkspaceIds: [1, 2] });
+    await assert.rejects(bounded.quota.assert('monitors', count), /quota/);
+    await createTestContext({
+        quotaLimits: { monitors: 4 },
+        ownerWorkspaceIds: [1, 2]
+    }).quota.assert('monitors', count);
+    assert.equal(await bounded.quota.limit('monitors'), 3);
+
+    bounded.live.accountChanged(7);
+    assert.deepEqual(bounded.recorded.accountChanges, [7]);
+});

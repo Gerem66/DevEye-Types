@@ -59,6 +59,21 @@ export type ExtraPermissionSpec =
           ownerValue: string;
       };
 
+/** Hard cap on `quotas`. */
+export const MAX_FEATURE_QUOTAS = 8;
+
+/**
+ * Something your feature creates that an account plan may bound (monitors,
+ * paired agents). You count, the host decides: see `SdkQuota`. Without a plan
+ * provider installed (a self-hosted DevEye), every quota is unlimited.
+ */
+export interface FeatureQuotaSpec {
+    /** Same shape as an extra permission key. The plan names it `<featureId>.<key>`. */
+    key: string;
+    /** Plural noun, as a limit reads: "5 monitors". */
+    label: string;
+}
+
 /** Hard cap on `extraPermissions`: keeps role editors legible. */
 export const MAX_EXTRA_PERMISSIONS = 10;
 
@@ -107,7 +122,13 @@ export type NativeCapability =
      * of your own. Declared, because it lets a module put bytes on someone
      * else's socket without them asking. See `SdkLive.publish`.
      */
-    | 'live.publish';
+    | 'live.publish'
+    /**
+     * Read accounts (id, email, username, creation date): the caller's own in a
+     * handler, any account from a service. For what belongs to an account and
+     * not to a workspace (a subscription, a receipt to address).
+     */
+    | 'accounts.read';
 
 /**
  * Settings tabs the shell can render for you.
@@ -258,6 +279,23 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
     extraPermissions?: readonly ExtraPermissionSpec[];
     /** See {@link NativeCapability}. */
     nativeCapabilities?: readonly NativeCapability[];
+    /** See {@link FeatureQuotaSpec}. At most {@link MAX_FEATURE_QUOTAS}. */
+    quotas?: readonly FeatureQuotaSpec[];
+
+    /**
+     * An entry of the user menu, under "Security", opening
+     * `FeatureClient.AccountView`. For what belongs to the account, whatever
+     * the active workspace. `signupHint`: the view opens by itself right after
+     * a sign-up that carried a hint (`/signup?plan=…`), and receives it. One
+     * installed module at most may ask for it.
+     */
+    accountEntry?: { label: string; icon: string; signupHint?: boolean };
+    /**
+     * The module lives in the user menu only: no card, no row in the roles
+     * screen, `Widget` and `Full` not required. Requires `accountEntry`, no
+     * items, and every command scoped to the account (`access.scope`).
+     */
+    accountOnly?: boolean;
 
     /**
      * Resource keys this feature owns, `<id>.<name>` (by convention, the
@@ -385,6 +423,27 @@ export function validateManifest(m: FeatureManifest): void {
     for (const reserved of ['agents', 'telemetry.read'] as const) {
         if ((m.nativeCapabilities ?? []).includes(reserved) && external) {
             fail(m.id, `capability '${reserved}' is reserved for native-id modules`);
+        }
+    }
+
+    const quotas = m.quotas ?? [];
+    if (quotas.length > MAX_FEATURE_QUOTAS) fail(m.id, `more than ${MAX_FEATURE_QUOTAS} quotas`);
+    const quotaKeys = new Set<string>();
+    for (const quota of quotas) {
+        if (!EXTRA_KEY_PATTERN.test(quota.key)) fail(m.id, `invalid quota key « ${quota.key} »`);
+        if (quotaKeys.has(quota.key)) fail(m.id, `duplicate quota key « ${quota.key} »`);
+        quotaKeys.add(quota.key);
+        if (!quota.label.trim()) fail(m.id, `quota « ${quota.key} »: empty label`);
+    }
+
+    if (m.accountEntry && (!m.accountEntry.label.trim() || !m.accountEntry.icon.trim())) {
+        fail(m.id, 'accountEntry requires a label and an icon');
+    }
+    if (m.accountOnly) {
+        if (!m.accountEntry) fail(m.id, 'accountOnly requires accountEntry');
+        if (m.hasItems) fail(m.id, 'accountOnly modules own no items');
+        if (m.tile || m.topbarWidget || m.settings) {
+            fail(m.id, 'accountOnly modules have no tile, topbar widget or settings');
         }
     }
 

@@ -393,3 +393,23 @@ export interface SentinelAgentConfigProvider {
     /** The device's contribution, or null when Sentinel knows nothing about it (probes off). */
     configFor(deviceId: string): Promise<SentinelAgentConfig | null>;
 }
+
+/**
+ * The plan of an account: what bounds the quotas modules declare
+ * (`manifest.quotas`). Offered by a billing module. WITHOUT it every quota is
+ * unlimited, which is what a self-hosted DevEye is.
+ */
+export const ACCOUNT_PLAN_PROVIDER = 'account.plan';
+
+export interface AccountPlan {
+    id: string;
+    label: string;
+    /** `<featureId>.<quotaKey>` to its maximum. An absent key is unlimited. */
+    limits: Readonly<Record<string, number>>;
+    /** The plan is a trial ending then (ms since the epoch). */
+    trialEndsAt?: number;
+}
+
+export interface AccountPlanProvider {
+    planFor(userId: number): Promise<AccountPlan>;
+}

@@ -283,6 +283,48 @@ export interface DevEyeFacade {
     telemetry: SdkTelemetry;
     /** Requires capability `'agents'`. Same object as the service deps' `agents`. */
     agents: AgentsFacade;
+    /** Requires capability `'accounts.read'`. */
+    accounts: {
+        /** The CALLER's own account, never someone else's. */
+        me(): Promise<SdkAccount>;
+    };
+}
+
+/** An account of this DevEye, as `'accounts.read'` shows it. */
+export interface SdkAccount {
+    id: number;
+    email: string;
+    username: string;
+    /** Milliseconds since the epoch. */
+    created: number;
+}
+
+/** Any account, sessionless (capability `'accounts.read'`), for services. */
+export interface SdkAccounts {
+    find(userId: number): Promise<SdkAccount | null>;
+    list(userIds: readonly number[]): Promise<readonly SdkAccount[]>;
+}
+
+/**
+ * What the account's plan allows of YOUR `manifest.quotas`. The account is the
+ * OWNER of the workspace of the call: in a shared workspace, what a member
+ * creates counts against its owner. Without a plan provider installed,
+ * everything is unlimited.
+ */
+export interface SdkQuota {
+    /** `null` = unlimited. An undeclared key throws `validation`. */
+    limit(key: string): Promise<number | null>;
+    /**
+     * Call it BEFORE creating. `countAfter` receives the ids of every workspace
+     * the owner account owns and returns how many there would be once created;
+     * it is never called when unlimited. Throws `quota_exceeded` beyond the
+     * limit. Only creation is bounded: what exists stays usable after a
+     * downgrade.
+     */
+    assert(
+        key: string,
+        countAfter: (ownerWorkspaceIds: readonly number[]) => Promise<number>
+    ): Promise<void>;
 }
 
 /** A workspace as the fleet sees it: enough to attach a device to it. */
@@ -581,6 +623,8 @@ export interface SdkLive {
      * is never attached, so it can never be mistaken for a reply.
      */
     publish(workspaceId: number, event: string, payload: unknown): void;
+    /** {@link SdkContextLive.accountChanged}, from a service (a webhook, a ticker). */
+    accountChanged(userId: number): void;
 }
 
 /**
@@ -591,6 +635,12 @@ export interface SdkLive {
 export interface SdkContextLive {
     /** {@link SdkLive.publish}, in the workspace of the call. */
     publish(event: string, payload: unknown): void;
+    /**
+     * Something of this ACCOUNT changed (its plan, its subscription): its open
+     * clients, in whatever workspace they sit, re-fetch the account plan and
+     * your declared resources. No payload, so no capability.
+     */
+    accountChanged(userId: number): void;
 }
 
 /** The whole fleet, sessionless (capability `'devices.read'`), for services. */
@@ -703,6 +753,7 @@ export interface SdkFeatureContext<Repo = unknown> {
     secrecy: SdkSecrecy;
     /** Your items as the roles see them (restrictions), and their removal bookkeeping. */
     items: SdkItems;
+    quota: SdkQuota;
     /** Projections into the active workspace. Throws `forbidden` when the manifest says `shareTier: 'never'`. */
     sharing: SdkSharing;
     /** Your feature's domains in this workspace (manifest `domains`). */
@@ -753,8 +804,16 @@ export interface SdkFeatureDefinition<
      * `admin`: the caller must be a global administrator; the feature check
      * still applies. Your feature id is implied: you cannot gate on another
      * feature's rights.
+     * `scope: 'account'`: the command acts on the caller's ACCOUNT, not on a
+     * workspace. The host runs it in the caller's personal workspace whatever
+     * the client sent, so the role held in a shared workspace never decides.
      */
-    access?: { level?: FeatureAccess; extras?: readonly string[]; admin?: boolean };
+    access?: {
+        level?: FeatureAccess;
+        extras?: readonly string[];
+        admin?: boolean;
+        scope?: 'account';
+    };
     /**
      * This command changes data other members can see. `true` beats your
      * feature's own live topic (its id); a list names the topics to beat
@@ -778,6 +837,12 @@ export interface SdkPublicRequest {
     headers: Readonly<Record<string, string | string[] | undefined>>;
     /** The JSON body, already decoded (`undefined` when absent or unreadable). */
     body: unknown;
+    /**
+     * The body exactly as received, on a route that asked for it
+     * (`SdkPublicRouteOptions.rawBody`). What a webhook signature is computed
+     * over: re-serialising `body` would not give the same bytes.
+     */
+    rawBody?: string;
     /**
      * The query string, decoded by the host into an object (`?a=1&b=2` reads
      * `{ a: '1', b: '2' }`). `unknown` like `body`: read it through a schema.
@@ -817,6 +882,8 @@ export interface SdkPublicRouteOptions {
      * callback that lands back in the app).
      */
     exposure?: 'everywhere' | 'app';
+    /** Also hand the handler the undecoded body (`SdkPublicRequest.rawBody`). JSON bodies only. */
+    rawBody?: boolean;
 }
 
 /** What a redeemed ticket gives a public route back (see `SdkSecrecy.ticket`). */
@@ -880,6 +947,8 @@ export interface FeatureServiceDeps<Repo = unknown> {
     devicesFor(workspaceId: number): Pick<DevEyeFacade['devices'], 'list' | 'isOnline'>;
     /** The whole fleet by id, sessionless (capability `'devices.read'`). */
     devices: SdkFleetDevices;
+    /** Capability `'accounts.read'`. */
+    accounts: SdkAccounts;
     /** The devices' telemetry, sessionless (capability `'telemetry.read'`). */
     telemetry: SdkTelemetry;
     /** Live invalidation of your feature's resources, from a service. */

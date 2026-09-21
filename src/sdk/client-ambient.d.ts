@@ -63,6 +63,26 @@ declare module 'deveye-sdk-client' {
         disabled?: boolean;
         'aria-label'?: string;
     }>;
+    /**
+     * The app's number field: a native number input between two ± buttons.
+     * `null` is an empty field. What is being typed is never rewritten while
+     * the field has focus; the value is clamped to `min`/`max` on blur. `live`
+     * reports every in-range keystroke, for what shows at once (a preview).
+     */
+    export const NumberInput: ComponentType<{
+        value: number | null;
+        onChange: (value: number | null) => void;
+        min?: number;
+        max?: number;
+        step?: number;
+        placeholder?: string;
+        disabled?: boolean;
+        live?: boolean;
+        /** For a wrapping `<label htmlFor>`: without it, clicking the label would press "−". */
+        id?: string;
+        'aria-label'?: string;
+        className?: string;
+    }>;
     /** One choice of a `SearchSelect`. `prefix` is decorative (a flag, a symbol); `keywords` widen what the search reads. */
     export interface SearchSelectOption<T extends string = string> {
         value: T;

@@ -21,3 +21,9 @@ DevEye vérifie mécaniquement que le vrai barrel l'honore.
 
 Pour écrire un module : partir du
 [template](https://github.com/Gerem66/DevEye-Feature-Template) et sa doc.
+
+## Licence
+
+[MIT](LICENSE). Un module bâti sur ce paquet se licencie comme son auteur
+l'entend : le cœur de DevEye est sous AGPL-3.0, avec une exception pour ce qui
+ne passe que par ce SDK (`LICENSING.md` du dépôt de l'app).

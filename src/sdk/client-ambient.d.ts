@@ -68,6 +68,8 @@ declare module 'deveye-sdk-client' {
      * `null` is an empty field. What is being typed is never rewritten while
      * the field has focus; the value is clamped to `min`/`max` on blur. `live`
      * reports every in-range keystroke, for what shows at once (a preview).
+     * On the focused field only, the wheel steps by `step`, by fifty steps with
+     * Ctrl or Shift held; anywhere else it scrolls the page.
      */
     export const NumberInput: ComponentType<{
         value: number | null;

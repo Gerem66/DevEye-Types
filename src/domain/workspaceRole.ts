@@ -95,7 +95,13 @@ export const workspaceFeatureIdSchema = z.enum([
      * Réinitialiser un mot de passe et purger la file d'envoi sont des
      * permissions propres du module.
      */
-    'mailserver'
+    'mailserver',
+    /**
+     * Convertisseur. `read` = les devises, les unités, et ses propres
+     * conversions ; `write` = convertir un fichier, annuler, retirer. Personne
+     * ne voit les conversions d'un autre membre.
+     */
+    'convert'
 ]);
 
 export type WorkspaceFeatureId = z.infer<typeof workspaceFeatureIdSchema>;

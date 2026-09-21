@@ -63,6 +63,20 @@ declare module 'deveye-sdk-client' {
         disabled?: boolean;
         'aria-label'?: string;
     }>;
+    /** A labelled range input. `valueLabel` is how the value reads ("24", "80 %"); `marks` sit under the track. */
+    export const Slider: ComponentType<{
+        value: number;
+        onChange: (value: number) => void;
+        min: number;
+        max: number;
+        step?: number;
+        label: string;
+        valueLabel?: string;
+        marks?: readonly string[];
+        hint?: string;
+        disabled?: boolean;
+        className?: string;
+    }>;
     export function SegmentedControl<T extends string>(props: {
         value: T;
         options: readonly { value: T; label: string; title?: string }[];

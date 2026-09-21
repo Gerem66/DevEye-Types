@@ -902,6 +902,37 @@ export interface SdkRedeemedTicket {
 export type SdkPublicHandler = (req: SdkPublicRequest, reply: SdkPublicReply) => Promise<unknown>;
 
 /**
+ * The body of a streamed route: never decoded, never buffered. The HOST counts
+ * the bytes and cuts the connection at `maxBytes`, so a module that forgets to
+ * count cannot open a bottomless pit.
+ */
+export interface SdkPublicStreamBody {
+    /** The announced `Content-Length`, `null` when chunked. Unverified: compare it with what you read. */
+    contentLength: number | null;
+    /** The bytes, in order. Throws `FeatureError('validation')` past `maxBytes`. Consumable once. */
+    bytes(): AsyncIterable<Buffer>;
+}
+
+/** The request of a streamed route: the same, its decoded body replaced by its bytes. */
+export interface SdkPublicStreamRequest extends Omit<SdkPublicRequest, 'body' | 'rawBody'> {
+    body: SdkPublicStreamBody;
+}
+
+export interface SdkPublicStreamRouteOptions {
+    /** Counts REQUESTS, not bytes: a 5 GiB upload is one request. Not what protects the disk. */
+    rateLimit?: { max: number; timeWindow: string };
+    /** Absolute ceiling of the body, enforced by the host. A per-account ceiling is yours to check on top. */
+    maxBytes: number;
+    /** Written, not defaulted: a route that swallows gigabytes never opens on the public listener by omission. */
+    exposure: 'app';
+}
+
+export type SdkPublicStreamHandler = (
+    req: SdkPublicStreamRequest,
+    reply: SdkPublicReply
+) => Promise<unknown>;
+
+/**
  * Where a module declares its public routes (capability `'routes.public'`).
  * Paths are absolute (`/t.js`, `/api/t/b`); a path the host already serves
  * is refused at boot. Every route is registered on every public listener.
@@ -909,6 +940,17 @@ export type SdkPublicHandler = (req: SdkPublicRequest, reply: SdkPublicReply) =>
 export interface SdkPublicApp {
     get(path: string, opts: SdkPublicRouteOptions, handler: SdkPublicHandler): void;
     post(path: string, opts: SdkPublicRouteOptions, handler: SdkPublicHandler): void;
+    /**
+     * A POST whose body is NOT decoded: the host hands it over as a bounded
+     * stream, whatever its content type. For what no parser should ever hold in
+     * full, an uploaded file. No path parameter, app origin only, and kept out
+     * of the CORS-widened paths: authenticate it with a ticket (`SdkSecrecy.ticket`).
+     */
+    postStream(
+        path: string,
+        opts: SdkPublicStreamRouteOptions,
+        handler: SdkPublicStreamHandler
+    ): void;
 }
 
 /**

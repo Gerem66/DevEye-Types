@@ -282,6 +282,16 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         itemNoun: 'adresse',
         itemNounGender: 'f',
         shareTier: 'open'
+    },
+    {
+        id: 'convert',
+        label: 'Convertisseur',
+        description:
+            'Lecture : les devises, les unités, et ses propres conversions. Écriture : convertir un fichier, annuler une conversion, retirer un résultat.',
+        icon: 'convert',
+        notifies: true,
+        hasItems: false,
+        shareTier: 'never'
     }
 ];
 

@@ -41,7 +41,8 @@ export const nativeNotificationFeatureSchema = z.enum([
     'sentinel',
     'database',
     'deploy',
-    'backup'
+    'backup',
+    'convert'
 ]);
 export type NativeNotificationFeature = z.infer<typeof nativeNotificationFeatureSchema>;
 

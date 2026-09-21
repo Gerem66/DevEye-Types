@@ -108,7 +108,11 @@ declare module 'deveye-sdk-client' {
         disabled?: boolean;
         className?: string;
     }): ReactNode;
-    /** A labelled range input. `valueLabel` is how the value reads ("24", "80 %"); `marks` sit under the track. */
+    /**
+     * A labelled range input. `valueLabel` is how the value reads ("24", "80 %");
+     * `marks` sit under the track; `indicator` draws a discreet tick at a
+     * reference value (decorative: say what it means in `hint`).
+     */
     export const Slider: ComponentType<{
         value: number;
         onChange: (value: number) => void;
@@ -118,6 +122,7 @@ declare module 'deveye-sdk-client' {
         label: string;
         valueLabel?: string;
         marks?: readonly string[];
+        indicator?: number;
         hint?: string;
         disabled?: boolean;
         className?: string;

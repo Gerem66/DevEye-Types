@@ -129,7 +129,8 @@ declare module 'deveye-sdk-client' {
     }>;
     export function SegmentedControl<T extends string>(props: {
         value: T;
-        options: readonly { value: T; label: string; title?: string }[];
+        /** `detail`: a small line under the label, what the choice amounts to here ("Original", then "30 fps"). */
+        options: readonly { value: T; label: string; title?: string; detail?: string }[];
         onChange: (value: T) => void;
         /** Étire le groupe sur la ligne, chaque choix en prenant une part égale. */
         fullWidth?: boolean;

@@ -63,6 +63,29 @@ declare module 'deveye-sdk-client' {
         disabled?: boolean;
         'aria-label'?: string;
     }>;
+    /** One choice of a `SearchSelect`. `prefix` is decorative (a flag, a symbol); `keywords` widen what the search reads. */
+    export interface SearchSelectOption<T extends string = string> {
+        value: T;
+        label: string;
+        prefix?: string;
+        detail?: string;
+        keywords?: readonly string[];
+    }
+    /**
+     * A dropdown one can search in (accent- and case-insensitive), for a list too
+     * long to scan: currencies, units, countries. Under ten choices or so,
+     * `SelectInput` stays simpler. Safe inside a Dialog: the panel is portaled.
+     */
+    export function SearchSelect<T extends string>(props: {
+        value: T;
+        options: readonly SearchSelectOption<T>[];
+        onChange: (value: T) => void;
+        'aria-label': string;
+        searchPlaceholder?: string;
+        emptyText?: string;
+        disabled?: boolean;
+        className?: string;
+    }): ReactNode;
     /** A labelled range input. `valueLabel` is how the value reads ("24", "80 %"); `marks` sit under the track. */
     export const Slider: ComponentType<{
         value: number;

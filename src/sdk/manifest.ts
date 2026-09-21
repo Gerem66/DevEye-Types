@@ -127,8 +127,9 @@ export type NativeCapability =
     | 'live.publish'
     /**
      * Read accounts (id, email, username, creation date): the caller's own in a
-     * handler, any account from a service. For what belongs to an account and
-     * not to a workspace (a subscription, a receipt to address).
+     * handler, any account from a service, by id, by email or by search. For
+     * what belongs to an account and not to a workspace (a subscription, a
+     * receipt to address).
      */
     | 'accounts.read';
 

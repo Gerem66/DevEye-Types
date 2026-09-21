@@ -673,7 +673,27 @@ export function createTestServiceDeps<Repo = undefined>(
                     ) ?? null
                 ),
             list: (userIds) =>
-                Promise.resolve((overrides.accounts ?? []).filter((a) => userIds.includes(a.id)))
+                Promise.resolve((overrides.accounts ?? []).filter((a) => userIds.includes(a.id))),
+            search: (query, limit) => {
+                const needle = query.trim().toLowerCase();
+                const id = /^\d+$/.test(needle) ? Number(needle) : null;
+                const found = (overrides.accounts ?? [])
+                    .filter(
+                        (a) =>
+                            needle === '' ||
+                            a.id === id ||
+                            a.username.toLowerCase().includes(needle) ||
+                            a.email.toLowerCase().includes(needle)
+                    )
+                    .sort(
+                        (a, b) =>
+                            Number(b.id === id) - Number(a.id === id) ||
+                            a.username.localeCompare(b.username)
+                    );
+                return Promise.resolve(
+                    found.slice(0, Math.min(Math.max(1, Math.trunc(limit ?? 20)), 50))
+                );
+            }
         },
         audit: (entry) => {
             recorded.audits.push({ action: entry.action, description: entry.description });

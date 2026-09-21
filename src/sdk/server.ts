@@ -307,6 +307,13 @@ export interface SdkAccounts {
     find(userId: number): Promise<SdkAccount | null>;
     findByEmail(email: string): Promise<SdkAccount | null>;
     list(userIds: readonly number[]): Promise<readonly SdkAccount[]>;
+    /**
+     * Accounts whose username or email contains `query`, case-insensitively,
+     * by username. An all-digit query also matches that account id, listed
+     * first. An empty query returns the first accounts. `limit` defaults to 20
+     * and is capped at 50.
+     */
+    search(query: string, limit?: number): Promise<readonly SdkAccount[]>;
 }
 
 /**

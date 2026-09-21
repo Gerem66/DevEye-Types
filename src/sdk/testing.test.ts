@@ -67,6 +67,28 @@ test('createTestServiceDeps: one store per workspace, hand-driven tickers, a wra
     assert.equal((await deps.devicesFor(1).list()).length, 1);
 });
 
+test('the harness searches accounts like the app: substring, exact id first, capped', async () => {
+    const account = (id: number, username: string) => ({
+        id,
+        username,
+        email: `${username}@example.com`,
+        isAdmin: false,
+        created: 0
+    });
+    const { accounts } = createTestServiceDeps({
+        accounts: [account(7, 'zoe'), account(12, 'Alice'), account(3, 'bob12')]
+    });
+    const ids = async (query: string, limit?: number) =>
+        (await accounts.search(query, limit)).map((a) => a.id);
+
+    assert.deepEqual(await ids('  '), [12, 3, 7], 'an empty query lists by username');
+    assert.deepEqual(await ids('aLiCe@EXAMPLE'), [12]);
+    assert.deepEqual(await ids('12'), [12, 3], 'the exact id comes before a substring hit');
+    assert.deepEqual(await ids('12abc'), []);
+    assert.deepEqual(await ids('', 1), [12]);
+    assert.equal((await ids('', 0)).length, 1, 'a limit below one is raised to one');
+});
+
 test('the harness scopes domains to the workspace, and finds a host whatever its spelling', async () => {
     const domains = [
         testDomain({ id: 1, host: 'a.example.com' }),

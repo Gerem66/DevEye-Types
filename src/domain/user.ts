@@ -92,8 +92,11 @@ export type UserSecurity = z.infer<typeof userSecuritySchema>;
  * - `hideLiveCursors` : ne pas afficher les curseurs des autres membres. La
  *   coupure est réciproque : le client cesse aussi d'émettre le sien, on ne
  *   peut pas regarder sans être vu.
+ * - `feedbackHintDismissed` : la bulle qui présente le bouton de signalement a
+ *   été vue. Posée par sa croix comme par l'ouverture du formulaire, elle ne
+ *   se retire jamais : la bulle se montre une fois dans la vie d'un compte.
  */
-export const userSettingFlagSchema = z.enum(['hideLiveCursors']);
+export const userSettingFlagSchema = z.enum(['hideLiveCursors', 'feedbackHintDismissed']);
 export type UserSettingFlag = z.infer<typeof userSettingFlagSchema>;
 
 export const userSchema = z.object({

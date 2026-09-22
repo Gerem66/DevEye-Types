@@ -85,11 +85,11 @@ declare module 'deveye-sdk-client' {
         'aria-label'?: string;
         className?: string;
     }>;
-    /** One choice of a `SearchSelect`. `prefix` is decorative (a flag, a symbol); `keywords` widen what the search reads. */
+    /** One choice of a `SearchSelect`. `prefix` is decorative (a flag, an avatar); `keywords` widen what the search reads. */
     export interface SearchSelectOption<T extends string = string> {
         value: T;
         label: string;
-        prefix?: string;
+        prefix?: ReactNode;
         detail?: string;
         keywords?: readonly string[];
     }
@@ -103,6 +103,8 @@ declare module 'deveye-sdk-client' {
         options: readonly SearchSelectOption<T>[];
         onChange: (value: T) => void;
         'aria-label': string;
+        /** What the trigger shows when no option carries the current value. */
+        placeholder?: string;
         searchPlaceholder?: string;
         emptyText?: string;
         disabled?: boolean;
@@ -163,6 +165,22 @@ declare module 'deveye-sdk-client' {
         onPick?: (value: T) => void;
         'aria-label'?: string;
     }): ReactNode;
+    /** One choice of a `CountBadge`: what it counts, and whether it asks to be seen. */
+    export interface CountBadgeProps {
+        count: number;
+        /** `accent` (default): unread, something to act on. `neutral`: a plain count. */
+        tone?: 'accent' | 'neutral';
+        /** Above it, the badge reads "99+". Default 99. */
+        max?: number;
+        /** Needed when the number alone does not say what it counts. */
+        'aria-label'?: string;
+        className?: string;
+    }
+    /**
+     * A counter pill: a number in a round. Round on one digit, a capsule beyond,
+     * its content centred both ways, which plain padding does not give.
+     */
+    export const CountBadge: ComponentType<CountBadgeProps>;
     /**
      * Le bouton d'enregistrement d'un panneau de réglages : « Enregistrement… »
      * pendant l'aller-retour, « Enregistré » quelques secondes, puis l'intitulé

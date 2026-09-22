@@ -85,7 +85,13 @@ export const itemCopyPlanSchema = z.object({
     /** Pourquoi la copie est impossible, en phrases prêtes à afficher. Vide : elle peut partir. */
     blockers: z.array(z.string()),
     /** Ce que la copie n'emportera pas, à énumérer dans la confirmation. */
-    drops: z.array(z.string())
+    drops: z.array(z.string()),
+    /**
+     * Ce que la copie emporte et qu'on ne devinerait pas : un secret que la
+     * destination pourra lire. Le pendant de `drops`, pour ce qui suit au lieu
+     * de rester.
+     */
+    carries: z.array(z.string()).default([])
 });
 export type ItemCopyPlan = z.infer<typeof itemCopyPlanSchema>;
 
@@ -146,6 +152,8 @@ export const itemMovePreviewSchema = z.object({
     blockers: z.array(z.string()),
     /** Ce qui sera détruit ou retiré, nommé : projections, restrictions, historique. */
     drops: z.array(z.string()),
+    /** Ce qui suit l'élément et qu'on ne devinerait pas : un secret lisible à l'arrivée. */
+    carries: z.array(z.string()).default([]),
     /** Cellules chiffrées à convertir, pour annoncer l'ampleur plutôt que faire attendre. */
     rows: z.number().int().nonnegative(),
     /** Les liaisons rompues, nommées une par une. */

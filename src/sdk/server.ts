@@ -1129,6 +1129,13 @@ export interface SdkCopyPlan {
      * token of the origin workspace, a history the destination rebuilds.
      */
     drops: readonly string[];
+    /**
+     * What the copy DOES carry and nobody would guess: a secret the destination
+     * will be able to read, such as a password the item authenticates with.
+     * Optional, because most items have nothing to declare here; say it and the
+     * confirmation lists it, or whoever copies never learns it.
+     */
+    carries?: readonly string[];
 }
 
 /** See {@link FeatureItemsEntry.copy}. */
@@ -1199,6 +1206,12 @@ export interface SdkMovePlan {
      * Say it here or the caller discovers it afterwards.
      */
     drops: readonly string[];
+    /**
+     * What follows the item and nobody would guess: a secret the destination
+     * workspace will be able to read. Optional, same contract as
+     * {@link SdkCopyPlan.carries}.
+     */
+    carries?: readonly string[];
     /**
      * Encrypted cells to convert, so the confirmation can say how much rather
      * than spin. An estimate is fine; zero is a legitimate answer.

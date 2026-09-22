@@ -101,7 +101,14 @@ export const workspaceFeatureIdSchema = z.enum([
      * conversions ; `write` = convertir un fichier, annuler, retirer. Personne
      * ne voit les conversions d'un autre membre.
      */
-    'convert'
+    'convert',
+    /**
+     * Facturation. `read` = consulter les clients, les devis, les factures et
+     * les règlements. `write` = tenir le carnet, rédiger et corriger un
+     * brouillon, enregistrer un règlement. Émettre un document et changer
+     * l'identité de l'émetteur sont des permissions propres du module.
+     */
+    'invoicing'
 ]);
 
 export type WorkspaceFeatureId = z.infer<typeof workspaceFeatureIdSchema>;

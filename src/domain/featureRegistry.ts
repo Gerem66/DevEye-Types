@@ -292,6 +292,22 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         notifies: true,
         hasItems: false,
         shareTier: 'never'
+    },
+    {
+        id: 'invoicing',
+        label: 'Facturation',
+        description:
+            'Lecture : les clients, les documents et les règlements. Écriture : tenir le carnet, rédiger un brouillon, enregistrer un règlement.',
+        icon: 'invoicing',
+        notifies: true,
+        /**
+         * L'élément est le **client**, pas le document : un espace en accumule
+         * des centaines, et c'est le client qu'un rôle a une raison de fermer.
+         * Un document hérite de la restriction du sien.
+         */
+        hasItems: true,
+        itemNoun: 'client',
+        shareTier: 'never'
     }
 ];
 

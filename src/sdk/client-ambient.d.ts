@@ -182,9 +182,15 @@ declare module 'deveye-sdk-client' {
      */
     export const CountBadge: ComponentType<CountBadgeProps>;
     /**
-     * Le bouton d'enregistrement d'un panneau de réglages : « Enregistrement… »
-     * pendant l'aller-retour, « Enregistré » quelques secondes, puis l'intitulé
-     * de départ. Les erreurs restent au panneau, elles ne s'effacent pas seules.
+     * The save button of a settings panel: "Saving…" during the round trip,
+     * "Saved" for a few seconds, then its label again. Errors stay in the panel;
+     * they do not clear on their own.
+     *
+     * Its place follows what it saves. `placement: 'footer'` (default) pins it
+     * to the bottom right of the settings dialog, outside what scrolls: for a
+     * button that saves the whole tab. `'inline'` leaves it where it is written:
+     * for a button that saves one block or one entry of a list. Outside a
+     * settings dialog, both render inline.
      */
     export const SaveButton: ComponentType<{
         onSave: () => Promise<unknown> | unknown;
@@ -193,6 +199,7 @@ declare module 'deveye-sdk-client' {
         variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
         icon?: string;
         title?: string;
+        placement?: 'footer' | 'inline';
     }>;
     export const Dialog: ComponentType<{
         open: boolean;

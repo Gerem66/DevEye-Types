@@ -293,9 +293,11 @@ declare module 'deveye-sdk-client' {
     /**
      * Points at the settings button of `scope` for about a second: the gesture
      * that follows an action taken OUTSIDE the settings (a banner that puts a
-     * page back online), so the user learns where that setting lives. Does
-     * nothing when no button for that scope is on screen. Honors
-     * `prefers-reduced-motion` with a still outline.
+     * page back online), so the user learns where that setting lives. Only the
+     * canonical button answers, the one mounted without `initialSection`:
+     * shortcuts to a given tab share the scope and would all light up. Does
+     * nothing when no such button is on screen. Honors `prefers-reduced-motion`
+     * with a still outline.
      */
     export function flashSettings(
         scope:

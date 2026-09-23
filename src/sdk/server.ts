@@ -895,6 +895,13 @@ export interface SdkPublicRouteOptions {
     exposure?: 'everywhere' | 'app';
     /** Also hand the handler the undecoded body (`SdkPublicRequest.rawBody`). JSON bodies only. */
     rawBody?: boolean;
+    /**
+     * Largest body this route accepts, in bytes. Size it on the biggest
+     * legitimate call: the host default is a megabyte, which is orders of
+     * magnitude above what a beacon or a form sends, and every byte of it is
+     * parsed before your schema sees anything.
+     */
+    bodyLimit?: number;
 }
 
 /** What a redeemed ticket gives a public route back (see `SdkSecrecy.ticket`). */

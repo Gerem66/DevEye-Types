@@ -360,6 +360,22 @@ declare module 'deveye-sdk-client' {
      * cannot be projected) keeps its own wording.
      */
     export const ReadOnlyNotice: ComponentType<{ children: ReactNode }>;
+    export interface ErrorNoteInput {
+        message: string;
+        code: string | null;
+    }
+    export interface ErrorNoteProps {
+        note: ErrorNoteInput | null;
+        children?: ReactNode;
+    }
+    /**
+     * A refusal banner: the sentence, the caller's own repair actions as
+     * children, and a report button when the failure is not one the user can
+     * fix on their own.
+     */
+    export const ErrorNote: ComponentType<ErrorNoteProps>;
+    /** Open the report form, primed with what failed. */
+    export function openReport(context?: string | null): void;
     /** The canonical settings row classes (channelRow, field, sectionHint...). */
     export const settingsStyles: Readonly<Record<string, string>>;
     /** A plain count on a home card: a big number, a noun, a secondary line. */

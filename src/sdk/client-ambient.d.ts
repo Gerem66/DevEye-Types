@@ -300,7 +300,12 @@ declare module 'deveye-sdk-client' {
                   itemLabel: string;
                   shareable?: boolean;
               };
-        variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+        /**
+         * `link` renders an underlined word instead of a button, for the gesture
+         * dropped into a sentence or into a cell too narrow for a button: same
+         * door, same dialog, another skin.
+         */
+        variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'link';
         label?: string;
         /** The tab a click opens (one of the manifest's tab ids); the first by default. */
         initialSection?: string;

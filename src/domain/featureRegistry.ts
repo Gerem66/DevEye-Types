@@ -16,7 +16,7 @@ export interface FeatureDescriptor {
     /** Intitulé d'interface, en français (anglais pour un module externe). Jamais l'identifiant technique. */
     label: string;
     /**
-     * Ce que le droit ouvre, en une phrase — affichée sous la ligne de la
+     * Ce que le droit ouvre, en une phrase, affichée sous la ligne de la
      * fonctionnalité dans l'écran des rôles. Dit ce que `read` et `write`
      * recouvrent quand la différence n'est pas évidente.
      */
@@ -56,6 +56,12 @@ export interface FeatureDescriptor {
      */
     sources?: { hint: string };
     /**
+     * La phrase de tête de l'onglet Notifications : QUAND la fonctionnalité
+     * prévient. Sans elle, l'onglet liste des canaux sans dire à quoi ils
+     * servent. Exigée dès que `notifies` est vrai.
+     */
+    notifications?: { hint: string };
+    /**
      * Un de ses éléments peut-il être rendu visible depuis un autre espace ?
      * Décidé par le chiffrement : un élément partagé reste chiffré sous la clé
      * de son espace d'origine, et seule la clé de l'étage ouvert est résoluble
@@ -91,6 +97,9 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
             'Lecture : constats et posture. Écriture : acquitter, régler, relancer un relevé.',
         icon: 'shield',
         notifies: true,
+        notifications: {
+            hint: 'Envoyées à chaque nouveau constat de la Sentinelle : une machine suspecte, une dérive de configuration, une règle enfreinte.'
+        },
         hasItems: false,
         shareTier: 'never'
     },
@@ -144,6 +153,9 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
             'Lecture : disponibilité et incidents. Écriture : déclarer et régler les services.',
         icon: 'uptime',
         notifies: true,
+        notifications: {
+            hint: 'Envoyées à chaque bascule d’un service surveillé : hors ligne (avec l’heure et l’erreur) puis retour en ligne (avec la durée de la panne).'
+        },
         hasItems: true,
         itemNoun: 'service',
         shareTier: 'open'
@@ -189,6 +201,9 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
             'Lecture : cibles et historique. Écriture : poser la clé d’API et déclencher une mise en production.',
         icon: 'rocket',
         notifies: true,
+        notifications: {
+            hint: 'Envoyées à l’atterrissage d’un déploiement, échec comme succès, y compris ceux lancés depuis Dokploy, une CI ou un push git.'
+        },
         hasItems: true,
         itemNoun: 'cible',
         itemNounGender: 'f',
@@ -204,6 +219,9 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
             'Lecture : état et exploration. Écriture : déclarer une base, ses accès et ses alertes.',
         icon: 'database',
         notifies: true,
+        notifications: {
+            hint: 'Envoyées au franchissement d’un seuil d’alerte d’une base, dans les deux sens : déclenchement et retour à la normale.'
+        },
         hasItems: true,
         itemNoun: 'base',
         itemNounGender: 'f',
@@ -216,6 +234,9 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
             'Lecture : travaux et historique (la liste dit où dorment les copies). Écriture : destinations et déclenchement.',
         icon: 'archive',
         notifies: true,
+        notifications: {
+            hint: 'Envoyées à l’échec d’une sauvegarde. Les réussites ne disent rien, sinon l’échec se perdrait dans le flot des succès.'
+        },
         hasItems: true,
         itemNoun: 'travail',
         sources: {
@@ -290,6 +311,9 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
             'Lecture : les devises, les unités, et ses propres conversions. Écriture : convertir un fichier, annuler une conversion, retirer un résultat.',
         icon: 'convert',
         notifies: true,
+        notifications: {
+            hint: 'Envoyées à la fin d’une conversion assez longue pour qu’on ait quitté l’écran. La durée à partir de laquelle prévenir se règle dans l’onglet Général.'
+        },
         hasItems: false,
         shareTier: 'never'
     },
@@ -300,6 +324,9 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
             'Lecture : les clients, les documents et les règlements. Écriture : tenir le carnet, rédiger un brouillon, enregistrer un règlement.',
         icon: 'invoicing',
         notifies: true,
+        notifications: {
+            hint: 'Envoyées quand une facture dépasse son échéance sans être soldée, et quand un client accepte ou refuse un devis depuis le lien que vous lui avez envoyé.'
+        },
         /**
          * L'élément est le **client**, pas le document : un espace en accumule
          * des centaines, et c'est le client qu'un rôle a une raison de fermer.
@@ -352,7 +379,7 @@ export function maybeFeatureDescriptor(id: FeatureId): FeatureDescriptor | undef
     return isExternalFeatureId(id) ? EXTERNAL_BY_ID.get(id) : BY_ID.get(id);
 }
 
-/** L'intitulé seul — le besoin de très loin le plus courant. */
+/** L'intitulé seul : le besoin de très loin le plus courant. */
 export function featureLabel(id: FeatureId): string {
     return featureDescriptor(id).label;
 }

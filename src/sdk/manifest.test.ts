@@ -45,18 +45,21 @@ test('externalDescriptorOf projects the identity fields only, and refuses a nati
             ...base,
             itemNoun: 'thing',
             itemNounGender: 'f',
-            sources: { hint: 'keys' }
+            sources: { hint: 'keys' },
+            notifies: true,
+            notifications: { hint: 'on every booking' }
         }),
         {
             id: 'x-demo',
             label: 'Demo',
             description: 'A demo module.',
             icon: 'x-demo-icon',
-            notifies: false,
+            notifies: true,
             hasItems: false,
             itemNoun: 'thing',
             itemNounGender: 'f',
             sources: { hint: 'keys' },
+            notifications: { hint: 'on every booking' },
             shareTier: 'never'
         }
     );
@@ -159,4 +162,22 @@ test('validateManifest checks quotas and the account entry', () => {
     rejects({ accountOnly: true }, 'accountOnly requires accountEntry');
     rejects({ accountOnly: true, accountEntry: { label: 'S' }, tile: {} }, 'no tile');
     rejects({ accountEntry: { label: ' ' } }, 'requires a label');
+});
+
+test('a notifying manifest says when it notifies, and only then', () => {
+    const rejects = (patch: Partial<FeatureManifest>, fragment: string) =>
+        assert.throws(() => validateManifest({ ...base, ...patch }), new RegExp(fragment));
+    assert.doesNotThrow(() =>
+        validateManifest({
+            ...base,
+            notifies: true,
+            notifications: { hint: 'Sent when a booking is made.' }
+        })
+    );
+    rejects({ notifies: true }, 'notifies requires notifications.hint');
+    rejects(
+        { notifies: true, notifications: { hint: '  ' } },
+        'notifies requires notifications.hint'
+    );
+    rejects({ notifications: { hint: 'Sent when…' } }, 'without notifies');
 });

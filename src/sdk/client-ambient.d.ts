@@ -290,6 +290,18 @@ declare module 'deveye-sdk-client' {
         onClose: () => void;
         busy?: boolean;
     }>;
+    /**
+     * Points at the settings button of `scope` for about a second: the gesture
+     * that follows an action taken OUTSIDE the settings (a banner that puts a
+     * page back online), so the user learns where that setting lives. Does
+     * nothing when no button for that scope is on screen. Honors
+     * `prefers-reduced-motion` with a still outline.
+     */
+    export function flashSettings(
+        scope:
+            | { kind: 'feature'; feature: FeatureId }
+            | { kind: 'item'; feature: FeatureId; itemId: string }
+    ): void;
     export const FeatureSettingsButton: ComponentType<{
         scope:
             | { kind: 'feature'; feature: FeatureId }

@@ -238,6 +238,12 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
     /** Feature-scope reusable settings (API keys, destinations). Opens the Sources tab. */
     sources?: { hint: string };
     /**
+     * WHEN the feature notifies, as the lead sentence of its Notifications tab.
+     * Required with `notifies`: a tab that lists channels without saying what
+     * reaches them leaves the user guessing why they would set one up.
+     */
+    notifications?: { hint: string };
+    /**
      * The feature serves something under domain names the workspace owns (a
      * public page, a mailbox). Opens the Domains tab, which DevEye renders:
      * declaring, the DNS records to publish, verification. Commits the server
@@ -474,6 +480,11 @@ export function validateManifest(m: FeatureManifest): void {
         }
     }
 
+    if (m.notifies && !m.notifications?.hint.trim()) {
+        fail(m.id, 'notifies requires notifications.hint: say when the feature notifies');
+    }
+    if (m.notifications && !m.notifies) fail(m.id, 'notifications.hint without notifies');
+
     if (m.domains) {
         if (!m.domains.hint.trim()) fail(m.id, 'domains: empty hint');
         if (!m.domains.service.trim()) fail(m.id, 'domains: empty service');
@@ -533,6 +544,7 @@ export function externalDescriptorOf(
         itemNoun: m.itemNoun,
         itemNounGender: m.itemNounGender,
         sources: m.sources,
+        notifications: m.notifications,
         shareTier: m.shareTier
     };
 }

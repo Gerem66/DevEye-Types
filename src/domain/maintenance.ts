@@ -4,13 +4,15 @@ import { z } from 'zod';
  * Maintenance, site-wide or per feature, set by the global admin (or by the
  * database and the `MAINTENANCE` variable when the interface is out of reach).
  *
- * A feature has two levels: `requests` refuses every non-admin command and
- * public route while its background service keeps running; `full` also stops
- * that service, and refuses admins too, the feature no longer being able to
- * answer.
+ * A feature has three levels: `requests` refuses every non-admin command and
+ * public route while its background service keeps running; `preview` refuses
+ * the same, but hides the feature from non-admins instead of greying it out
+ * (a feature admins try out in production before opening it); `full` also
+ * stops the service, and refuses admins too, the feature no longer being able
+ * to answer.
  */
 
-export const featureMaintenanceLevelSchema = z.enum(['requests', 'full']);
+export const featureMaintenanceLevelSchema = z.enum(['requests', 'preview', 'full']);
 export type FeatureMaintenanceLevel = z.infer<typeof featureMaintenanceLevelSchema>;
 
 /** What every client of a server knows: enough to eject, grey out and redirect. */

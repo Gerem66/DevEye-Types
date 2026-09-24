@@ -694,11 +694,17 @@ declare module 'deveye-sdk-client' {
      * The client contract another module offers (`FeatureClient.providers`,
      * keys in `@deveye/types/sdk`): how a module composes another's screens
      * (Projects renders the linked items of Git, Uptime...). `undefined` when
-     * that module is not installed: degrade, never assume.
+     * that module is not installed: degrade, never assume. A feature in preview
+     * the current account does not see offers nothing either.
      */
     export function moduleClientProvider<T>(key: string): T | undefined;
     /** The signed-in user, `null` before the session answers. */
     export function useCurrentUser(): User | null;
+    /**
+     * The features in preview the current account does not see (it is not an
+     * administrator): no tile, no link, no row that names them.
+     */
+    export function useHiddenFeatures(): ReadonlySet<string>;
     /** Image inputs accepted by `fileToSquareDataUrl`. */
     export const ACCEPTED_TYPES: readonly string[];
     export const MAX_INPUT_BYTES: number;

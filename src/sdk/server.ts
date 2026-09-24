@@ -9,6 +9,7 @@ import type { AgentManifest } from '../http/device';
 import type { MetricSnapshot } from '../domain/metrics';
 import type { UserColor } from '../domain/user';
 import type { SdkDnsRecord } from './domains';
+import type { ModuleEnvSpec } from './env';
 import type {
     AgentSyncAckPayload,
     AgentSyncApplyChunkPayload,
@@ -32,6 +33,16 @@ import type {
 } from '../protocol/agent';
 
 export { isPublicIp, isSafePublicUrl } from './net';
+export {
+    defineModuleEnv,
+    MODULE_ENV_NAME_PATTERN,
+    moduleEnvProblem,
+    readModuleEnv,
+    type ModuleEnvDefault,
+    type ModuleEnvSpec,
+    type ModuleEnvValues,
+    type ModuleEnvVar
+} from './env';
 export {
     DOMAIN_HOST_PATTERN,
     domainOwnershipRecord,
@@ -952,6 +963,8 @@ export type SdkPublicStreamHandler = (
  * Where a module declares its public routes (capability `'routes.public'`).
  * Paths are absolute (`/t.js`, `/api/t/b`); a path the host already serves
  * is refused at boot. Every route is registered on every public listener.
+ * `/` belongs to the host: a page served at the root of a customer domain goes
+ * through `FeatureService.domainRoot`.
  */
 export interface SdkPublicApp {
     get(path: string, opts: SdkPublicRouteOptions, handler: SdkPublicHandler): void;
@@ -993,6 +1006,17 @@ export interface FeatureService {
      * the outside; register the same routes each time.
      */
     publicRoutes?(app: SdkPublicApp): void;
+    /**
+     * The page served at the root (`GET /`) of one of YOUR verified web
+     * domains, for a name that is the page itself (`status.example.com`)
+     * rather than a prefix of your routes. Called only once the request's
+     * host matched a verified domain of your feature, on every listener that
+     * receives it, behind the maintenance gate. Route by `domain`, never by the
+     * header. When several features verified the same name, the first
+     * installed that declares `domainRoot` answers. Requires capability
+     * `'routes.public'` and manifest `domains.web`.
+     */
+    domainRoot?(req: SdkPublicRequest, reply: SdkPublicReply, domain: SdkDomain): Promise<unknown>;
 }
 
 /**
@@ -1080,6 +1104,12 @@ export interface FeatureServer<Repo = unknown> {
     items?: FeatureItemsEntry<Repo>;
     /** Required when the manifest declares `domains`, refused otherwise. */
     domains?: FeatureDomainsEntry<Repo>;
+    /**
+     * The environment variables you read, as the spec you read them with
+     * (`defineModuleEnv`). Plain data: the host reads it again at boot and
+     * warns about every variable left to its default.
+     */
+    env?: ModuleEnvSpec;
 }
 
 /**

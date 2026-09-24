@@ -786,8 +786,10 @@ export interface SdkFeatureContext<Repo = unknown> {
     live: SdkContextLive;
     /**
      * Where DevEye lives, as URLs without a trailing slash: `app` is the
-     * origin members use (`PUBLIC_ORIGIN`), `public` the one reachable
-     * without the VPN when the host has a public surface (else the same).
+     * origin members use (`PUBLIC_ORIGIN`), `public` the one anyone reaches
+     * the public routes by, which differs when the host serves them on a
+     * domain of their own, the app itself possibly staying private (else the
+     * same).
      * For what a module hands to the outside world (an install snippet, a
      * callback URL): never derive it from the browser's location.
      */

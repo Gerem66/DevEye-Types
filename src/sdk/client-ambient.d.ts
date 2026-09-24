@@ -85,17 +85,25 @@ declare module 'deveye-sdk-client' {
         'aria-label'?: string;
         className?: string;
     }>;
-    /** One choice of a `SearchSelect`. `prefix` is decorative (a flag, an avatar); `keywords` widen what the search reads. */
+    /**
+     * One choice of a `SearchSelect`. `prefix` is decorative (a flag, an avatar);
+     * `keywords` widen what the search reads. Options sharing a `group` are
+     * listed together under that heading, groups in order of first appearance.
+     * A `disabled` option is shown but cannot be picked: say why in `detail`.
+     */
     export interface SearchSelectOption<T extends string = string> {
         value: T;
         label: string;
         prefix?: ReactNode;
         detail?: string;
         keywords?: readonly string[];
+        group?: string;
+        disabled?: boolean;
     }
     /**
-     * A dropdown one can search in (accent- and case-insensitive), for a list too
-     * long to scan: currencies, units, countries. Under ten choices or so,
+     * A dropdown one can search in (accent- and case-insensitive, group names
+     * included), for a list too long to scan or sorted into groups:
+     * currencies, units, countries. Under ten ungrouped choices or so,
      * `SelectInput` stays simpler. Safe inside a Dialog: the panel is portaled.
      */
     export function SearchSelect<T extends string>(props: {

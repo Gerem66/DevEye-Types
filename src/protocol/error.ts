@@ -16,7 +16,10 @@ export const ErrorCodeSchema = z.enum([
     'unsupported_version',
     // Password-based encryption is enabled but the session has not yet been
     // unlocked with the user's password. The client should prompt for it.
-    'locked'
+    'locked',
+    // The site, or the feature the command belongs to, is under maintenance
+    // (see `domain/maintenance.ts`). The message is the one to show.
+    'maintenance'
 ]);
 
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;

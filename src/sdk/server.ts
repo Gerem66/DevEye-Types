@@ -969,7 +969,10 @@ export interface SdkPublicApp {
 
 /**
  * A background worker. Started during boot (awaited, before the agent socket
- * layer registers), stopped on shutdown.
+ * layer registers), stopped on shutdown. A full-stop maintenance of the feature
+ * also stops it at runtime, then calls `start()` again on the same object: stop
+ * must resolve once the work in flight is finished or interrupted, and leave
+ * nothing that would break a second start. Stopping a stopped service is a no-op.
  */
 export interface FeatureService {
     start(): void | Promise<void>;
@@ -1045,6 +1048,7 @@ export interface FeatureServiceDeps<Repo = unknown> {
     /**
      * The app's standard loop: setInterval + reentrancy guard + unref, the
      * exact pattern of every native service. Use it instead of rolling your own.
+     * `stop()` resolves once the tick in flight, if any, has finished: await it.
      */
     createTicker(opts: { intervalMs: number; tick(): Promise<void> }): FeatureService;
     logger: SdkLogger;

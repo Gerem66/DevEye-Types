@@ -294,6 +294,21 @@ export type {
     FeedbackViewTrace
 } from './domain/feedback';
 export {
+    featureMaintenanceLevelSchema,
+    MAINTENANCE_CLOSE_CODE,
+    MAINTENANCE_EVENT,
+    MAINTENANCE_MESSAGE_MAX,
+    maintenanceStateSchema,
+    publicMaintenanceSchema,
+    sessionFrameSchema
+} from './domain/maintenance';
+export type {
+    FeatureMaintenanceLevel,
+    MaintenanceState,
+    PublicMaintenance,
+    SessionFrame
+} from './domain/maintenance';
+export {
     DEVICE_LOG_LEVELS,
     DEVICE_LOG_OFFSET_MAX,
     DEVICE_LOG_PAGE_DEFAULT,
@@ -782,12 +797,17 @@ export type {
 export {
     adminCommands,
     adminDeleteUser,
+    adminMaintenanceDismissNotice,
+    adminMaintenanceFeature,
+    adminMaintenanceGet,
+    adminMaintenanceSchema,
+    adminMaintenanceSite,
     adminSetUserRole,
     adminSetUserStatus,
     adminUserList,
     adminUserSchema
 } from './features/admin';
-export type { AdminUser } from './features/admin';
+export type { AdminMaintenance, AdminUser } from './features/admin';
 export {
     workspaceActivate,
     workspaceAdd,

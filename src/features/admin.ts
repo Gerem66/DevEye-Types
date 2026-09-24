@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { featureMaintenanceLevelSchema, MAINTENANCE_MESSAGE_MAX } from '../domain/maintenance';
 import { userRoleSchema } from '../domain/role';
 import { userStatusSchema } from '../domain/user';
 
@@ -54,9 +55,77 @@ export const adminDeleteUser = {
     output: z.object({ userId: z.number().int().positive() })
 };
 
+/** Qui a fait le dernier changement, `null` depuis la base ou si le compte a disparu. */
+const maintenanceAuthorSchema = z
+    .object({ id: z.number().int().positive(), username: z.string() })
+    .nullable();
+
+export const adminMaintenanceSchema = z.object({
+    site: z.object({
+        active: z.boolean(),
+        /** Le texte choisi, `null` pour celui par défaut. */
+        message: z.string().nullable(),
+        defaultMessage: z.string(),
+        /** Le processus a démarré avec `MAINTENANCE=1`. */
+        envSeeded: z.boolean(),
+        updated: z.number().int().nonnegative(),
+        updatedBy: maintenanceAuthorSchema
+    }),
+    /** Chaque module installé, ouvert ou non. */
+    features: z.array(
+        z.object({
+            id: z.string(),
+            level: featureMaintenanceLevelSchema.nullable(),
+            /** Sans service de fond, l'arrêt complet n'a rien à arrêter. */
+            hasService: z.boolean(),
+            updated: z.number().int().nonnegative().nullable(),
+            updatedBy: maintenanceAuthorSchema
+        })
+    )
+});
+
+export type AdminMaintenance = z.infer<typeof adminMaintenanceSchema>;
+
+export const adminMaintenanceGet = {
+    command: 'admin.maintenanceGet' as const,
+    input: z.object({}),
+    output: adminMaintenanceSchema
+};
+
+/** Mettre le site en maintenance déconnecte sur-le-champ tout compte non administrateur. */
+export const adminMaintenanceSite = {
+    command: 'admin.maintenanceSite' as const,
+    input: z.object({
+        active: z.boolean(),
+        message: z.string().trim().min(1).max(MAINTENANCE_MESSAGE_MAX).nullable()
+    }),
+    output: adminMaintenanceSchema
+};
+
+/** `level: null` rouvre la feature. */
+export const adminMaintenanceFeature = {
+    command: 'admin.maintenanceFeature' as const,
+    input: z.object({
+        feature: z.string().min(1).max(64),
+        level: featureMaintenanceLevelSchema.nullable()
+    }),
+    output: adminMaintenanceSchema
+};
+
+/** Ferme le rappel de `MAINTENANCE=1`, pour tous les administrateurs. */
+export const adminMaintenanceDismissNotice = {
+    command: 'admin.maintenanceDismissNotice' as const,
+    input: z.object({}),
+    output: z.object({})
+};
+
 export const adminCommands = [
     adminUserList,
     adminSetUserRole,
     adminSetUserStatus,
-    adminDeleteUser
+    adminDeleteUser,
+    adminMaintenanceGet,
+    adminMaintenanceSite,
+    adminMaintenanceFeature,
+    adminMaintenanceDismissNotice
 ] as const;

@@ -29,7 +29,13 @@ export const sessionBundleSchema = z.object({
      * le bundle plutôt que par une requête à part : le client doit le savoir
      * avant son premier rendu, pour ne pas faire clignoter le bouton.
      */
-    feedbackEnabled: z.boolean()
+    feedbackEnabled: z.boolean(),
+    /**
+     * Admin only: the process booted with `MAINTENANCE=1` and no admin has
+     * closed the reminder. Shown once the site maintenance is lifted. Read at
+     * load, not live.
+     */
+    maintenanceEnvNotice: z.boolean()
 });
 
 export type SessionBundle = z.infer<typeof sessionBundleSchema>;

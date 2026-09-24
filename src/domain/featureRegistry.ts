@@ -240,7 +240,7 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         hasItems: true,
         itemNoun: 'travail',
         sources: {
-            hint: 'Les destinations d’archives de l’espace : un dossier du serveur, une machine ou un bucket S3. Chaque travail écrit vers l’une d’elles ; la corriger corrige d’un coup tous les travaux qui s’en servent.'
+            hint: 'Les destinations d’archives de l’espace : un dossier du serveur, une machine, un bucket S3, un serveur SFTP ou WebDAV. Chaque travail écrit vers l’une d’elles ; la corriger corrige d’un coup tous les travaux qui s’en servent.'
         },
         shareTier: 'open'
     },

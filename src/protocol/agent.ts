@@ -5,15 +5,14 @@ import {
     sha256HexSchema,
     SYNC_CHUNK_MAX,
     SYNC_INDEX_BATCH_MAX,
-    SYNC_PATTERN_MAX,
     SYNC_REL_PATH_MAX,
     SYNC_STORAGE_PATH_MAX,
     syncEntryKindSchema,
-    syncExclusionKindSchema,
     syncIndexFingerprintSchema,
     syncScanModeSchema,
     syncShareStatusSchema
 } from '../domain/syncProtocol';
+import { pathExclusionSchema } from '../domain/pathExclusions';
 import {
     fileListingSchema,
     fileMatchSchema,
@@ -301,6 +300,51 @@ export const agentFilesChunkPayloadSchema = z.object({
     error: z.string().max(500).optional()
 });
 
+/** Agent → server: one piece of a folder archive (`data` base64). Consumes one credit. */
+export const AGENT_FILES_ARCHIVE_CHUNK = 'files.archiveChunk' as const;
+export const agentFilesArchiveChunkPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    opId: z.string().max(64),
+    /** 0, 1, 2… : a gap or a repeat fails the archive, frames are never reordered. */
+    seq: z.number().int().nonnegative(),
+    data: z.string().max(1_400_000)
+});
+export type AgentFilesArchiveChunkPayload = z.infer<typeof agentFilesArchiveChunkPayloadSchema>;
+
+/**
+ * Agent → server: a sign of life while the archive has nothing to send yet
+ * (compression can take long to fill a piece). Consumes no credit.
+ */
+export const AGENT_FILES_ARCHIVE_PROGRESS = 'files.archiveProgress' as const;
+export const agentFilesArchiveProgressPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    opId: z.string().max(64),
+    entries: z.number().int().nonnegative(),
+    bytesRead: z.number().int().nonnegative()
+});
+export type AgentFilesArchiveProgressPayload = z.infer<
+    typeof agentFilesArchiveProgressPayloadSchema
+>;
+
+/** Agent → server: how a folder archive ended. The last frame of the operation. */
+export const AGENT_FILES_ARCHIVE_END = 'files.archiveEnd' as const;
+export const agentFilesArchiveEndPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    opId: z.string().max(64),
+    ok: z.boolean(),
+    error: z.string().max(500).optional(),
+    files: z.number().int().nonnegative(),
+    dirs: z.number().int().nonnegative(),
+    bytesRead: z.number().int().nonnegative(),
+    /** Entries left out because they could not be read. */
+    skipped: z.number().int().nonnegative(),
+    /** Files whose size changed while they were read: archived padded or cut. */
+    changed: z.number().int().nonnegative(),
+    /** The first skipped or changed entries, and why. */
+    samples: z.array(z.object({ path: z.string().max(1024), reason: z.string().max(120) })).max(20)
+});
+export type AgentFilesArchiveEndPayload = z.infer<typeof agentFilesArchiveEndPayloadSchema>;
+
 const syncOpId = z.string().min(1).max(64);
 const syncRelPath = z.string().min(1).max(SYNC_REL_PATH_MAX);
 
@@ -544,6 +588,18 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
         payload: agentFilesChunkPayloadSchema
     }),
     z.object({
+        command: z.literal(AGENT_FILES_ARCHIVE_CHUNK),
+        payload: agentFilesArchiveChunkPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_ARCHIVE_PROGRESS),
+        payload: agentFilesArchiveProgressPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_ARCHIVE_END),
+        payload: agentFilesArchiveEndPayloadSchema
+    }),
+    z.object({
         command: z.literal(AGENT_SYNC_CHANGED),
         payload: agentSyncChangedPayloadSchema
     }),
@@ -769,6 +825,39 @@ export const agentFilesUploadPayloadSchema = z.object({
 export type AgentFilesUploadPayload = z.infer<typeof agentFilesUploadPayloadSchema>;
 
 /**
+ * Archive a folder as a `.tar.gz` built on the machine, streamed as
+ * `files.archiveChunk` frames, each spending one credit. The agent sends no
+ * more than the credits the server grants: memory on both sides stays bounded
+ * whatever the folder's size, and a slow destination slows the machine down.
+ */
+export const AGENT_FILES_ARCHIVE = 'files.archive' as const;
+/** What an agent that knows `files.archive` declares in `report.agent.probes`. */
+export const AGENT_FOLDER_ARCHIVE_PROBE = 'folderArchive';
+export const agentFilesArchivePayloadSchema = z.object({
+    opId: filesOpId,
+    path: filesPath,
+    exclusions: z.array(pathExclusionSchema).max(200),
+    /** Do not descend into another filesystem (a network mount, a removable disk). */
+    oneFileSystem: z.boolean(),
+    /** Credits granted up front. */
+    window: z.number().int().min(1).max(64)
+});
+export type AgentFilesArchivePayload = z.infer<typeof agentFilesArchivePayloadSchema>;
+
+/** More credits for a folder archive, as the server consumes its pieces. */
+export const AGENT_FILES_ARCHIVE_CREDIT = 'files.archiveCredit' as const;
+export const agentFilesArchiveCreditPayloadSchema = z.object({
+    opId: filesOpId,
+    credits: z.number().int().min(1).max(64)
+});
+export type AgentFilesArchiveCreditPayload = z.infer<typeof agentFilesArchiveCreditPayloadSchema>;
+
+/** Stop a folder archive: the agent ends it with `files.archiveEnd` and an error. */
+export const AGENT_FILES_ARCHIVE_CANCEL = 'files.archiveCancel' as const;
+export const agentFilesArchiveCancelPayloadSchema = z.object({ opId: filesOpId });
+export type AgentFilesArchiveCancelPayload = z.infer<typeof agentFilesArchiveCancelPayloadSchema>;
+
+/**
  * CloudSync, serveur → agent. Le serveur orchestre tout : l'agent reçoit ses
  * assignations (`sync.config`), scanne sur ordre, transfère sur ordre.
  */
@@ -779,12 +868,7 @@ export const syncShareAssignmentSchema = z.object({
     localPath: z.string().min(1).max(SYNC_STORAGE_PATH_MAX),
     /** `paused` = watcher coupé, scans refusés (pause partage OU appareil). */
     status: syncShareStatusSchema,
-    exclusions: z.array(
-        z.object({
-            kind: syncExclusionKindSchema,
-            pattern: z.string().min(1).max(SYNC_PATTERN_MAX)
-        })
-    ),
+    exclusions: z.array(pathExclusionSchema),
     /**
      * Plafond de débit des MONTÉES, en octets/s ; `null` = illimité. Le
      * limiteur vit chez l'émetteur : l'agent pour les montées, le serveur pour
@@ -1091,6 +1175,18 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_FILES_UPLOAD),
         payload: agentFilesUploadPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_ARCHIVE),
+        payload: agentFilesArchivePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_ARCHIVE_CREDIT),
+        payload: agentFilesArchiveCreditPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_FILES_ARCHIVE_CANCEL),
+        payload: agentFilesArchiveCancelPayloadSchema
     }),
     z.object({
         command: z.literal(AGENT_SYNC_CONFIG),

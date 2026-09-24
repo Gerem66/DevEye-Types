@@ -28,6 +28,7 @@ declare module 'deveye-sdk-client' {
         FeatureDomain,
         FeatureId,
         MinimalUser,
+        PathExclusionKind,
         User,
         WorkspaceCapability
     } from '@deveye/types';
@@ -571,6 +572,49 @@ declare module 'deveye-sdk-client' {
         onPick: (path: string) => void;
         /** What the folder is for, said by the caller. */
         description?: string;
+        /** Offer to create a folder; false to pick what exists (what gets backed up). Default true. */
+        allowCreate?: boolean;
+    }>;
+    /**
+     * A path on a device: typed (a known path, an offline device) or picked by
+     * browsing its folders. The label stays the caller's, outside a `<label>`
+     * that would wrap the button: pass `id` for a `<label htmlFor>`, or
+     * `aria-label`. `action` is one more button at the end of the row.
+     */
+    export const DeviceFolderField: ComponentType<{
+        /** The device to browse; without it, "Parcourir" stays disabled. */
+        device: { id: string; name: string } | null;
+        value: string;
+        onChange: (path: string) => void;
+        placeholder?: string;
+        id?: string;
+        'aria-label'?: string;
+        pickerDescription?: string;
+        allowCreate?: boolean;
+        disabled?: boolean;
+        action?: ReactNode;
+    }>;
+    /** One rule of a `PathExclusionsEditor`. */
+    export interface PathExclusionItem {
+        key: string | number;
+        kind: PathExclusionKind;
+        pattern: string;
+    }
+    /**
+     * The exclusions of a walked folder (a CloudSync share, a backed-up
+     * folder): exact path, component name or regex, relative to its root,
+     * validated the way the agent will run them. `onAdd` gets a rule already
+     * validated; `false` or a rejection keeps what was typed (say why where
+     * you show your errors). `scope` ends the suggestions' tooltip ("le
+     * partage", "le dossier").
+     */
+    export const PathExclusionsEditor: ComponentType<{
+        items: readonly PathExclusionItem[];
+        onAdd: (kind: PathExclusionKind, pattern: string) => boolean | Promise<boolean>;
+        onRemove: (key: string | number) => void;
+        canWrite: boolean;
+        scope: string;
+        disabled?: boolean;
     }>;
     /**
      * The workspace's enrolled devices, live: what the Devices module offers

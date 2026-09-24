@@ -10,7 +10,6 @@ import { z } from 'zod';
  */
 /** Bornes partagées serveur/agent/client. */
 export const SYNC_REL_PATH_MAX = 1024;
-export const SYNC_PATTERN_MAX = 512;
 export const SYNC_STORAGE_PATH_MAX = 1024;
 /** Taille max d'un chunk base64 sur le fil (≈ 1 Mo de binaire). */
 export const SYNC_CHUNK_MAX = 1_400_000;
@@ -42,14 +41,6 @@ export const syncIndexFingerprintSchema = z.string().regex(/^\d+\.\d+\.[0-9a-f]{
 export const sha256HexSchema = z.string().regex(/^[a-f0-9]{64}$/);
 export const syncShareStatusSchema = z.enum(['active', 'paused']);
 export type SyncShareStatus = z.infer<typeof syncShareStatusSchema>;
-/**
- * Type d'exclusion :
- *  - `path`  → chemin relatif exact (fichier ou préfixe de dossier),
- *  - `name`  → nom exact d'un composant de chemin (ex. `node_modules`),
- *  - `regex` → expression régulière sur le chemin relatif (moteur linéaire).
- */
-export const syncExclusionKindSchema = z.enum(['path', 'name', 'regex']);
-export type SyncExclusionKind = z.infer<typeof syncExclusionKindSchema>;
 export const syncSessionStateSchema = z.enum([
     'scanning',
     'planning',

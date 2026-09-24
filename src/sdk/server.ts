@@ -6,6 +6,7 @@ import type { LogLevelName } from '../domain/logs';
 import type { ItemAccess } from '../domain/sharing';
 import type { AuthWindow, DeviceReport, IntegrityReport, ReportProcess } from '../domain/report';
 import type { ContainerEngine, DockerAction, DockerInventory } from '../domain/deviceDocker';
+import type { PathExclusion } from '../domain/pathExclusions';
 import type { AgentManifest } from '../http/device';
 import type { MetricSnapshot } from '../domain/metrics';
 import type { UserColor } from '../domain/user';
@@ -280,19 +281,15 @@ export interface DevEyeFacade {
     /** Requires capability `'devices.read'`. */
     devices: {
         /**
-         * Throws `not_found` unless the device exists AND belongs to this
-         * workspace (a global administrator passes the membership check).
-         * With `extras`, a handler also requires the CALLER to hold these
+         * Throws `not_found` unless the device exists AND is visible in this
+         * workspace (its own, or shared into it), a global administrator
+         * included: membership is the boundary. With `extras`, a handler also requires the CALLER to hold these
          * permissions of the Devices feature on this device (`docker` to drive
          * its containers), and throws `forbidden` otherwise: a module cannot
          * name another feature's permissions in its own `access`.
          */
         authorize(deviceId: string, options?: { extras?: readonly string[] }): Promise<SdkDevice>;
-        /**
-         * The devices this workspace sees: its own, or the whole fleet for a
-         * global administrator in their PERSONAL workspace (the app's own rule
-         * for its device list: that is where an admin watches their machines).
-         */
+        /** The devices this workspace sees: its own, and those shared into it. */
         list(): Promise<readonly SdkDevice[]>;
         isOnline(deviceId: string): boolean;
     };
@@ -442,6 +439,21 @@ export interface AgentsFacade {
     /** The device's containers, images and volumes; `null` when its agent does not answer in time. */
     dockerInventory(deviceId: string, timeoutMs?: number): Promise<DockerInventory | null>;
     /**
+     * The `.tar.gz` of one of the device's folders, built by its agent and
+     * pulled at the consumer's pace: the agent sends no more than the
+     * consumer has taken, so a slow destination slows the machine down
+     * instead of filling the server's memory. Leaving the loop, throwing in
+     * it or aborting `signal` cancels the archive on the machine. The stream
+     * throws when the device is or goes offline, and when its agent does not
+     * answer (one that predates the order): check `report.agent.probes` for
+     * `AGENT_FOLDER_ARCHIVE_PROBE` first to say so plainly.
+     */
+    archiveFolder(
+        deviceId: string,
+        request: AgentFolderArchiveRequest,
+        options?: { signal?: AbortSignal }
+    ): AgentFolderArchive;
+    /**
      * Bytes queued on the agent's socket, not yet on the wire. A sender that
      * streams towards an agent must watch it: the socket accepts everything,
      * and without backpressure the server's memory follows the size of what
@@ -449,6 +461,39 @@ export interface AgentsFacade {
      */
     buffered(deviceId: string): number;
 }
+
+/** What a folder archive covers. */
+export interface AgentFolderArchiveRequest {
+    /** Absolute path on the machine. */
+    path: string;
+    exclusions: readonly PathExclusion[];
+    /** Do not descend into another filesystem (a network mount, a removable disk). */
+    oneFileSystem: boolean;
+}
+
+/** How a folder archive went, once its stream has ended. */
+export interface AgentFolderArchiveSummary {
+    files: number;
+    dirs: number;
+    bytesRead: number;
+    /** Entries left out because they could not be read. */
+    skipped: number;
+    /** Files whose size changed while they were read: archived padded or cut. */
+    changed: number;
+    /** The first skipped or changed entries, and why. */
+    samples: ReadonlyArray<{ path: string; reason: string }>;
+}
+
+/** The pieces of a folder archive, in order; `summary` is filled once they have all come. */
+export interface AgentFolderArchive extends AsyncIterable<Buffer> {
+    readonly summary: AgentFolderArchiveSummary | null;
+}
+
+/** Why a member does not hold a permission (see `FeatureServiceDeps.access`). */
+export type SdkAccessDenial =
+    'not_member' | 'suspended' | 'level' | 'not_granted' | 'hidden' | 'read_only' | 'no_device';
+
+export type SdkAccessVerdict = { ok: true } | { ok: false; reason: SdkAccessDenial };
 
 /**
  * The caller's own browser socket (capability `'agents'`): live subscriptions
@@ -1080,6 +1125,29 @@ export interface FeatureServiceDeps<Repo = unknown> {
     }): void;
     /** The agent-fleet transport (capability `'agents'`). */
     agents: AgentsFacade;
+    /**
+     * What a member may do NOW, without a session: for work that runs on a
+     * member's behalf long after they set it up (a nightly backup of their
+     * machine), and must stop when they lose the right. The rules of a
+     * command: account not suspended, membership, role, the item's
+     * override. `feature` answers for YOUR feature only. `device` answers
+     * for the Devices permissions on one device (capability
+     * `'devices.read'`), with the rule of `devices.authorize`: an override
+     * that lowers the device to read-only closes it.
+     */
+    access: {
+        feature(
+            workspaceId: number,
+            userId: number,
+            need: { level?: FeatureAccess; extras?: readonly string[]; itemId?: string }
+        ): Promise<SdkAccessVerdict>;
+        device(
+            workspaceId: number,
+            userId: number,
+            deviceId: string,
+            extras: readonly string[]
+        ): Promise<SdkAccessVerdict>;
+    };
     /** Raw key wrapping under the server key, and derived keys. */
     keys: SdkServerKeys;
     /** Redeems a ticket minted by `ctx.secrecy.ticket` of THIS module; `null` when invalid, expired or another module's. */

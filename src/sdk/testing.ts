@@ -1,9 +1,12 @@
 import type { ZodType } from 'zod';
 import type { ItemAccess } from '../domain/sharing';
+import type { PathExclusion } from '../domain/pathExclusions';
 import { normaliseDomainHost } from './domains';
 import { resolveExtras, type FeatureManifest } from './manifest';
 import {
     FeatureError,
+    type AgentFolderArchive,
+    type AgentFolderArchiveSummary,
     type DevEyeFacade,
     type FeatureDomainsContext,
     type SdkDns,
@@ -112,6 +115,13 @@ export interface RecordedCalls {
     audits: { action: string; description: string }[];
     /** Outbound agent frames, as `{ method, deviceId }` (payloads dropped for brevity). */
     agentRequests: { method: string; deviceId: string }[];
+    /** Folder archives asked through `agents.archiveFolder`, with what they cover. */
+    archiveRequests: {
+        deviceId: string;
+        path: string;
+        exclusions: readonly PathExclusion[];
+        oneFileSystem: boolean;
+    }[];
     /** Instants pinned through `telemetry.pinInstant`. */
     pinnedInstants: { deviceId: string; ts: number }[];
     /** Frames pushed through `live.publish`, in order. */
@@ -174,11 +184,13 @@ export function testDevice(over: Partial<SdkDevice> & { id: string }): SdkDevice
 
 function recordingDevices(
     devices: readonly SdkDevice[],
-    refuseExtras = false
+    refuseExtras: boolean | readonly string[] = false
 ): DevEyeFacade['devices'] {
+    const refused = (id: string): boolean =>
+        refuseExtras === true || (Array.isArray(refuseExtras) && refuseExtras.includes(id));
     return {
         authorize: (id, options) =>
-            refuseExtras && (options?.extras?.length ?? 0) > 0
+            refused(id) && (options?.extras?.length ?? 0) > 0
                 ? Promise.reject(
                       new FeatureError(
                           'forbidden',
@@ -205,13 +217,49 @@ function recordingTelemetry(
     };
 }
 
-/** What a test says of Docker on its devices: a deployment's verdict, an inventory. */
-interface TestDocker {
-    dockerRun?: DevEyeFacade['agents']['dockerRun'];
-    dockerInventory?: DevEyeFacade['agents']['dockerInventory'];
+/** What a test says of a folder archive: its pieces, or the error its stream throws. */
+export interface TestFolderArchive {
+    chunks: readonly Buffer[];
+    summary?: Partial<AgentFolderArchiveSummary>;
 }
 
-function recordingAgents(recorded: RecordedCalls, docker: TestDocker = {}): DevEyeFacade['agents'] {
+/** What a test says of its devices' agents: a deployment's verdict, an inventory, folder archives. */
+interface TestAgents {
+    dockerRun?: DevEyeFacade['agents']['dockerRun'];
+    dockerInventory?: DevEyeFacade['agents']['dockerInventory'];
+    /** By device id. A device without an entry answers nothing: its stream throws. */
+    archives?: Readonly<Record<string, TestFolderArchive | Error>>;
+}
+
+/** Replays the planned pieces; the summary appears once the last one is taken, as in the app. */
+function replayedArchive(planned: TestFolderArchive | Error | undefined): AgentFolderArchive {
+    let summary: AgentFolderArchiveSummary | null = null;
+    return {
+        get summary() {
+            return summary;
+        },
+        async *[Symbol.asyncIterator]() {
+            if (!planned) throw new Error('No archive planned for this device');
+            if (planned instanceof Error) throw planned;
+            let bytesRead = 0;
+            for (const chunk of planned.chunks) {
+                bytesRead += chunk.length;
+                yield chunk;
+            }
+            summary = {
+                files: 1,
+                dirs: 0,
+                bytesRead,
+                skipped: 0,
+                changed: 0,
+                samples: [],
+                ...planned.summary
+            };
+        }
+    };
+}
+
+function recordingAgents(recorded: RecordedCalls, docker: TestAgents = {}): DevEyeFacade['agents'] {
     const req = (method: string) => (deviceId: string) => {
         recorded.agentRequests.push({ method, deviceId });
         return true;
@@ -255,7 +303,12 @@ function recordingAgents(recorded: RecordedCalls, docker: TestDocker = {}): DevE
         dockerInventory: (deviceId, timeoutMs) =>
             docker.dockerInventory
                 ? docker.dockerInventory(deviceId, timeoutMs)
-                : Promise.resolve(null)
+                : Promise.resolve(null),
+        archiveFolder(deviceId, request) {
+            recorded.agentRequests.push({ method: 'archiveFolder', deviceId });
+            recorded.archiveRequests.push({ deviceId, ...request });
+            return replayedArchive(docker.archives?.[deviceId]);
+        }
     };
 }
 
@@ -333,12 +386,17 @@ export interface TestContextOverrides<Repo> {
     liveChannels?: readonly number[];
     /** Devices `deveye.devices` reveals. Default none listed, any id authorized. */
     devices?: readonly SdkDevice[];
-    /** `deveye.devices.authorize` refuses any `extras`: the caller lacks them on every device. Default false. */
-    refuseDeviceExtras?: boolean;
+    /**
+     * `deveye.devices.authorize` refuses any `extras`: the caller lacks them
+     * on every device (`true`) or on these ones. Default false.
+     */
+    refuseDeviceExtras?: boolean | readonly string[];
     /** What `deveye.agents.dockerRun` resolves. Default success. */
     dockerRun?: DevEyeFacade['agents']['dockerRun'];
     /** What `deveye.agents.dockerInventory` resolves. Default null (no answer). */
     dockerInventory?: DevEyeFacade['agents']['dockerInventory'];
+    /** What `deveye.agents.archiveFolder` streams, by device id. Default none: the stream throws. */
+    archives?: Readonly<Record<string, TestFolderArchive | Error>>;
     /** Instants `deveye.telemetry.snapshot` answers (matched within a second). Default none. */
     snapshots?: readonly SdkTelemetrySnapshot[];
     /** Override facade members entirely when the defaults are not enough. */
@@ -377,6 +435,7 @@ export function createTestContext<Repo = undefined>(
         liveMessages: [],
         audits: [],
         agentRequests: [],
+        archiveRequests: [],
         pinnedInstants: [],
         livePublishes: [],
         accountChanges: []
@@ -582,6 +641,10 @@ export interface TestServiceOverrides<Repo> {
     dockerRun?: DevEyeFacade['agents']['dockerRun'];
     /** What `deps.agents.dockerInventory` resolves. Default null (no answer). */
     dockerInventory?: DevEyeFacade['agents']['dockerInventory'];
+    /** What `deps.agents.archiveFolder` streams, by device id. Default none: the stream throws. */
+    archives?: Readonly<Record<string, TestFolderArchive | Error>>;
+    /** What `deps.access` answers. Default: every member holds every right. */
+    access?: Partial<FeatureServiceDeps['access']>;
     /** The accounts `deps.accounts` knows. Default none. */
     accounts?: readonly SdkAccount[];
     /** The plan's limits `deps.quotaFor` applies, by YOUR quota key. Default none (unlimited). */
@@ -615,6 +678,7 @@ export function createTestServiceDeps<Repo = undefined>(
         liveMessages: [],
         audits: [],
         agentRequests: [],
+        archiveRequests: [],
         pinnedInstants: [],
         livePublishes: [],
         accountChanges: [],
@@ -738,6 +802,10 @@ export function createTestServiceDeps<Repo = undefined>(
             recorded.audits.push({ action: entry.action, description: entry.description });
         },
         agents: recordingAgents(recorded, overrides),
+        access: {
+            feature: overrides.access?.feature ?? (() => Promise.resolve({ ok: true })),
+            device: overrides.access?.device ?? (() => Promise.resolve({ ok: true }))
+        },
         // A fake wrapper: the sealed string is a handle to the bytes, and an
         // unknown handle opens to `null` exactly like a tampered blob would.
         keys: {

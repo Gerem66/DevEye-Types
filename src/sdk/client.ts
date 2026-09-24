@@ -297,7 +297,7 @@ export interface DeployLinkedCandidate {
     name: string;
     /** Projected here from another workspace. */
     foreign?: boolean;
-    /** The instance host, as the module labels it (« dokploy.example.com »). */
+    /** Where the target lives, as the module labels it (« dokploy.example.com », « github.com/owner/repo »). */
     host: string;
 }
 

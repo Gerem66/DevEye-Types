@@ -198,17 +198,17 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         id: 'deploy',
         label: 'Déploiements',
         description:
-            'Lecture : cibles et historique. Écriture : poser la clé d’API et déclencher une mise en production.',
+            'Lecture : cibles et historique. Écriture : poser un accès et déclencher une mise en production.',
         icon: 'rocket',
         notifies: true,
         notifications: {
-            hint: 'Envoyées à l’atterrissage d’un déploiement, échec comme succès, y compris ceux lancés depuis Dokploy, une CI ou un push git.'
+            hint: 'Envoyées à l’atterrissage d’un déploiement, échec comme succès, y compris ceux lancés ailleurs : depuis Dokploy, une CI ou un push git.'
         },
         hasItems: true,
         itemNoun: 'cible',
         itemNounGender: 'f',
         sources: {
-            hint: 'Les accès Dokploy de l’espace (adresse de l’instance et clé d’API). Chaque cible en désigne un ; corriger un accès corrige d’un coup toutes les cibles qui s’en servent.'
+            hint: 'Les accès de l’espace : une instance Dokploy (adresse et clé d’API) ou un jeton GitHub. Chaque cible en désigne un ; corriger un accès corrige d’un coup toutes les cibles qui s’en servent.'
         },
         shareTier: 'open'
     },

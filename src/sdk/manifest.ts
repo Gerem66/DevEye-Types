@@ -258,6 +258,14 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
         placeholder?: string;
         /** Warning of the removal confirm when items designate the domain. */
         removal?: string;
+        /**
+         * The names serve your public routes over HTTPS (a CNAME to
+         * `origins.public`). DevEye then checks by itself that a name points
+         * here and answers in HTTPS before calling your probe, hands it to its
+         * proxy for a certificate when the instance is wired for it, and
+         * counts it against the `domains.hosts` plan limit.
+         */
+        web?: boolean;
     };
     /**
      * Whether an item can be projected into another workspace. Decided by

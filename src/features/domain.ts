@@ -12,7 +12,22 @@ import { featureIdSchema } from '../domain/workspaceRole';
 export const domainList = {
     command: 'domain.list' as const,
     input: z.object({ feature: featureIdSchema }),
-    output: z.object({ domains: z.array(featureDomainSchema) })
+    output: z.object({
+        domains: z.array(featureDomainSchema),
+        /**
+         * How a web domain gets its HTTPS certificate on this instance: `auto`
+         * when DevEye feeds its proxy, `manual` when the administrator adds
+         * each name. Null when the feature's domains are not web ones.
+         */
+        https: z.enum(['auto', 'manual']).nullable(),
+        /**
+         * The workspace owner's allowance of web domains, counted as distinct
+         * names across all their workspaces. Null when unbounded.
+         */
+        quota: z
+            .object({ used: z.number().int().nonnegative(), limit: z.number().int().nonnegative() })
+            .nullable()
+    })
 };
 
 export const domainAdd = {

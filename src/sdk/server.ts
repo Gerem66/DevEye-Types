@@ -5,6 +5,7 @@ import type { FeatureAccess } from '../domain/workspaceRole';
 import type { LogLevelName } from '../domain/logs';
 import type { ItemAccess } from '../domain/sharing';
 import type { AuthWindow, DeviceReport, IntegrityReport, ReportProcess } from '../domain/report';
+import type { ContainerEngine, DockerAction, DockerInventory } from '../domain/deviceDocker';
 import type { AgentManifest } from '../http/device';
 import type { MetricSnapshot } from '../domain/metrics';
 import type { UserColor } from '../domain/user';
@@ -281,8 +282,12 @@ export interface DevEyeFacade {
         /**
          * Throws `not_found` unless the device exists AND belongs to this
          * workspace (a global administrator passes the membership check).
+         * With `extras`, a handler also requires the CALLER to hold these
+         * permissions of the Devices feature on this device (`docker` to drive
+         * its containers), and throws `forbidden` otherwise: a module cannot
+         * name another feature's permissions in its own `access`.
          */
-        authorize(deviceId: string): Promise<SdkDevice>;
+        authorize(deviceId: string, options?: { extras?: readonly string[] }): Promise<SdkDevice>;
         /**
          * The devices this workspace sees: its own, or the whole fleet for a
          * global administrator in their PERSONAL workspace (the app's own rule
@@ -422,6 +427,20 @@ export interface AgentsFacade {
     awaitFilesOp(opId: string, timeoutMs: number): Promise<{ ok: boolean; error?: string }>;
     /** Forgets a pending `awaitFilesOp` (the frame was never sent, or the caller gave up). */
     cancelFilesOp(opId: string): void;
+    /**
+     * A Docker action on a device, for a caller without a socket (a
+     * deployment). Takes the device's long-action lock, which the Devices
+     * screens share: refused at once while another long action runs there.
+     * Streams the action's output lines to `onLine` and resolves with its
+     * verdict, a refusal by the machine's local policy included. Never throws.
+     */
+    dockerRun(
+        deviceId: string,
+        order: { engine: ContainerEngine; action: DockerAction; target: string | null },
+        options?: { onLine?: (line: string) => void; timeoutMs?: number }
+    ): Promise<{ ok: boolean; error?: string }>;
+    /** The device's containers, images and volumes; `null` when its agent does not answer in time. */
+    dockerInventory(deviceId: string, timeoutMs?: number): Promise<DockerInventory | null>;
     /**
      * Bytes queued on the agent's socket, not yet on the wire. A sender that
      * streams towards an agent must watch it: the socket accepts everything,

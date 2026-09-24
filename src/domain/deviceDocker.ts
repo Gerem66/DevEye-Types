@@ -158,7 +158,10 @@ export const dockerActionSchema = z.enum([
     'pruneBuildCache',
     // Mise à jour d'un service.
     'pull',
-    'recreate'
+    'recreate',
+    // Déploiement d'un service compose (`projet/service`) : son image, puis sa
+    // recréation seule. Refusable par la machine (`allow_docker_deploy`).
+    'composeDeploy'
 ]);
 export type DockerAction = z.infer<typeof dockerActionSchema>;
 
@@ -170,6 +173,7 @@ export type DockerAction = z.infer<typeof dockerActionSchema>;
 export const DOCKER_LONG_ACTIONS = [
     'pull',
     'recreate',
+    'composeDeploy',
     'pruneContainers',
     'pruneImages',
     'pruneVolumes',

@@ -172,9 +172,20 @@ export function testDevice(over: Partial<SdkDevice> & { id: string }): SdkDevice
     };
 }
 
-function recordingDevices(devices: readonly SdkDevice[]): DevEyeFacade['devices'] {
+function recordingDevices(
+    devices: readonly SdkDevice[],
+    refuseExtras = false
+): DevEyeFacade['devices'] {
     return {
-        authorize: (id) => Promise.resolve(devices.find((d) => d.id === id) ?? testDevice({ id })),
+        authorize: (id, options) =>
+            refuseExtras && (options?.extras?.length ?? 0) > 0
+                ? Promise.reject(
+                      new FeatureError(
+                          'forbidden',
+                          'Cette permission ne vous est pas accordée sur cet élément'
+                      )
+                  )
+                : Promise.resolve(devices.find((d) => d.id === id) ?? testDevice({ id })),
         list: () => Promise.resolve([...devices]),
         isOnline: (id) => devices.find((d) => d.id === id)?.online ?? true
     };
@@ -194,7 +205,13 @@ function recordingTelemetry(
     };
 }
 
-function recordingAgents(recorded: RecordedCalls): DevEyeFacade['agents'] {
+/** What a test says of Docker on its devices: a deployment's verdict, an inventory. */
+interface TestDocker {
+    dockerRun?: DevEyeFacade['agents']['dockerRun'];
+    dockerInventory?: DevEyeFacade['agents']['dockerInventory'];
+}
+
+function recordingAgents(recorded: RecordedCalls, docker: TestDocker = {}): DevEyeFacade['agents'] {
     const req = (method: string) => (deviceId: string) => {
         recorded.agentRequests.push({ method, deviceId });
         return true;
@@ -226,7 +243,19 @@ function recordingAgents(recorded: RecordedCalls): DevEyeFacade['agents'] {
         // with a refusal injects its own facade through `deveye`.
         awaitFilesOp: () => Promise.resolve({ ok: true }),
         cancelFilesOp: () => undefined,
-        buffered: () => 0
+        buffered: () => 0,
+        // Recorded, then answered as the test decides: success, and no
+        // inventory, by default.
+        dockerRun: (deviceId, order, options) => {
+            recorded.agentRequests.push({ method: 'dockerRun', deviceId });
+            return docker.dockerRun
+                ? docker.dockerRun(deviceId, order, options)
+                : Promise.resolve({ ok: true });
+        },
+        dockerInventory: (deviceId, timeoutMs) =>
+            docker.dockerInventory
+                ? docker.dockerInventory(deviceId, timeoutMs)
+                : Promise.resolve(null)
     };
 }
 
@@ -304,6 +333,12 @@ export interface TestContextOverrides<Repo> {
     liveChannels?: readonly number[];
     /** Devices `deveye.devices` reveals. Default none listed, any id authorized. */
     devices?: readonly SdkDevice[];
+    /** `deveye.devices.authorize` refuses any `extras`: the caller lacks them on every device. Default false. */
+    refuseDeviceExtras?: boolean;
+    /** What `deveye.agents.dockerRun` resolves. Default success. */
+    dockerRun?: DevEyeFacade['agents']['dockerRun'];
+    /** What `deveye.agents.dockerInventory` resolves. Default null (no answer). */
+    dockerInventory?: DevEyeFacade['agents']['dockerInventory'];
     /** Instants `deveye.telemetry.snapshot` answers (matched within a second). Default none. */
     snapshots?: readonly SdkTelemetrySnapshot[];
     /** Override facade members entirely when the defaults are not enough. */
@@ -364,9 +399,9 @@ export function createTestContext<Repo = undefined>(
                 ])
         },
         workspaces: { list: () => Promise.resolve(overrides.workspaces ?? []) },
-        devices: recordingDevices(overrides.devices ?? []),
+        devices: recordingDevices(overrides.devices ?? [], overrides.refuseDeviceExtras ?? false),
         telemetry: recordingTelemetry(recorded, overrides.snapshots ?? []),
-        agents: recordingAgents(recorded),
+        agents: recordingAgents(recorded, overrides),
         accounts: {
             me: () =>
                 Promise.resolve(
@@ -543,6 +578,10 @@ export interface TestServiceOverrides<Repo> {
     workspaceIds?: readonly number[];
     /** Devices every workspace reveals. Default none. */
     devices?: readonly SdkDevice[];
+    /** What `deps.agents.dockerRun` resolves. Default success. */
+    dockerRun?: DevEyeFacade['agents']['dockerRun'];
+    /** What `deps.agents.dockerInventory` resolves. Default null (no answer). */
+    dockerInventory?: DevEyeFacade['agents']['dockerInventory'];
     /** The accounts `deps.accounts` knows. Default none. */
     accounts?: readonly SdkAccount[];
     /** The plan's limits `deps.quotaFor` applies, by YOUR quota key. Default none (unlimited). */
@@ -698,7 +737,7 @@ export function createTestServiceDeps<Repo = undefined>(
         audit: (entry) => {
             recorded.audits.push({ action: entry.action, description: entry.description });
         },
-        agents: recordingAgents(recorded),
+        agents: recordingAgents(recorded, overrides),
         // A fake wrapper: the sealed string is a handle to the bytes, and an
         // unknown handle opens to `null` exactly like a tampered blob would.
         keys: {

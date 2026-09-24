@@ -1137,7 +1137,8 @@ export type OrderSignature = z.infer<typeof orderSignatureSchema>;
 /**
  * The orders the server signs (`ORDER_SIGNING_KEY`) and the agent refuses
  * unsigned: what runs code, writes or deletes files, changes the agent's
- * privileges or its life. Mirror of `SIGNED_COMMANDS` in `agent/src/protocol.rs`.
+ * privileges or its life, or drives its containers. Mirror of
+ * `SIGNED_COMMANDS` in `agent/src/protocol.rs`.
  */
 export const SIGNED_AGENT_COMMANDS: ReadonlySet<string> = new Set([
     AGENT_TERM_OPEN,
@@ -1147,7 +1148,8 @@ export const SIGNED_AGENT_COMMANDS: ReadonlySet<string> = new Set([
     AGENT_POWER,
     AGENT_DESTROY,
     AGENT_PKG_UPGRADE,
-    AGENT_LIFECYCLE
+    AGENT_LIFECYCLE,
+    AGENT_DOCKER_ACTION
 ]);
 
 /**

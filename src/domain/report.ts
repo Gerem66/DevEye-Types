@@ -216,7 +216,9 @@ export const agentPolicySchema = z.object({
     power: z.boolean(),
     pkgUpgrade: z.boolean(),
     serviceElevate: z.boolean(),
-    destroy: z.boolean()
+    destroy: z.boolean(),
+    /** Deployments (`composeDeploy`). Defaulted: an agent older than the switch reports without it. */
+    dockerDeploy: z.boolean().default(true)
 });
 export type AgentPolicy = z.infer<typeof agentPolicySchema>;
 
@@ -246,7 +248,8 @@ export const agentInfoSchema = z.object({
         power: true,
         pkgUpgrade: true,
         serviceElevate: true,
-        destroy: true
+        destroy: true,
+        dockerDeploy: true
     }),
     /** The agent reaches this server over plain http/ws (opted in locally): everything, shell included, travels in clear. */
     insecureTransport: z.boolean().default(false)

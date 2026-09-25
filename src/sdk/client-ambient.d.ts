@@ -679,6 +679,21 @@ declare module 'deveye-sdk-client' {
      * has no plan provider (everything unlimited): never read it as "free".
      */
     export function useAccountPlan(): AccountPlan | null;
+    /**
+     * How many of the account's items its plan holds paused, by
+     * `<featureId>.<quotaKey>`, only the keys that have some. Empty while
+     * loading and without a plan provider.
+     */
+    export function usePlanPauses(): Readonly<Record<string, number>>;
+    /** The badge of an item its owner's plan holds paused (a `stock` quota). */
+    export const PlanPausedBadge: ComponentType<{ className?: string }>;
+    /**
+     * The notice above a list that holds items paused by the plan: how many,
+     * why, what still runs, and for the workspace owner the way to the plans.
+     * Renders nothing at 0. `one` and `many` name the item: "service
+     * surveillé", "services surveillés".
+     */
+    export const PlanPausedNotice: ComponentType<{ count: number; one: string; many: string }>;
     /** Opens an account view (`manifest.accountEntry`): the given module's, or the first one. No-op without any. */
     export function openAccountView(featureId?: string): void;
     export interface LiveOutlineProps {

@@ -21,7 +21,14 @@ export const workspaceSchema = z.object({
     ownerUserId: z.number().int().positive(),
     users: z.array(minimalUserSchema),
     features: z.array(z.string().min(1)),
-    created: z.number().int().nonnegative()
+    created: z.number().int().nonnegative(),
+    /**
+     * L'offre du propriétaire tient cet espace partagé en pause : ses membres
+     * autres que lui n'y entrent plus, jusqu'à ce que la limite remonte.
+     */
+    planPaused: z.boolean(),
+    /** Les membres que l'offre du propriétaire tient dehors, les derniers arrivés d'abord. */
+    pausedMemberIds: z.array(z.number().int().positive())
 });
 
 export type Workspace = z.infer<typeof workspaceSchema>;

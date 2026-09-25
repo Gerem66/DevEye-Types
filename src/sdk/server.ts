@@ -330,25 +330,72 @@ export interface SdkAccounts {
 }
 
 /**
+ * The items of YOUR `stock` quotas that their owner's plan holds paused: the
+ * most recently created beyond the limit. Nothing of theirs is deleted; they
+ * resume on their own once the limit rises or a slot frees. A paused item
+ * stays readable, editable and deletable, and NOTHING of it runs: not on
+ * schedule, not on demand. Both reads are synchronous (an in-memory mirror),
+ * fit for a hot path. A key that is not a declared stock throws `validation`.
+ */
+export interface SdkPlanPauses {
+    isPaused(key: string, itemId: string): boolean;
+    /**
+     * Every paused id of the key, whatever the account: exclude them IN THE
+     * SQL of a due list (`id NOT IN (...)`, guard the empty list). Filtering
+     * after its `LIMIT` would let the paused, whose timestamps never advance,
+     * fill the window and starve the rest.
+     */
+    paused(key: string): readonly string[];
+}
+
+/**
  * What the account's plan allows of YOUR `manifest.quotas`. The account is the
  * OWNER of the workspace of the call: in a shared workspace, what a member
  * creates counts against its owner. Without a plan provider installed,
  * everything is unlimited.
  */
-export interface SdkQuota {
+export interface SdkQuota extends SdkPlanPauses {
     /** `null` = unlimited. An undeclared key throws `validation`. */
     limit(key: string): Promise<number | null>;
     /**
      * Call it BEFORE creating. `countAfter` receives the ids of every workspace
      * the owner account owns and returns how many there would be once created;
      * it is never called when unlimited. Throws `quota_exceeded` beyond the
-     * limit. Only creation is bounded: what exists stays usable after a
-     * downgrade.
+     * limit.
      */
     assert(
         key: string,
         countAfter: (ownerWorkspaceIds: readonly number[]) => Promise<number>
     ): Promise<void>;
+    /**
+     * Call it before running a `stock` item on demand (check now, deploy now,
+     * open a session): throws `quota_exceeded` when its owner's plan holds it
+     * paused, which opens the plan prompt on the client.
+     */
+    assertActive(key: string, itemId: string): Promise<void>;
+}
+
+/** One item a `stock` quota counts. */
+export interface SdkStockItem {
+    id: string;
+    workspaceId: number;
+}
+
+/** What one reconciliation changed for one of your `stock` quotas. */
+export interface SdkPlanPauseChange {
+    key: string;
+    paused: readonly SdkStockItem[];
+    resumed: readonly SdkStockItem[];
+}
+
+/** Your half of one `stock` quota: the host ranks, you list. */
+export interface FeatureStockEntry<Repo = unknown> {
+    /**
+     * The items the quota counts in these workspaces, OLDEST FIRST (creation,
+     * then id), under the very WHERE of the counter you pass to `assert`. The
+     * host keeps the first `limit` running and pauses the rest.
+     */
+    list(repo: Repo, ownerWorkspaceIds: readonly number[]): Promise<readonly SdkStockItem[]>;
 }
 
 /** A workspace as the fleet sees it: enough to attach a device to it. */
@@ -724,7 +771,8 @@ export interface SdkContextLive {
     /**
      * Something of this ACCOUNT changed (its plan, its subscription): its open
      * clients, in whatever workspace they sit, re-fetch the account plan and
-     * your declared resources. No payload, so no capability.
+     * your declared resources, and the host re-applies its `stock` limits
+     * (pauses and resumes). No payload, so no capability.
      */
     accountChanged(userId: number): void;
 }
@@ -746,9 +794,15 @@ export interface SdkDomain {
     host: string;
     /** Published in the DNS by nature, so not a secret. */
     token: string;
-    /** Both stages have passed, and neither has failed three times in a row since. */
+    /**
+     * Both stages have passed, neither has failed three times in a row since,
+     * and the owner's plan does not hold the name paused. What decides
+     * whether you serve it.
+     */
     verified: boolean;
     verifiedAt: number | null;
+    /** The owner's plan holds this name paused: it is not served until the limit rises. */
+    planPaused: boolean;
 }
 
 /** Your feature's domains in the caller's workspace. Throws `forbidden` unless the manifest declares `domains`. */
@@ -1081,6 +1135,13 @@ export interface FeatureService {
      * `'routes.public'` and manifest `domains.web`.
      */
     domainRoot?(req: SdkPublicRequest, reply: SdkPublicReply, domain: SdkDomain): Promise<unknown>;
+    /**
+     * Your `stock` items that a plan just paused or resumed, once written: for
+     * what you hold OPEN (a connection, a session, a timer). What you run on
+     * schedule needs nothing here, it reads `SdkPlanPauses` each time. Never
+     * called while your service is halted by maintenance.
+     */
+    onPlanPause?(change: SdkPlanPauseChange): void | Promise<void>;
 }
 
 /**
@@ -1108,6 +1169,8 @@ export interface FeatureServiceDeps<Repo = unknown> {
      * owner of that workspace.
      */
     quotaFor(workspaceId: number): SdkQuota;
+    /** Your paused `stock` items, whatever the workspace. */
+    pauses: SdkPlanPauses;
     /** The devices' telemetry, sessionless (capability `'telemetry.read'`). */
     telemetry: SdkTelemetry;
     /** Live invalidation of your feature's resources, from a service. */
@@ -1191,6 +1254,8 @@ export interface FeatureServer<Repo = unknown> {
     items?: FeatureItemsEntry<Repo>;
     /** Required when the manifest declares `domains`, refused otherwise. */
     domains?: FeatureDomainsEntry<Repo>;
+    /** One entry per `stock` quota of the manifest, by its key, and none other. */
+    quotas?: Readonly<Record<string, FeatureStockEntry<Repo>>>;
     /**
      * The environment variables you read, as the spec you read them with
      * (`defineModuleEnv`). Plain data: the host reads it again at boot and

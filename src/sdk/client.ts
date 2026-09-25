@@ -150,6 +150,8 @@ export interface UptimeLinkedService {
     name: string;
     url: string;
     enabled: boolean;
+    /** Its owner's plan holds it paused: nothing is measured until the limit rises. */
+    planPaused: boolean;
     /** Projected here from another workspace. */
     foreign?: boolean;
     status: string;

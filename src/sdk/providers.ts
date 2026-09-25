@@ -480,6 +480,11 @@ export interface SentinelAgentConfigProvider {
  * The plan of an account: what bounds the quotas modules declare
  * (`manifest.quotas`). Offered by a billing module. WITHOUT it every quota is
  * unlimited, which is what a self-hosted DevEye is.
+ *
+ * The provider calls `live.accountChanged(userId)` after every change it
+ * learns of by an event (a payment, a grant): that is when the host re-applies
+ * the `stock` limits. A change that comes with time alone is announced by
+ * `changesAt` instead.
  */
 export const ACCOUNT_PLAN_PROVIDER = 'account.plan';
 
@@ -490,8 +495,14 @@ export interface AccountPlan {
     limits: Readonly<Record<string, number>>;
     /** The plan is a trial ending then (ms since the epoch). */
     trialEndsAt?: number;
+    /**
+     * This answer changes by itself then, with no event to announce it (a
+     * trial or a grant ending), in ms since the epoch: the host asks again.
+     */
+    changesAt?: number;
 }
 
 export interface AccountPlanProvider {
-    planFor(userId: number): Promise<AccountPlan>;
+    /** `fresh`: never from a cache, the host is about to pause or resume on the answer. */
+    planFor(userId: number, opts?: { fresh?: boolean }): Promise<AccountPlan>;
 }

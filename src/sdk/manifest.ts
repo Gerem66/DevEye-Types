@@ -74,6 +74,15 @@ export interface FeatureQuotaSpec {
     label: string;
     /** What the number counts. `bytes`: the host writes the limit as a size ("1 GB"). Default: things. */
     unit?: 'bytes';
+    /**
+     * Things that exist and cost while they exist (a probed monitor, a paired
+     * agent), as opposed to a flow checked at each use (events per month, the
+     * size of one file). When the limit drops below what exists, the host
+     * pauses the most recently created ones, never deletes them, and resumes
+     * them once the limit rises or a slot frees: see `SdkPlanPauses`. Requires
+     * `server.quotas[key]`; never with `unit: 'bytes'`.
+     */
+    stock?: true;
 }
 
 /** Hard cap on `extraPermissions`: keeps role editors legible. */
@@ -451,6 +460,9 @@ export function validateManifest(m: FeatureManifest): void {
         if (quotaKeys.has(quota.key)) fail(m.id, `duplicate quota key « ${quota.key} »`);
         quotaKeys.add(quota.key);
         if (!quota.label.trim()) fail(m.id, `quota « ${quota.key} »: empty label`);
+        if (quota.stock && quota.unit === 'bytes') {
+            fail(m.id, `quota « ${quota.key} »: a stock counts things`);
+        }
     }
 
     if (m.accountEntry && !m.accountEntry.label.trim()) fail(m.id, 'accountEntry requires a label');

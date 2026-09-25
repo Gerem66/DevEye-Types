@@ -41,6 +41,8 @@ export const featureDomainSchema = z.object({
     verifiedAt: z.number().int().nullable(),
     checkedAt: z.number().int().nullable(),
     /** How many of the feature's items designate this domain. */
-    useCount: z.number().int().nonnegative()
+    useCount: z.number().int().nonnegative(),
+    /** The owner's plan holds this name paused: it is not served until the limit rises. */
+    planPaused: z.boolean()
 });
 export type FeatureDomain = z.infer<typeof featureDomainSchema>;

@@ -159,6 +159,13 @@ test('validateManifest checks quotas and the account entry', () => {
         'duplicate quota key'
     );
     rejects({ quotas: [{ key: 'monitors', label: ' ' }] }, 'empty label');
+    assert.doesNotThrow(() =>
+        validateManifest({ ...base, quotas: [{ key: 'monitors', label: 'm', stock: true }] })
+    );
+    rejects(
+        { quotas: [{ key: 'storage', label: 'of storage', unit: 'bytes', stock: true }] },
+        'a stock counts things'
+    );
     rejects({ accountOnly: true }, 'accountOnly requires accountEntry');
     rejects({ accountOnly: true, accountEntry: { label: 'S' }, tile: {} }, 'no tile');
     rejects({ accountEntry: { label: ' ' } }, 'requires a label');

@@ -18,6 +18,7 @@ import {
     type SdkDevice,
     type SdkFeatureContext,
     type SdkLogger,
+    type SdkPlanPauses,
     type SdkProviders,
     type SdkTelemetry,
     type SdkTelemetrySnapshot,
@@ -325,6 +326,26 @@ function fakeDerive(salt: string, info: string, length: number): Uint8Array {
     return out;
 }
 
+/** The plan pauses, from a fixed list by YOUR quota key: no key is checked against the manifest. */
+function memoryPauses(
+    pausedItems: Readonly<Record<string, readonly string[]>> | undefined
+): SdkPlanPauses {
+    return {
+        isPaused: (key, itemId) => (pausedItems?.[key] ?? []).includes(itemId),
+        paused: (key) => pausedItems?.[key] ?? []
+    };
+}
+
+/** The app's refusal of a paused item run on demand. */
+async function assertActiveIn(pauses: SdkPlanPauses, key: string, itemId: string): Promise<void> {
+    if (pauses.isPaused(key, itemId)) {
+        throw new FeatureError('quota_exceeded', `« ${key} » ${itemId} is paused by the plan`, {
+            key,
+            paused: true
+        });
+    }
+}
+
 function memoryDomains(domains: readonly SdkDomain[]) {
     return {
         in: (workspaceId: number) => domains.filter((d) => d.workspaceId === workspaceId),
@@ -367,6 +388,8 @@ export interface TestContextOverrides<Repo> {
     quotaLimits?: Record<string, number>;
     /** The workspaces the owner account owns, handed to a quota counter. Default: the workspace of the call. */
     ownerWorkspaceIds?: readonly number[];
+    /** The items the plan holds paused, by YOUR `stock` quota key. Default none. */
+    pausedItems?: Record<string, readonly string[]>;
     canWrite?: boolean;
     /** Extra permissions the caller holds, as the grant would carry them. */
     extras?: Record<string, boolean | string>;
@@ -443,6 +466,7 @@ export function createTestContext<Repo = undefined>(
     const isOwner = overrides.isOwner ?? true;
     const workspaceId = overrides.workspaceId ?? 1;
     const canWrite = overrides.canWrite ?? true;
+    const pauses = memoryPauses(overrides.pausedItems);
     const deveye: DevEyeFacade = {
         notify: recordingNotify(
             recorded,
@@ -512,6 +536,7 @@ export function createTestContext<Repo = undefined>(
             }
         },
         quota: {
+            ...pauses,
             limit: (key) => Promise.resolve(overrides.quotaLimits?.[key] ?? null),
             // The exact rule of the app: never counted when unlimited, refused
             // once the count AFTER creation passes the limit.
@@ -525,7 +550,8 @@ export function createTestContext<Repo = undefined>(
                         limit
                     });
                 }
-            }
+            },
+            assertActive: (key, itemId) => assertActiveIn(pauses, key, itemId)
         },
         items: {
             restrictions: () => Promise.resolve(restrictions),
@@ -649,6 +675,8 @@ export interface TestServiceOverrides<Repo> {
     accounts?: readonly SdkAccount[];
     /** The plan's limits `deps.quotaFor` applies, by YOUR quota key. Default none (unlimited). */
     quotaLimits?: Record<string, number>;
+    /** The items the plan holds paused (`deps.pauses`), by YOUR `stock` quota key. Default none. */
+    pausedItems?: Record<string, readonly string[]>;
     /** What `deveyeFor(...).notify.hasRoute` answers. Default true. */
     hasRoute?: boolean;
     /** What `deveyeFor(...).notify.send` resolves. Default true; recorded either way. */
@@ -695,6 +723,7 @@ export function createTestServiceDeps<Repo = undefined>(
         overrides.liveChannels ?? []
     );
     const devices = recordingDevices(overrides.devices ?? []);
+    const pauses = memoryPauses(overrides.pausedItems);
     return {
         recorded,
         stores,
@@ -754,6 +783,7 @@ export function createTestServiceDeps<Repo = undefined>(
             }
         },
         quotaFor: () => ({
+            ...pauses,
             limit: (key) => Promise.resolve(overrides.quotaLimits?.[key] ?? null),
             async assert(key, countAfter) {
                 const limit = overrides.quotaLimits?.[key];
@@ -764,8 +794,10 @@ export function createTestServiceDeps<Repo = undefined>(
                         limit
                     });
                 }
-            }
+            },
+            assertActive: (key, itemId) => assertActiveIn(pauses, key, itemId)
         }),
+        pauses,
         accounts: {
             find: (userId) =>
                 Promise.resolve((overrides.accounts ?? []).find((a) => a.id === userId) ?? null),
@@ -844,7 +876,14 @@ export function createTestServiceDeps<Repo = undefined>(
 
 /** A domain row for a test, verified by default. */
 export function testDomain(over: Partial<SdkDomain> & { id: number; host: string }): SdkDomain {
-    return { workspaceId: 1, token: 'a'.repeat(32), verified: true, verifiedAt: 1, ...over };
+    return {
+        workspaceId: 1,
+        token: 'a'.repeat(32),
+        verified: true,
+        verifiedAt: 1,
+        planPaused: false,
+        ...over
+    };
 }
 
 /**

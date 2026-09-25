@@ -136,3 +136,17 @@ test('the harness bounds a quota like the app: never counted when unlimited, ref
     bounded.live.accountChanged(7);
     assert.deepEqual(bounded.recorded.accountChanges, [7]);
 });
+
+test('the harnesses hold the plan pauses and refuse a paused item on demand', async () => {
+    const ctx = createTestContext({ pausedItems: { monitors: ['7'] } });
+    assert.equal(ctx.quota.isPaused('monitors', '7'), true);
+    assert.equal(ctx.quota.isPaused('monitors', '8'), false);
+    assert.deepEqual(ctx.quota.paused('monitors'), ['7']);
+    await assert.rejects(ctx.quota.assertActive('monitors', '7'), { code: 'quota_exceeded' });
+    await ctx.quota.assertActive('monitors', '8');
+
+    const deps = createTestServiceDeps({ pausedItems: { monitors: ['7'] } });
+    assert.equal(deps.pauses.isPaused('monitors', '7'), true);
+    assert.deepEqual(deps.quotaFor(1).paused('monitors'), ['7']);
+    assert.deepEqual(createTestServiceDeps().pauses.paused('monitors'), []);
+});

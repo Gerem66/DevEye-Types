@@ -110,14 +110,22 @@ export const accountPlanSchema = z.object({
     id: z.string(),
     label: z.string(),
     limits: z.record(z.string(), z.number().int().nonnegative()),
-    trialEndsAt: z.number().int().nonnegative().optional()
+    trialEndsAt: z.number().int().nonnegative().optional(),
+    changesAt: z.number().int().nonnegative().optional()
 });
 
-/** The caller's plan. `null`: this DevEye has no plan provider, everything is unlimited. */
+/**
+ * The caller's plan. `null`: this DevEye has no plan provider, everything is
+ * unlimited. `paused`: how many of the caller's items the plan holds paused,
+ * by `<featureId>.<quotaKey>`, only the keys that have some.
+ */
 export const userPlan = {
     command: 'user.plan' as const,
     input: z.object({}),
-    output: z.object({ plan: accountPlanSchema.nullable() })
+    output: z.object({
+        plan: accountPlanSchema.nullable(),
+        paused: z.record(z.string(), z.number().int().positive())
+    })
 };
 
 export const userCommands = [

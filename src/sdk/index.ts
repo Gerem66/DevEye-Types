@@ -8,4 +8,5 @@
  */
 export * from './ids';
 export * from './manifest';
+export * from './pageLook';
 export * from './providers';

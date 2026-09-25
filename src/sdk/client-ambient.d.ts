@@ -32,7 +32,13 @@ declare module 'deveye-sdk-client' {
         User,
         WorkspaceCapability
     } from '@deveye/types';
-    import type { AccountPlan, FeatureManifest, ManifestCommand } from '@deveye/types/sdk';
+    import type {
+        AccountPlan,
+        FeatureManifest,
+        ManifestCommand,
+        PageTheme,
+        PageThemeChoice
+    } from '@deveye/types/sdk';
     import type { SdkDeviceSummary } from '@deveye/types/sdk/client';
 
     // ── UI kit ─────────────────────────────────────────────────────────────
@@ -694,6 +700,23 @@ declare module 'deveye-sdk-client' {
      * surveillé", "services surveillés".
      */
     export const PlanPausedNotice: ComponentType<{ count: number; one: string; many: string }>;
+    /**
+     * The look of a public page your module serves: its theme (`themes`, in
+     * that order; `auto` follows the visitor) and its accent (an account
+     * colour's name, a `#rrggbb`, or `''` for `ownAccent`, the page's own).
+     * `preview` renders under the fields: a miniature of your page in that
+     * look. Pair it with `pageAccentSchema` and `resolvePageAccent` from
+     * `@deveye/types/sdk`.
+     */
+    export function PageLookFields<T extends PageThemeChoice>(props: {
+        theme: T;
+        accent: string;
+        themes: readonly T[];
+        ownAccent: Readonly<Record<PageTheme, string>>;
+        disabled?: boolean;
+        onChange: (next: { theme: T; accent: string }) => void;
+        preview?: ReactNode;
+    }): ReactNode;
     /** Opens an account view (`manifest.accountEntry`): the given module's, or the first one. No-op without any. */
     export function openAccountView(featureId?: string): void;
     export interface LiveOutlineProps {

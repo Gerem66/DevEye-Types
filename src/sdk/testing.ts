@@ -663,6 +663,8 @@ export interface TestServiceOverrides<Repo> {
     workspaceIds?: readonly number[];
     /** Devices every workspace reveals. Default none. */
     devices?: readonly SdkDevice[];
+    /** What `membersFor(workspaceId).list()` answers, by workspace id. Default none. */
+    members?: Readonly<Record<number, Awaited<ReturnType<DevEyeFacade['members']['list']>>>>;
     /** What `deps.agents.dockerRun` resolves. Default success. */
     dockerRun?: DevEyeFacade['agents']['dockerRun'];
     /** What `deps.agents.dockerInventory` resolves. Default null (no answer). */
@@ -764,6 +766,9 @@ export function createTestServiceDeps<Repo = undefined>(
             }
         },
         devicesFor: () => ({ list: devices.list, isOnline: devices.isOnline }),
+        membersFor: (workspaceId) => ({
+            list: () => Promise.resolve(overrides.members?.[workspaceId] ?? [])
+        }),
         devices: {
             find: (id) =>
                 Promise.resolve((overrides.devices ?? []).find((d) => d.id === id) ?? null),

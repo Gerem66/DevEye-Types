@@ -42,7 +42,8 @@ test('createTestContext follows the manifest for extras, and records what handle
 test('createTestServiceDeps: one store per workspace, hand-driven tickers, a wrapper that round-trips', async () => {
     const deps = createTestServiceDeps({
         workspaceIds: [1, 2],
-        devices: [testDevice({ id: 'd1', name: 'One', online: false })]
+        devices: [testDevice({ id: 'd1', name: 'One', online: false })],
+        members: { 2: [{ userId: 5, name: 'Alice', isOwner: true, color: null }] }
     });
     assert.deepEqual(await deps.listWorkspaceIds(), [1, 2]);
     await deps.storeFor(1).put('a', '1');
@@ -65,6 +66,12 @@ test('createTestServiceDeps: one store per workspace, hand-driven tickers, a wra
 
     assert.equal(deps.devicesFor(1).isOnline('d1'), false);
     assert.equal((await deps.devicesFor(1).list()).length, 1);
+
+    assert.deepEqual(
+        (await deps.membersFor(2).list()).map((m) => m.name),
+        ['Alice']
+    );
+    assert.deepEqual(await deps.membersFor(1).list(), []);
 });
 
 test('the harness searches accounts like the app: substring, exact id first, capped', async () => {

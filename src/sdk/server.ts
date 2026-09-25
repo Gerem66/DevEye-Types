@@ -377,6 +377,11 @@ export interface SdkQuota extends SdkPlanPauses {
 
 /** One item a `stock` quota counts. */
 export interface SdkStockItem {
+    /**
+     * Your item's id when the quota counts your items: a move then checks the
+     * target owner's plan for it. Anything else the quota counts (a page an
+     * item publishes, which stays behind on a move) takes an id of its own.
+     */
     id: string;
     workspaceId: number;
 }
@@ -1159,6 +1164,8 @@ export interface FeatureServiceDeps<Repo = unknown> {
     deveyeFor(workspaceId: number): Pick<DevEyeFacade, 'notify'>;
     /** Devices of one workspace, sessionless (capability `'devices.read'`). */
     devicesFor(workspaceId: number): Pick<DevEyeFacade['devices'], 'list' | 'isOnline'>;
+    /** Members of one workspace, owner included, sessionless (capability `'members.read'`): a name a public page shows. */
+    membersFor(workspaceId: number): DevEyeFacade['members'];
     /** The whole fleet by id, sessionless (capability `'devices.read'`). */
     devices: SdkFleetDevices;
     /** Capability `'accounts.read'`. */

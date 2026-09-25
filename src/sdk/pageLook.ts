@@ -9,6 +9,15 @@ import { z } from 'zod';
 
 import type { UserColor } from '../domain/user';
 
+/**
+ * DevEye's icon, a 64 px PNG the host serves at this path on every listener,
+ * so under every customer domain too: the tab icon of a public page that has
+ * none of its own (`<link rel="icon" href={DEVEYE_ICON_PATH}>`). A real address
+ * and not a data URL: link previews and crawlers fetch the icon, they never
+ * read one inlined. Allow `img-src 'self'` if your page sets a policy.
+ */
+export const DEVEYE_ICON_PATH = '/deveye-icon.png';
+
 export const PAGE_THEMES = ['light', 'dark'] as const;
 export type PageTheme = (typeof PAGE_THEMES)[number];
 /** `auto` follows the visitor's own light or dark setting. */

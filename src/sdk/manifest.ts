@@ -250,8 +250,10 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
      * WHEN the feature notifies, as the lead sentence of its Notifications tab.
      * Required with `notifies`: a tab that lists channels without saying what
      * reaches them leaves the user guessing why they would set one up.
+     * `perItem: false` when nothing is ever sent on behalf of an item: the
+     * item's settings then carry no Notifications tab that nothing would reach.
      */
-    notifications?: { hint: string };
+    notifications?: { hint: string; perItem?: boolean };
     /**
      * The feature serves something under domain names the workspace owns (a
      * public page, a mailbox). Opens the Domains tab, which DevEye renders:

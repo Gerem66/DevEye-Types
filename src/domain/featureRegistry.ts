@@ -58,9 +58,11 @@ export interface FeatureDescriptor {
     /**
      * La phrase de tête de l'onglet Notifications : QUAND la fonctionnalité
      * prévient. Sans elle, l'onglet liste des canaux sans dire à quoi ils
-     * servent. Exigée dès que `notifies` est vrai.
+     * servent. Exigée dès que `notifies` est vrai. `perItem: false` quand rien
+     * ne part jamais au nom d'un élément : ses réglages n'ont alors pas
+     * d'onglet Notifications qui ne recevrait rien.
      */
-    notifications?: { hint: string };
+    notifications?: { hint: string; perItem?: boolean };
     /**
      * Un de ses éléments peut-il être rendu visible depuis un autre espace ?
      * Décidé par le chiffrement : un élément partagé reste chiffré sous la clé
@@ -250,7 +252,12 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         description:
             'La trésorerie de l’activité : comptes, opérations, échéances. La lecture seule est déjà lourde.',
         icon: 'finance',
-        notifies: false,
+        notifies: true,
+        notifications: {
+            hint: 'Envoyées une semaine avant l’échéance d’une déclaration URSSAF de micro-entreprise, puis la veille, avec le chiffre d’affaires à déclarer.',
+            // Un rappel concerne l'activité, jamais un compte.
+            perItem: false
+        },
         hasItems: true,
         itemNoun: 'compte',
         shareTier: 'never'

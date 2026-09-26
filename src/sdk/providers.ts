@@ -448,6 +448,70 @@ export const UPTIME_CLIENT_PROVIDER = 'uptime.client' as const;
 export const DEVICES_CLIENT_PROVIDER = 'devices.client' as const;
 
 /**
+ * Key under `FeatureService.providers` for the money Invoicing already knows:
+ * the payments it recorded and the invoices still waiting for one. Offered by
+ * the Invoicing module, read by Finances, which mirrors the payments into its
+ * ledger instead of asking the user to type them twice. Absent module: the
+ * ledger stays manual.
+ */
+export const INVOICING_LEDGER_PROVIDER = 'invoicing.ledger' as const;
+
+/** One recorded payment. A payment is never edited, only removed: its fields are stable for its whole life. */
+export interface InvoicingLedgerPayment {
+    paymentId: number;
+    docId: number;
+    /** `YYYY-MM-DD`. */
+    paidOn: string;
+    amountCents: number;
+    /** The payment's share of the invoice VAT, rounded like Invoicing's own dashboard. 0 under VAT exemption. */
+    vatCents: number;
+    method: 'transfer' | 'card' | 'cash' | 'check' | 'other';
+    /** The invoice's currency, ISO 4217. */
+    currency: string;
+    docNumber: string;
+    /** What `openFeature('invoicing', segment)` opens: the invoice's sheet. */
+    segment: string;
+}
+
+/** An issued invoice still waiting for money. */
+export interface InvoicingLedgerReceivable {
+    docId: number;
+    docNumber: string;
+    /** From the client snapshot frozen at issue; empty when unreadable. */
+    clientName: string;
+    currency: string;
+    /** `YYYY-MM-DD`. */
+    issuedOn: string;
+    /** `YYYY-MM-DD`, or null when the invoice states no due date. */
+    dueOn: string | null;
+    remainingCents: number;
+    /** The VAT the remaining amount carries, pro rata of the invoice. 0 under VAT exemption. */
+    remainingVatCents: number;
+    overdue: boolean;
+    segment: string;
+}
+
+export interface InvoicingLedgerProvider {
+    /**
+     * An opaque value that changes whenever a payment of the workspace appears
+     * or disappears. One indexed query, no decryption: a consumer may call it
+     * on every read and skip the rest while it holds still.
+     */
+    version(workspaceId: number): Promise<string>;
+    /** Payments received on or after `from` (every payment when null), oldest first. No decryption. */
+    payments(workspaceId: number, from: string | null): Promise<readonly InvoicingLedgerPayment[]>;
+    /** Client names from the invoices' frozen snapshots, `''` when unreadable. Decrypts: ask only for what you store. */
+    clientNames(
+        workspaceId: number,
+        docIds: readonly number[]
+    ): Promise<ReadonlyMap<number, string>>;
+    /** Issued invoices still waiting for money, earliest due first. */
+    receivables(workspaceId: number): Promise<readonly InvoicingLedgerReceivable[]>;
+    /** What Invoicing settles for the workspace; a consumer follows it rather than keeping a copy. */
+    profile(workspaceId: number): Promise<{ currency: string; vatRegime: 'standard' | 'exempt' }>;
+}
+
+/**
  * Key under `FeatureService.providers` for what Sentinel contributes to the
  * collection config the app pushes to an agent (`agent.config`): whether the
  * security probes run, and at which cadence. Absent module: the app pushes the

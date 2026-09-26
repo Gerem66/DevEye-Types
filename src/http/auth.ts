@@ -30,6 +30,8 @@ export const sessionBundleSchema = z.object({
      * avant son premier rendu, pour ne pas faire clignoter le bouton.
      */
     feedbackEnabled: z.boolean(),
+    /** The marketing site (`SITE_URL`), for the legal links. `null`: none. */
+    siteUrl: z.string().url().nullable(),
     /**
      * Admin only: the process booted with `MAINTENANCE=1` and no admin has
      * closed the reminder. Shown once the site maintenance is lifted. Read at
@@ -139,7 +141,12 @@ export type MeResponse = z.infer<typeof meResponseSchema>;
  */
 export const signupAvailabilitySchema = z.object({
     /** Can an account be self-created here: the server allows it, or no account exists yet. */
-    open: z.boolean()
+    open: z.boolean(),
+    /**
+     * The marketing site of this DevEye (`SITE_URL`), where its legal pages
+     * live. `null` on a self-hosted instance without one: no terms to accept.
+     */
+    siteUrl: z.string().url().nullable()
 });
 
 export type SignupAvailability = z.infer<typeof signupAvailabilitySchema>;
@@ -151,7 +158,9 @@ export const signupStartRequestSchema = z.object({
     plan: z
         .string()
         .regex(/^[a-z0-9_-]{1,64}$/)
-        .optional()
+        .optional(),
+    /** The terms of use and privacy policy were accepted. Required when the server has a `siteUrl`. */
+    termsAccepted: z.boolean()
 });
 
 export type SignupStartRequest = z.infer<typeof signupStartRequestSchema>;

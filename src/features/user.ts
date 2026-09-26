@@ -128,7 +128,20 @@ export const userPlan = {
     })
 };
 
+/**
+ * Deletes the caller's account with everything it owns: the personal workspace,
+ * the shared workspaces it owns and their content. Modules are told first
+ * (`FeatureService.onAccountDeleted`), so a subscription ends with the account.
+ * The password is asked again: the session alone is not enough for this.
+ */
+export const userDeleteAccount = {
+    command: 'user.deleteAccount' as const,
+    input: z.object({ password: z.string().min(1).max(512) }),
+    output: z.object({ ok: z.literal(true) })
+};
+
 export const userCommands = [
+    userDeleteAccount,
     userPlan,
     userSetAvatar,
     userSetTheme,

@@ -146,4 +146,6 @@ export interface UserRow {
     re_auth_interval: number | null;
     last_login: number;
     created: number;
+    /** Seconds. When the terms of use were accepted at sign-up; `null` for an account created without a site. */
+    terms_accepted_at: number | null;
 }

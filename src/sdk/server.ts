@@ -833,10 +833,17 @@ export interface SdkDns {
     cname(name: string): Promise<string[]>;
 }
 
+/** Where DevEye lives, see `SdkFeatureContext.origins`. */
+export interface SdkOrigins {
+    app: string;
+    public: string;
+    site: string | null;
+}
+
 /** What the domain hooks receive. Sessionless: they also run from the background pass. */
 export interface FeatureDomainsContext<Repo = unknown> {
     repo: Repo;
-    origins: { app: string; public: string };
+    origins: SdkOrigins;
     /** Open tier only. */
     cipherFor(workspaceId: number): SdkCipher;
     storeFor(workspaceId: number): SessionlessFeatureStore;
@@ -923,11 +930,13 @@ export interface SdkFeatureContext<Repo = unknown> {
      * origin members use (`PUBLIC_ORIGIN`), `public` the one anyone reaches
      * the public routes by, which differs when the host serves them on a
      * domain of their own, the app itself possibly staying private (else the
-     * same).
+     * same). `site` is the marketing site (`SITE_URL`), where the legal pages
+     * live (`/cgu`, `/cgv`, `/confidentialite`, `/mentions-legales`); `null`
+     * when the host has none.
      * For what a module hands to the outside world (an install snippet, a
      * callback URL): never derive it from the browser's location.
      */
-    origins: { app: string; public: string };
+    origins: SdkOrigins;
 }
 
 /**
@@ -1147,6 +1156,14 @@ export interface FeatureService {
      * called while your service is halted by maintenance.
      */
     onPlanPause?(change: SdkPlanPauseChange): void | Promise<void>;
+    /**
+     * An account is about to be deleted, with everything it owns: end what
+     * you hold for it elsewhere (a subscription with a payment provider). Your
+     * rows go with the account (`ON DELETE CASCADE`), nothing to do for them.
+     * Runs before the row is deleted: a throw aborts the deletion. Never called
+     * while your service is halted by maintenance: the deletion is refused then.
+     */
+    onAccountDeleted?(userId: number): void | Promise<void>;
 }
 
 /**
@@ -1223,7 +1240,7 @@ export interface FeatureServiceDeps<Repo = unknown> {
     /** Redeems a ticket minted by `ctx.secrecy.ticket` of THIS module; `null` when invalid, expired or another module's. */
     secrecy: { redeem(ticket: string): Promise<SdkRedeemedTicket | null> };
     /** Where DevEye lives (the same `origins` a request context gets): for a page or a link a route hands to the browser. */
-    origins: { app: string; public: string };
+    origins: SdkOrigins;
     /** Your feature's domains, whatever the workspace (manifest `domains`). */
     domains: SdkFleetDomains;
     /** The named contracts the host holds, see `SdkProviders`. */

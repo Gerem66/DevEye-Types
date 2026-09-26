@@ -865,6 +865,7 @@ export {
     themeStateSchema,
     accountPlanSchema,
     userCommands,
+    userDeleteAccount,
     userPlan,
     userSetAvatar,
     userSetColor,

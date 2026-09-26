@@ -18,6 +18,7 @@ import {
     type SdkDevice,
     type SdkFeatureContext,
     type SdkLogger,
+    type SdkOrigins,
     type SdkPlanPauses,
     type SdkProviders,
     type SdkTelemetry,
@@ -403,8 +404,8 @@ export interface TestContextOverrides<Repo> {
     hasRoute?: boolean;
     /** What `deveye.notify.send` resolves (no usable channel: false). Default true; recorded either way. */
     notifyAccepted?: boolean;
-    /** What `ctx.origins` answers. Default `https://deveye.test` / `https://public.deveye.test`. */
-    origins?: { app: string; public: string };
+    /** What `ctx.origins` answers. Default `https://deveye.test` / `https://public.deveye.test` / `https://site.deveye.test`. */
+    origins?: SdkOrigins;
     /** The channel ids `deveye.notify.liveChannels` lists. Default none. */
     liveChannels?: readonly number[];
     /** Devices `deveye.devices` reveals. Default none listed, any id authorized. */
@@ -637,7 +638,8 @@ export function createTestContext<Repo = undefined>(
         requestId: 'test',
         origins: overrides.origins ?? {
             app: 'https://deveye.test',
-            public: 'https://public.deveye.test'
+            public: 'https://public.deveye.test',
+            site: 'https://site.deveye.test'
         }
     };
 }
@@ -685,8 +687,8 @@ export interface TestServiceOverrides<Repo> {
     notifyAccepted?: boolean;
     /** The channel ids `deveyeFor(...).notify.liveChannels` lists. Default none. */
     liveChannels?: readonly number[];
-    /** What `deps.origins` answers. Default `https://deveye.test` / `https://public.deveye.test`. */
-    origins?: { app: string; public: string };
+    /** What `deps.origins` answers. Default `https://deveye.test` / `https://public.deveye.test` / `https://site.deveye.test`. */
+    origins?: SdkOrigins;
     /** Instants `telemetry.snapshot` answers (matched within a second). Default none. */
     snapshots?: readonly SdkTelemetrySnapshot[];
     /** The feature's domains, every workspace mixed. Default none. */
@@ -743,7 +745,8 @@ export function createTestServiceDeps<Repo = undefined>(
         deveyeFor: () => ({ notify }),
         origins: overrides.origins ?? {
             app: 'https://deveye.test',
-            public: 'https://public.deveye.test'
+            public: 'https://public.deveye.test',
+            site: 'https://site.deveye.test'
         },
         secrecy: {
             redeem: (ticket) => {
@@ -900,7 +903,7 @@ export function createTestDomainsContext<Repo = undefined>(
     overrides: {
         repo?: Repo;
         dns?: Partial<SdkDns>;
-        origins?: { app: string; public: string };
+        origins?: SdkOrigins;
     } = {}
 ): FeatureDomainsContext<Repo> {
     const stores = new Map<number, TestFeatureStore>();
@@ -909,7 +912,8 @@ export function createTestDomainsContext<Repo = undefined>(
         repo: overrides.repo as Repo,
         origins: overrides.origins ?? {
             app: 'https://deveye.test',
-            public: 'https://public.deveye.test'
+            public: 'https://public.deveye.test',
+            site: 'https://site.deveye.test'
         },
         cipherFor: () => identityCipher,
         storeFor(workspaceId) {

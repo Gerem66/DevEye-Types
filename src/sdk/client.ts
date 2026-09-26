@@ -419,6 +419,22 @@ export interface AudienceClientProvider {
 }
 
 /**
+ * What the Invoicing module offers other screens under
+ * `INVOICING_CLIENT_PROVIDER`. It sends Invoicing's own command under the
+ * caller's session: the same rights, audit and "invoice settled" notice as a
+ * payment typed in Invoicing.
+ */
+export interface InvoicingClientProvider {
+    /** Records a bank transfer received on this invoice. Rejects as the command does (rights, overpayment). */
+    recordPayment(input: {
+        docId: number;
+        paidOn: string;
+        amountCents: number;
+        reference: string;
+    }): Promise<void>;
+}
+
+/**
  * What the Mail module offers the host's screens under `MAIL_CLIENT_PROVIDER`:
  * the ready senders (open tier, enabled) an email notification channel picks
  * from, and the feature's own account dialog.

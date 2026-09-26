@@ -512,6 +512,13 @@ export interface InvoicingLedgerProvider {
 }
 
 /**
+ * Key under `FeatureClient.providers` for what Invoicing lets another screen
+ * do in the user's name: record a payment the user recognised elsewhere (a
+ * bank line in Finances). The contract type lives in `@deveye/types/sdk/client`.
+ */
+export const INVOICING_CLIENT_PROVIDER = 'invoicing.client' as const;
+
+/**
  * Key under `FeatureService.providers` for what Sentinel contributes to the
  * collection config the app pushes to an agent (`agent.config`): whether the
  * security probes run, and at which cadence. Absent module: the app pushes the

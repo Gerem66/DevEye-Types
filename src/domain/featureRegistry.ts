@@ -248,7 +248,7 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         id: 'finance',
         label: 'Finances',
         description:
-            'Le grand livre : comptes, opérations, budgets. La lecture seule est déjà lourde.',
+            'La trésorerie de l’activité : comptes, opérations, échéances. La lecture seule est déjà lourde.',
         icon: 'finance',
         notifies: false,
         hasItems: true,

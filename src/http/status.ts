@@ -41,3 +41,29 @@ export const serverStatusSchema = z.object({
 });
 
 export type ServerStatus = z.infer<typeof serverStatusSchema>;
+
+/**
+ * `GET /.well-known/deveye-build.json`: every file of the web client this
+ * server serves, with its SHA-256, written at build time. It is NOT a trusted
+ * reference (a compromised server would rewrite it along with the files): it
+ * is the LIST of what an integrity monitor on another instance must fetch,
+ * lazily loaded chunks included, which nothing else names.
+ */
+export const buildManifestSchema = z.object({
+    format: z.literal(1),
+    version: z.string(),
+    /** Path relative to the site root (no leading slash) to the file's SHA-256, hex. */
+    files: z.record(
+        z
+            .string()
+            .min(1)
+            .max(512)
+            .regex(/^(?!\/)(?!.*(^|\/)\.\.(\/|$))[^\s]+$/),
+        z.string().regex(/^[0-9a-f]{64}$/)
+    )
+});
+
+export type BuildManifest = z.infer<typeof buildManifestSchema>;
+
+/** Where a DevEye instance publishes its build manifest. */
+export const BUILD_MANIFEST_PATH = '/.well-known/deveye-build.json';

@@ -1032,7 +1032,13 @@ export type {
     LinkCodesListResponse,
     LinkCodeUpdate
 } from './http/device';
-export { bootTaskSchema, bootTaskStateSchema, serverStatusSchema } from './http/status';
-export type { BootTask, BootTaskState, ServerStatus } from './http/status';
+export {
+    BUILD_MANIFEST_PATH,
+    bootTaskSchema,
+    bootTaskStateSchema,
+    buildManifestSchema,
+    serverStatusSchema
+} from './http/status';
+export type { BootTask, BootTaskState, BuildManifest, ServerStatus } from './http/status';
 
 export { compareVersions, isNewerVersion } from './utils/version';

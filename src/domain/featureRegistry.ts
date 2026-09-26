@@ -254,12 +254,15 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         icon: 'finance',
         notifies: true,
         notifications: {
-            hint: 'Envoyées une semaine avant l’échéance d’une déclaration URSSAF de micro-entreprise, puis la veille, avec le chiffre d’affaires à déclarer.',
+            hint: 'Envoyées une semaine avant l’échéance d’une déclaration URSSAF de micro-entreprise, puis la veille, avec le chiffre d’affaires à déclarer ; et quand le consentement donné à une banque reliée approche de sa fin.',
             // Un rappel concerne l'activité, jamais un compte.
             perItem: false
         },
         hasItems: true,
         itemNoun: 'compte',
+        sources: {
+            hint: 'Les banques reliées à l’espace. Chaque compte du livre en choisit une dans son onglet Banque ; ses lignes arrivent alors seules, toutes les six heures.'
+        },
         shareTier: 'never'
     },
     {

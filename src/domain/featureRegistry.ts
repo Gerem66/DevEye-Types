@@ -284,10 +284,7 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         icon: 'search',
         notifies: false,
         hasItems: false,
-        shareTier: 'never',
-        sources: {
-            hint: 'Les clés d’API des fournisseurs, toutes facultatives : chaque sonde libre fonctionne déjà, une clé ne fait qu’enrichir la sienne.'
-        }
+        shareTier: 'never'
     },
     {
         id: 'cve',

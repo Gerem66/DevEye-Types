@@ -362,17 +362,29 @@ declare module 'deveye-sdk-client' {
         hint: string;
         /** A key is on file for this provider. */
         held: boolean;
-        /** `false` for a provider that needs none (Open-Meteo): shown, nothing to set. */
-        needsKey?: boolean;
+        /**
+         * Whether a key is wanted. `false` for a provider that needs none
+         * (Open-Meteo): shown, nothing to set. `'optional'` when the row works
+         * without one and a key only enriches it. Required by default.
+         */
+        needsKey?: boolean | 'optional';
         /** Where to get one. Only offered while no key is held. */
         signupUrl?: string;
         /** Icon class suffix, without the `icon-` prefix. */
         icon?: string;
+        /** Who issues the key, when the row bears another name. Defaults to `label`. */
+        issuer?: string;
+        /** What the key changes, heading the dialog. Defaults to `hint`. */
+        keyHint?: string;
+        /** Pills after the name: a price tier, a scope. */
+        badges?: { label: string; tone?: 'neutral' | 'accent' | 'warning' }[];
+        /** Consecutive rows of the same group share a heading. */
+        group?: string;
     }
     /**
-     * The `sources` tab of a feature whose providers are a fixed list, each
-     * wanting one key. Renders the rows, the add/edit button on each, and the
-     * dialog. `onSave` / `onRemove` reject to keep the dialog open on the error.
+     * A fixed list of providers, each wanting one key (or none): the rows, the
+     * add/edit button on each, and the dialog. `onSave` / `onRemove` reject to
+     * keep the dialog open on the error.
      */
     export const ProviderKeys: ComponentType<{
         rows: ProviderKeyRow[];

@@ -419,16 +419,13 @@ export interface SdkWorkspaceSummary {
 export interface AgentsFacade {
     isOnline(deviceId: string): boolean;
     /**
-     * The three orders a device's lifecycle gives the hub. `requestDestroy`
+     * The two orders a device's lifecycle gives the hub. `requestDestroy`
      * asks the agent to uninstall itself (deletion path); `disconnectAgent`
-     * closes its socket now (a revoked or force-deleted device);
-     * `resetAgentSession` drops what the hub remembered of it (a device
-     * confirmed or reactivated starts clean). All three answer `false` when
-     * the agent is not connected, which is not an error.
+     * closes its socket now (a revoked or force-deleted device). Both answer
+     * `false` when the agent is not connected, which is not an error.
      */
     requestDestroy(deviceId: string): boolean;
     disconnectAgent(deviceId: string): boolean;
-    resetAgentSession(deviceId: string): boolean;
     /**
      * The manifest of the agent binaries the app serves (the build version and,
      * per target, whether the binary is signed), or null while nothing is
@@ -627,7 +624,7 @@ export interface SdkDevice {
     id: string;
     name: string;
     online: boolean;
-    /** `active` is the only status whose telemetry the app records. */
+    /** `active` is the only status whose agent the socket admits. */
     status: string;
     /** The account that enrolled the device (the actor of its audit lines). */
     ownerUserId: number;

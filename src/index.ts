@@ -9,6 +9,7 @@ export type { ProtocolVersion } from './protocol/version';
 export {
     AGENT_ACK,
     AGENT_AUTH_EVENTS,
+    AGENT_CLOSE_PENDING_APPROVAL,
     AGENT_COLLECT,
     AGENT_CONFIG,
     AGENT_DESTROY,
@@ -1015,8 +1016,7 @@ export {
     LINK_CODE_TTL_MAX_SECONDS,
     linkCodeRequestSchema,
     linkCodeResponseSchema,
-    linkCodesListResponseSchema,
-    linkCodeUpdateSchema
+    linkCodesListResponseSchema
 } from './http/device';
 export type {
     AgentManifest,
@@ -1030,8 +1030,7 @@ export type {
     EnrollDeviceResponse,
     LinkCodeRequest,
     LinkCodeResponse,
-    LinkCodesListResponse,
-    LinkCodeUpdate
+    LinkCodesListResponse
 } from './http/device';
 export {
     BUILD_MANIFEST_PATH,

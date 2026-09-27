@@ -640,6 +640,14 @@ export const AGENT_CONFIG = 'agent.config' as const;
 export const AGENT_TOKEN_ROTATE = 'agent.tokenRotate' as const;
 export const agentTokenRotatePayloadSchema = z.object({ token: z.string().min(1).max(4096) });
 export type AgentTokenRotatePayload = z.infer<typeof agentTokenRotatePayloadSchema>;
+/**
+ * WebSocket close code for an authenticated agent whose device waits for
+ * approval: it retries on a short fixed delay instead of backing off like a
+ * refused one. Every refusal (unknown, invalid or archived) stays `1008`, so
+ * only a holder of a valid token learns the device is pending. Mirrored by
+ * `CLOSE_PENDING_APPROVAL` in the agent's `runner.rs`.
+ */
+export const AGENT_CLOSE_PENDING_APPROVAL = 4001;
 /** Tell the agent to self-destruct (wipe its local config + binary) and exit. */
 export const AGENT_DESTROY = 'agent.destroy' as const;
 /** Tell the agent to download, verify and swap in a newer signed binary. */

@@ -3,23 +3,18 @@ import { deviceReportSchema, processCaptureSchema } from './report';
 
 /**
  * Lifecycle of a monitored machine (the Rust agent):
- * - `pending`:          enrolled via a link code but not yet confirmed in the UI.
- * - `active`:           confirmed; allowed to push metrics.
- * - `revoked`:          access withdrawn; the agent is rejected (can be reactivated).
+ * - `pending`:          a machine the workspace already knew, linked again. Its
+ *                       agent is refused at the socket until someone approves it.
+ * - `active`:           in service. A first link lands here directly.
  * - `pending_deletion`: deletion requested; on its next connection the agent is
  *                       told to self-destruct, then the device is archived. Can
  *                       be cancelled until the agent reconnects.
- * - `archived`:         agent destroyed/removed; the device no longer exists for
- *                       management, but its monitoring history is kept frozen and
- *                       remains browsable (read-only) until explicitly purged.
+ * - `archived`:         access revoked or agent removed. The token is wiped, the
+ *                       monitoring history stays browsable (read-only) until
+ *                       purged, and linking the machine again brings it back as
+ *                       `pending`.
  */
-export const deviceStatusSchema = z.enum([
-    'pending',
-    'active',
-    'revoked',
-    'pending_deletion',
-    'archived'
-]);
+export const deviceStatusSchema = z.enum(['pending', 'active', 'pending_deletion', 'archived']);
 export type DeviceStatus = z.infer<typeof deviceStatusSchema>;
 
 export const devicePlatformSchema = z.enum(['linux', 'macos', 'windows']);

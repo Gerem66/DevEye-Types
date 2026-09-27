@@ -283,7 +283,6 @@ function recordingAgents(recorded: RecordedCalls, docker: TestAgents = {}): DevE
         publishSyncState: () => undefined,
         requestDestroy: req('requestDestroy'),
         disconnectAgent: req('disconnectAgent'),
-        resetAgentSession: req('resetAgentSession'),
         // Nothing synced: a test of the self-update flag feeds a manifest to
         // the module's own pure helper.
         servedManifest: () => Promise.resolve(null),

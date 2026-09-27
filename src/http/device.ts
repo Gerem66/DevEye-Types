@@ -5,29 +5,24 @@ import { devicePlatformSchema, deviceSchema } from '../domain/device';
  * Device linking & enrollment (HTTP, distinct from the user feature protocol).
  *
  * Flow:
- *  1. A logged-in user requests a short-lived link code (web UI).
- *  2. The agent posts the code + machine fingerprint + public key to enroll.
- *  3. The server creates a `pending` device and returns a device token (JWT).
- *  4. The user confirms the device in the Clients page to activate it.
+ *  1. A member holding `devices: write` issues a short-lived link code for the
+ *     active workspace.
+ *  2. The agent posts the code and its machine fingerprint to enroll.
+ *  3. A fingerprint new to the workspace is enrolled `active`, once the plan
+ *     allows one more device (checked before the code is consumed). A known
+ *     fingerprint takes over that device record: a fresh token replaces the
+ *     old one and the device waits, `pending`, for someone to approve it.
  */
 
-/**
- * Hard cap on a code lifetime (30 days). A link code is a standing key to the
- * workspace: it always expires.
- */
-export const LINK_CODE_TTL_MAX_SECONDS = 30 * 24 * 60 * 60;
+/** Hard cap on a code lifetime (one hour). A link code is a key to the workspace. */
+export const LINK_CODE_TTL_MAX_SECONDS = 60 * 60;
 
 /**
  * Request a new link code. `ttlSeconds` omitted → server default lifetime,
  * otherwise a lifetime in seconds.
  */
 export const linkCodeRequestSchema = z.object({
-    ttlSeconds: z.number().int().positive().max(LINK_CODE_TTL_MAX_SECONDS).optional(),
-    /**
-     * Approve the device the moment it enrols with this code, instead of
-     * leaving it `pending` for manual approval. Defaults to `false`.
-     */
-    autoApprove: z.boolean().default(false)
+    ttlSeconds: z.number().int().positive().max(LINK_CODE_TTL_MAX_SECONDS).optional()
 });
 
 export type LinkCodeRequest = z.infer<typeof linkCodeRequestSchema>;
@@ -35,22 +30,13 @@ export type LinkCodeRequest = z.infer<typeof linkCodeRequestSchema>;
 export const linkCodeResponseSchema = z.object({
     /** Short human-typable code (e.g. shown in the UI, entered on the agent). */
     code: z.string().min(6).max(32),
-    /** Unix seconds when the code expires; `null` means it never expires. */
-    expiresAt: z.number().int().positive().nullable(),
-    /** Whether a device enrolling with this code is approved automatically. */
-    autoApprove: z.boolean()
+    /** Unix seconds when the code expires. */
+    expiresAt: z.number().int().positive()
 });
 
 export type LinkCodeResponse = z.infer<typeof linkCodeResponseSchema>;
 
-/** Toggle the auto-approval of an existing (still-active) link code. */
-export const linkCodeUpdateSchema = z.object({
-    autoApprove: z.boolean()
-});
-
-export type LinkCodeUpdate = z.infer<typeof linkCodeUpdateSchema>;
-
-/** Currently-active (unconsumed, unexpired) link codes for the caller. */
+/** The workspace's link codes still usable (unconsumed, unexpired). */
 export const linkCodesListResponseSchema = z.object({
     codes: z.array(linkCodeResponseSchema)
 });

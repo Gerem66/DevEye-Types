@@ -1,3 +1,4 @@
+import type { FeatureAccountExport } from './accountExport';
 import type { ItemTree, ItemTreeRows } from './copy';
 import type { z, ZodType } from 'zod';
 import type { ErrorCode } from '../protocol/error';
@@ -1402,6 +1403,12 @@ export interface FeatureServer<Repo = unknown> {
     items?: FeatureItemsEntry<Repo>;
     /** Required when the manifest declares `domains`, refused otherwise. */
     domains?: FeatureDomainsEntry<Repo>;
+    /**
+     * What the holder's data export writes of your feature (GDPR
+     * portability): see {@link FeatureAccountExport}. Required once your
+     * feature owns a table; without tables, the host exports your store alone.
+     */
+    accountExport?: FeatureAccountExport<Repo>;
     /** One entry per quota of the manifest, by its key, `perOperation` ones excepted, and none other. */
     quotas?: Readonly<Record<string, FeatureQuotaEntry<Repo>>>;
     /**
@@ -1847,6 +1854,17 @@ export type {
     ItemTreeRows,
     ItemTreeTable
 } from './copy';
+
+export { accountExportProblem, EXPORT_SECRET_COLUMN, exportTableRows } from './accountExport';
+export type {
+    FeatureAccountExport,
+    SdkAccountExportContext,
+    SdkExportFiles,
+    SdkExportSkip,
+    SdkExportTable,
+    SdkExportWriter,
+    SdkWorkspaceExportContext
+} from './accountExport';
 
 // Le conteneur chiffré que CloudSync et Backup partagent (voir `devb.ts`).
 export {

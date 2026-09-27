@@ -934,6 +934,9 @@ export {
     accountPlanSchema,
     userCommands,
     userDeleteAccount,
+    userExportPartSchema,
+    userExportPrepare,
+    userExportPreview,
     userPlan,
     userSetAvatar,
     userSetColor,
@@ -941,7 +944,7 @@ export {
     userSetTheme,
     userSetUsername
 } from './features/user';
-export type { ThemeStateDTO } from './features/user';
+export type { ThemeStateDTO, UserExportPart } from './features/user';
 export {
     agentCollect,
     agentCommands,

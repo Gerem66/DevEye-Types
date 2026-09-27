@@ -140,8 +140,53 @@ export const userDeleteAccount = {
     output: z.object({ ok: z.literal(true) })
 };
 
+/** A part of the data export made of large files, for the dialog. */
+export const userExportPartSchema = z.object({
+    /** `<featureId>.<filesKey>`: what `leaveOut` names. */
+    key: z.string(),
+    /** In French, as the dialog names it: « les fichiers CloudSync ». */
+    label: z.string(),
+    bytes: z.number().int().nonnegative(),
+    /** The holder may leave it out. */
+    optional: z.boolean()
+});
+export type UserExportPart = z.infer<typeof userExportPartSchema>;
+
+/** What an export of the caller's data will carry, for the dialog. No password: sizes only. */
+export const userExportPreview = {
+    command: 'user.exportPreview' as const,
+    input: z.object({}),
+    output: z.object({
+        parts: z.array(userExportPartSchema),
+        /** Shared workspaces the caller belongs to without owning them: listed in the archive, not exported. */
+        foreignWorkspaces: z.number().int().nonnegative()
+    })
+};
+
+/**
+ * Checks the password and hands back a single-use link, valid five minutes, to
+ * the caller's data export: a zip the server writes while it is downloaded,
+ * never stored. Everything in it is in the clear, password-protected data
+ * included. `leaveOut` names optional parts (`userExportPreview`).
+ */
+export const userExportPrepare = {
+    command: 'user.exportPrepare' as const,
+    input: z.object({
+        password: z.string().min(1).max(512),
+        leaveOut: z.array(z.string().max(64)).max(16)
+    }),
+    output: z.object({
+        /** Relative to this instance's origin, fetched with its cookie. */
+        url: z.string(),
+        /** Milliseconds: the link is dead after this. */
+        expiresAt: z.number().int().nonnegative()
+    })
+};
+
 export const userCommands = [
     userDeleteAccount,
+    userExportPreview,
+    userExportPrepare,
     userPlan,
     userSetAvatar,
     userSetTheme,

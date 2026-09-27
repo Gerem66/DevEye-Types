@@ -475,6 +475,16 @@ declare module 'deveye-sdk-client' {
     /** Whether the socket is open right now (to tell a real error from an outage). */
     export function isSocketOpen(): boolean;
 
+    // ── Usage ──────────────────────────────────────────────────────────────
+    /**
+     * Names the screen shown inside your feature's view (`'history'`,
+     * `'site/traffic'`), for the instance's usage figures and bug reports.
+     * Static segments only (lowercase letters, digits, dashes, slashes): never
+     * an id, a name or anything typed. Counted only while your view is the one
+     * open; the deepest screen mounted wins. `null` withdraws it.
+     */
+    export function useSubView(segment: string | null): void;
+
     // ── Data ───────────────────────────────────────────────────────────────
     /**
      * A resource key an EXTERNAL module may own: `x-<slug>.<name>`, as listed

@@ -148,4 +148,6 @@ export interface UserRow {
     created: number;
     /** Seconds. When the terms of use were accepted at sign-up; `null` for an account created without a site. */
     terms_accepted_at: number | null;
+    /** The end-to-end run that created this throwaway account (`<instance tag>-<run id>`); `null` for a person. */
+    e2e_run: string | null;
 }

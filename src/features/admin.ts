@@ -21,7 +21,9 @@ export const adminUserSchema = z.object({
     /** Nombre d'espaces auxquels le compte a accès, personnel compris. */
     workspaceCount: z.number().int().nonnegative(),
     lastLogin: z.number().int().nonnegative(),
-    created: z.number().int().nonnegative()
+    created: z.number().int().nonnegative(),
+    /** Un compte jetable d'un essai de bout en bout en cours, jamais une personne. */
+    test: z.boolean()
 });
 
 export type AdminUser = z.infer<typeof adminUserSchema>;

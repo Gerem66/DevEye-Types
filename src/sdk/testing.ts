@@ -494,6 +494,7 @@ export function createTestContext<Repo = undefined>(
                         email: `user${overrides.userId ?? 1}@deveye.test`,
                         username: `user${overrides.userId ?? 1}`,
                         isAdmin: overrides.isAdmin ?? false,
+                        e2e: false,
                         created: 0
                     }
                 )

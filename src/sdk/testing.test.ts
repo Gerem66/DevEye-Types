@@ -80,6 +80,7 @@ test('the harness searches accounts like the app: substring, exact id first, cap
         username,
         email: `${username}@example.com`,
         isAdmin: false,
+        e2e: false,
         created: 0
     });
     const { accounts } = createTestServiceDeps({

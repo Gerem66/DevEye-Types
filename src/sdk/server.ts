@@ -11,6 +11,7 @@ import type { AgentManifest } from '../http/device';
 import type { MetricSnapshot } from '../domain/metrics';
 import type { UserColor } from '../domain/user';
 import type { SdkDnsRecord } from './domains';
+import type { MailTransportMessage } from './providers';
 import type { ModuleEnvSpec } from './env';
 import type {
     AgentSyncAckPayload,
@@ -311,6 +312,12 @@ export interface SdkAccount {
     username: string;
     /** A global administrator of this DevEye. */
     isAdmin: boolean;
+    /**
+     * A throwaway account the app's end-to-end runner created and will delete:
+     * never a person, and its address receives nothing. Check this, never the
+     * address: it is set once, at creation, and nothing can grant it later.
+     */
+    e2e: boolean;
     /** Milliseconds since the epoch. */
     created: number;
 }
@@ -1185,8 +1192,17 @@ export interface FeatureService {
      * rows go with the account (`ON DELETE CASCADE`), nothing to do for them.
      * Runs before the row is deleted: a throw aborts the deletion. Never called
      * while your service is halted by maintenance: the deletion is refused then.
+     * Return a note when the holder must learn something of yours (their
+     * subscription stopped): it joins the confirmation email they receive.
      */
-    onAccountDeleted?(userId: number): void | Promise<void>;
+    onAccountDeleted?(
+        userId: number
+    ): void | SdkAccountDeletedNote | Promise<void | SdkAccountDeletedNote>;
+}
+
+/** One paragraph of yours in the email confirming an account's deletion to its holder. */
+export interface SdkAccountDeletedNote {
+    paragraph: string;
 }
 
 /**
@@ -1311,6 +1327,117 @@ export interface FeatureServer<Repo = unknown> {
      * warns about every variable left to its default.
      */
     env?: ModuleEnvSpec;
+    /**
+     * Every email you send, on made-up data, for the administrator's mail
+     * tester: built by the SAME function as the real one, or the tester proves
+     * nothing. `sender: 'server'` requires capability `'accounts.mail'`. Keys
+     * are unique within your feature.
+     */
+    mailSamples?: readonly SdkMailSample[];
+    /** Your end-to-end scenarios, run by an administrator against this very server. */
+    e2e?: FeatureE2eEntry<Repo>;
+}
+
+/** What a mail sample is built with. */
+export interface SdkMailSampleContext {
+    origins: SdkOrigins;
+    /** Milliseconds since the epoch. */
+    now: number;
+}
+
+/** A message a workspace mailbox sends: what `MailTransportProvider.send` takes, the recipient aside. */
+export type SdkWorkspaceMail = Omit<MailTransportMessage, 'to'>;
+
+export type SdkMailSample = {
+    /** `[a-z][a-zA-Z0-9]*`, unique within your feature. */
+    key: string;
+    /** What the tester lists, in the interface's language. */
+    label: string;
+} & (
+    | {
+          /** From the server's own sender, as `accountMail.send` would. */
+          sender: 'server';
+          build(ctx: SdkMailSampleContext): SdkAccountMailMessage | Promise<SdkAccountMailMessage>;
+      }
+    | {
+          /** From a workspace mailbox the administrator picks, as `MAIL_TRANSPORT_PROVIDER` would. */
+          sender: 'workspace';
+          build(ctx: SdkMailSampleContext): SdkWorkspaceMail | Promise<SdkWorkspaceMail>;
+      }
+);
+
+/** The throwaway account a scenario runs as. It owns `workspaceId` and is deleted with all it owns afterwards. */
+export interface SdkE2eAccount {
+    userId: number;
+    username: string;
+    email: string;
+    password: string;
+    /** Its personal workspace. */
+    workspaceId: number;
+}
+
+export interface SdkE2eContext<Repo = unknown> {
+    account: SdkE2eAccount;
+    /**
+     * A command through a real socket of that account and the whole
+     * dispatcher. Rejects with a `FeatureError` carrying the server's code.
+     */
+    send<T = unknown>(command: string, input: unknown, opts?: { workspaceId?: number }): Promise<T>;
+    /** A sessionless request to this server's own listener: what a visitor's browser sends to a public route. */
+    fetch(
+        path: string,
+        init?: { method?: 'GET' | 'POST'; headers?: Record<string, string>; body?: string }
+    ): Promise<{ status: number; body: string }>;
+    /**
+     * Polls until `probe` answers something other than `null`, `undefined` or
+     * `false`, then resolves with it. Rejects after `timeoutMs` (default 10 s),
+     * saying `what` was awaited.
+     */
+    waitFor<T>(
+        probe: () => Promise<T | null | undefined | false>,
+        opts?: { timeoutMs?: number; intervalMs?: number; what?: string }
+    ): Promise<T>;
+    /**
+     * Undoes something once the steps are over, whatever happened, last
+     * registered first, while the account still exists. Register the undo
+     * right after the thing is created, before anything can fail.
+     */
+    defer(label: string, undo: () => Promise<void>): void;
+    /** Shared between the steps of one run. */
+    state: Map<string, unknown>;
+    repo: Repo;
+    origins: SdkOrigins;
+    /** Aborted when the administrator stops the run or a timeout fires. */
+    signal: AbortSignal;
+}
+
+export interface SdkE2eStep<Repo = unknown> {
+    /** What the report shows, in the interface's language. */
+    label: string;
+    /** Longer than the default 20 s: a step that waits on a third party (a payment provider's webhook). */
+    timeoutMs?: number;
+    /** Throws to fail. A returned string is shown as the step's detail. */
+    run(ctx: SdkE2eContext<Repo>): Promise<string | void>;
+}
+
+export interface SdkE2eScenario<Repo = unknown> {
+    /** `[a-z][a-zA-Z0-9]*`, unique within your feature. */
+    id: string;
+    label: string;
+    /** Why it cannot run here right now, or `null`. Asked before every run. */
+    skip?(ctx: { origins: SdkOrigins }): string | null | Promise<string | null>;
+    steps: readonly SdkE2eStep<Repo>[];
+}
+
+export interface FeatureE2eEntry<Repo = unknown> {
+    scenarios: readonly SdkE2eScenario<Repo>[];
+    /**
+     * Removes what a crashed run left OUTSIDE the test accounts (an object at
+     * a payment provider): what lives in your tables goes with the account.
+     * Called at boot, before and after every run. Idempotent; a throw keeps
+     * the run marked as leaving residue.
+     */
+    sweep?(): Promise<void>;
 }
 
 /**

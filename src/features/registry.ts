@@ -13,6 +13,7 @@ import { secrecyCommands } from './secrecy';
 import { twoFactorCommands } from './twoFactor';
 import { userCommands } from './user';
 import { adminCommands } from './admin';
+import { debugCommands } from './debug';
 import { workspaceCommands } from './workspace';
 
 export interface FeatureCommandDescriptor<C extends string = string> {
@@ -25,6 +26,7 @@ export const featureCommands = [
     ...workspaceCommands,
     ...remoteCommands,
     ...adminCommands,
+    ...debugCommands,
     ...userCommands,
     ...agentCommands,
     ...twoFactorCommands,

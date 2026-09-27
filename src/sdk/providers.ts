@@ -182,17 +182,15 @@ export interface MailTransportProvider {
      * `text` stays mandatory whatever else is given: a recipient whose client
      * shows no HTML must lose nothing.
      */
-    send(
-        accountId: number,
-        workspaceId: number,
-        message: {
-            to: string;
-            subject: string;
-            text: string;
-            html?: string;
-            attachments?: readonly MailAttachment[];
-        }
-    ): Promise<boolean>;
+    send(accountId: number, workspaceId: number, message: MailTransportMessage): Promise<boolean>;
+}
+
+export interface MailTransportMessage {
+    to: string;
+    subject: string;
+    text: string;
+    html?: string;
+    attachments?: readonly MailAttachment[];
 }
 
 /**
@@ -221,6 +219,62 @@ export interface AudienceItemsProvider {
      * an id.
      */
     labelOf(siteId: number, workspaceId: number): Promise<string | null>;
+}
+
+/**
+ * Key under `FeatureService.providers` for DevEye's own usage figures: the
+ * app reports the pages its members open and the actions they take into an
+ * Audience site of this very instance, chosen by an administrator. Absent
+ * module: nothing is reported, and the admin page says why.
+ */
+export const AUDIENCE_SELF_PROVIDER = 'audience.self' as const;
+
+export interface AudienceSelfSite {
+    siteId: number;
+    workspaceId: number;
+    name: string;
+    active: boolean;
+}
+
+/** One measure, as the public beacon takes it: a page or an action, never who. */
+export interface AudienceSelfEvent {
+    type: 'view' | 'event';
+    /** A static path (`/uptime/settings`), never an id or a name. */
+    path: string;
+    /** Required for an `event`. */
+    name?: string;
+    /** Milliseconds since the epoch; now when absent. */
+    at?: number;
+    referrer?: string;
+    language?: string;
+    timezone?: string;
+    tzOffset?: number;
+    screenWidth?: number;
+}
+
+export interface AudienceSelfProvider {
+    /**
+     * Creates an anonymous site for this host in this workspace, active, with
+     * no per-visitor limit. The caller owns the authorisation; the owner's
+     * plan still applies.
+     */
+    createSite(
+        workspaceId: number,
+        input: { name: string; host: string }
+    ): Promise<AudienceSelfSite & { publicKey: string }>;
+    /** The site behind this key, wherever it lives; `null` when unknown. */
+    findByKey(publicKey: string): Promise<AudienceSelfSite | null>;
+    /**
+     * Queued as if sent through the public beacon by that visitor, the Origin
+     * check aside: the app vouches for them. The bot filter and the plan's
+     * monthly limit still apply. Never throws.
+     */
+    ingest(req: {
+        key: string;
+        ip: string;
+        userAgent: string;
+        events: readonly AudienceSelfEvent[];
+    }): void;
 }
 
 /**

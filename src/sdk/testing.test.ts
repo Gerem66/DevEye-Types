@@ -190,8 +190,8 @@ test('the harness reads usage like the app: nothing counted when unlimited, a st
 
 test('the harness reads an account usage like the app: its own, or anyone for an administrator', async () => {
     const accountUsage = [
-        { userId: 1, quotas: { 'x.monitors': { used: 2, paused: 0 } } },
-        { userId: 2, quotas: { 'x.monitors': { used: 9, paused: 4 } } }
+        { userId: 1, quotas: { 'x.monitors': { kind: 'stock' as const, used: 2, paused: 0 } } },
+        { userId: 2, quotas: { 'x.monitors': { kind: 'stock' as const, used: 9, paused: 4 } } }
     ];
     const me = createTestContext({ userId: 1, accountUsage });
     assert.equal((await me.deveye.usage.of(1)).quotas['x.monitors'].used, 2);

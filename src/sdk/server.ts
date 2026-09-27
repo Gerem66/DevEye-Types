@@ -358,6 +358,11 @@ export interface SdkAccounts {
 /** What one account uses of one limit, whatever its plan allows. */
 export interface SdkAccountQuotaUse {
     /**
+     * `stock`: things that exist, the excess paused; `flow`: checked at each
+     * use, nothing paused; `perOperation`: one operation bounded, nothing counted.
+     */
+    kind: 'stock' | 'flow' | 'perOperation';
+    /**
      * What the limit is compared to now, over every workspace the account
      * OWNS: the things that exist, paused ones included, for a `stock`; this
      * month's flow or the bytes held otherwise; for `workspace.members`, its

@@ -679,6 +679,9 @@ export {
     NOTIFICATION_EMAIL_MAX,
     NOTIFICATION_LABEL_MAX,
     NOTIFICATION_TARGET_MAX,
+    SYSTEM_NOTIFICATION_INFO,
+    SYSTEM_NOTIFICATION_TARGET,
+    systemNotificationTargetSchema,
     notificationChannelInputSchema,
     notificationChannelKindSchema,
     notificationChannelSchema,
@@ -702,7 +705,8 @@ export type {
     NotificationRouteInput,
     NotificationRouteRow,
     NotificationRouteTarget,
-    NotificationTest
+    NotificationTest,
+    SystemNotificationTarget
 } from './domain/notifications';
 
 export {

@@ -49,6 +49,21 @@ export const nativeNotificationFeatureSchema = z.enum([
 export type NativeNotificationFeature = z.infer<typeof nativeNotificationFeatureSchema>;
 
 /**
+ * The instance's own alerts (server errors, crashes, restarts). Not a workspace
+ * feature: only a global admin who owns the workspace may declare its channels
+ * and route, and the server delivers to every such workspace.
+ */
+export const SYSTEM_NOTIFICATION_TARGET = 'system';
+export const systemNotificationTargetSchema = z.literal(SYSTEM_NOTIFICATION_TARGET);
+export type SystemNotificationTarget = z.infer<typeof systemNotificationTargetSchema>;
+
+/** What the settings screen shows for the system target, in place of a feature descriptor. */
+export const SYSTEM_NOTIFICATION_INFO = {
+    label: 'Système',
+    hint: 'Les erreurs du serveur, ses plantages et ses redémarrages. Réservé aux administrateurs.'
+} as const;
+
+/**
  * Un module externe peut prévenir aussi. Le schéma n'atteste que la **forme**
  * de l'id : la garde de fond (« ce module déclare bien `notifies` ») ne peut
  * pas vivre ici, elle dépend de l'installation ; le serveur la tient contre le
@@ -56,6 +71,7 @@ export type NativeNotificationFeature = z.infer<typeof nativeNotificationFeature
  */
 export const notificationFeatureSchema = z.union([
     nativeNotificationFeatureSchema,
+    systemNotificationTargetSchema,
     externalFeatureIdSchema
 ]);
 export type NotificationFeature = z.infer<typeof notificationFeatureSchema>;

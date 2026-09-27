@@ -9,12 +9,14 @@ import {
     type AgentFolderArchiveSummary,
     type DevEyeFacade,
     type FeatureDomainsContext,
+    type FeatureServer,
     type SdkDns,
     type SdkDomain,
     type FeatureServiceDeps,
     type FeatureStore,
     type SdkAccount,
     type SdkAccountMailMessage,
+    type SdkAccountUsage,
     type SdkCipher,
     type SdkDevice,
     type SdkFeatureContext,
@@ -22,6 +24,7 @@ import {
     type SdkOrigins,
     type SdkPlanPauses,
     type SdkProviders,
+    type SdkQuota,
     type SdkTelemetry,
     type SdkTelemetrySnapshot,
     type StorageEncryption,
@@ -347,6 +350,36 @@ async function assertActiveIn(pauses: SdkPlanPauses, key: string, itemId: string
     }
 }
 
+/**
+ * The app's rule for `quota.usage`: nothing counted when unlimited, a `stock`
+ * counted by its list, any other quota by its count.
+ */
+function usageIn<Repo>(
+    quotas: FeatureServer<Repo>['quotas'],
+    repo: Repo,
+    limits: Record<string, number> | undefined,
+    owned: readonly number[]
+): SdkQuota['usage'] {
+    return async (key) => {
+        const limit = limits?.[key];
+        if (limit === undefined) return null;
+        const entry = quotas?.[key];
+        if (!entry) throw new Error(`quota « ${key} »: pass your server's quotas to the harness`);
+        const used = entry.list
+            ? (await entry.list(repo, owned)).length
+            : await (entry.count ?? (() => Promise.resolve(0)))(repo, owned);
+        return { used, limit };
+    };
+}
+
+function usageLookup(usages: readonly SdkAccountUsage[]) {
+    return (userId: number): SdkAccountUsage => {
+        const found = usages.find((u) => u.userId === userId);
+        if (!found) throw new FeatureError('not_found', `account ${userId} unknown`);
+        return found;
+    };
+}
+
 function memoryDomains(domains: readonly SdkDomain[]) {
     return {
         in: (workspaceId: number) => domains.filter((d) => d.workspaceId === workspaceId),
@@ -389,6 +422,10 @@ export interface TestContextOverrides<Repo> {
     quotaLimits?: Record<string, number>;
     /** The workspaces the owner account owns, handed to a quota counter. Default: the workspace of the call. */
     ownerWorkspaceIds?: readonly number[];
+    /** Your server's `quotas`: `quota.usage` counts through them. */
+    quotas?: FeatureServer<Repo>['quotas'];
+    /** What `deveye.usage` knows, by account. Default none. */
+    accountUsage?: readonly SdkAccountUsage[];
     /** The items the plan holds paused, by YOUR `stock` quota key. Default none. */
     pausedItems?: Record<string, readonly string[]>;
     canWrite?: boolean;
@@ -495,9 +532,24 @@ export function createTestContext<Repo = undefined>(
                         username: `user${overrides.userId ?? 1}`,
                         isAdmin: overrides.isAdmin ?? false,
                         e2e: false,
+                        suspended: false,
                         created: 0
                     }
                 )
+        },
+        // The app's rules: its own usage for anyone, any account's for a global administrator.
+        usage: {
+            of: async (userId) => {
+                if (userId !== (overrides.userId ?? 1) && !overrides.isAdmin) {
+                    throw new FeatureError('forbidden', 'administrators only');
+                }
+                return usageLookup(overrides.accountUsage ?? [])(userId);
+            },
+            ofMany: async (userIds) => {
+                if (!overrides.isAdmin) throw new FeatureError('forbidden', 'administrators only');
+                const known = overrides.accountUsage ?? [];
+                return userIds.flatMap((id) => known.filter((u) => u.userId === id));
+            }
         },
         ...overrides.deveye
     };
@@ -553,6 +605,12 @@ export function createTestContext<Repo = undefined>(
                     });
                 }
             },
+            usage: usageIn(
+                overrides.quotas,
+                overrides.repo as Repo,
+                overrides.quotaLimits,
+                overrides.ownerWorkspaceIds ?? [workspaceId]
+            ),
             assertActive: (key, itemId) => assertActiveIn(pauses, key, itemId)
         },
         items: {
@@ -684,6 +742,10 @@ export interface TestServiceOverrides<Repo> {
     mailConfigured?: boolean;
     /** The plan's limits `deps.quotaFor` applies, by YOUR quota key. Default none (unlimited). */
     quotaLimits?: Record<string, number>;
+    /** Your server's `quotas`: `quotaFor(...).usage` counts through them. */
+    quotas?: FeatureServer<Repo>['quotas'];
+    /** What `deps.usage` knows, by account. Default none. */
+    accountUsage?: readonly SdkAccountUsage[];
     /** The items the plan holds paused (`deps.pauses`), by YOUR `stock` quota key. Default none. */
     pausedItems?: Record<string, readonly string[]>;
     /** What `deveyeFor(...).notify.hasRoute` answers. Default true. */
@@ -809,6 +871,12 @@ export function createTestServiceDeps<Repo = undefined>(
                     });
                 }
             },
+            usage: usageIn(
+                overrides.quotas,
+                overrides.repo as Repo,
+                overrides.quotaLimits,
+                overrides.workspaceIds ?? [1]
+            ),
             assertActive: (key, itemId) => assertActiveIn(pauses, key, itemId)
         }),
         pauses,
@@ -842,6 +910,14 @@ export function createTestServiceDeps<Repo = undefined>(
                 return Promise.resolve(
                     found.slice(0, Math.min(Math.max(1, Math.trunc(limit ?? 20)), 50))
                 );
+            },
+            all: () => Promise.resolve([...(overrides.accounts ?? [])])
+        },
+        usage: {
+            of: async (userId) => usageLookup(overrides.accountUsage ?? [])(userId),
+            ofMany: async (userIds) => {
+                const known = overrides.accountUsage ?? [];
+                return userIds.flatMap((id) => known.filter((u) => u.userId === id));
             }
         },
         accountMail: {

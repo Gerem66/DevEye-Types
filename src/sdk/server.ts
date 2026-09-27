@@ -303,6 +303,21 @@ export interface DevEyeFacade {
         /** The CALLER's own account, never someone else's. */
         me(): Promise<SdkAccount>;
     };
+    /** Requires capability `'accounts.usage'`. */
+    usage: {
+        /**
+         * What this account uses of every limit this DevEye knows. The caller
+         * must be this account or a global administrator (`forbidden`
+         * otherwise); an unknown account throws `not_found`.
+         */
+        of(userId: number): Promise<SdkAccountUsage>;
+        /**
+         * `of` for many accounts, in the order given, unknown ids left out. A
+         * global administrator's surface only. The host paces the counting so a
+         * sweep never starves the database: one call, never one per account.
+         */
+        ofMany(userIds: readonly number[]): Promise<readonly SdkAccountUsage[]>;
+    };
 }
 
 /** An account of this DevEye, as `'accounts.read'` shows it. */
@@ -318,6 +333,8 @@ export interface SdkAccount {
      * address: it is set once, at creation, and nothing can grant it later.
      */
     e2e: boolean;
+    /** Suspended by an administrator: it keeps everything and cannot sign in. */
+    suspended: boolean;
     /** Milliseconds since the epoch. */
     created: number;
 }
@@ -334,6 +351,41 @@ export interface SdkAccounts {
      * and is capped at 50.
      */
     search(query: string, limit?: number): Promise<readonly SdkAccount[]>;
+    /** Every account, oldest first: an administrator's sweep. What you show of it is yours to gate. */
+    all(): Promise<readonly SdkAccount[]>;
+}
+
+/** What one account uses of one limit, whatever its plan allows. */
+export interface SdkAccountQuotaUse {
+    /**
+     * What the limit is compared to now, over every workspace the account
+     * OWNS: the things that exist, paused ones included, for a `stock`; this
+     * month's flow or the bytes held otherwise; for `workspace.members`, its
+     * fullest shared workspace. `null` for a `perOperation` limit.
+     */
+    used: number | null;
+    /** How many of them its plan holds paused, in the unit of `used`. 0 for anything but a stock. */
+    paused: number;
+}
+
+/** What one account uses, as `'accounts.usage'` reads it. */
+export interface SdkAccountUsage {
+    userId: number;
+    /**
+     * By `<featureId>.<quotaKey>`: every quota of the installed modules and the
+     * host's own (`workspace.shared`, `workspace.members`, `domains.hosts`),
+     * bounded or not. The limits are the plan provider's (`planFor`).
+     */
+    quotas: Readonly<Record<string, SdkAccountQuotaUse>>;
+}
+
+/**
+ * Any account's usage, sessionless (capability `'accounts.usage'`), for
+ * services: the same reading as `ctx.deveye.usage`, without its caller check.
+ */
+export interface SdkUsage {
+    of(userId: number): Promise<SdkAccountUsage>;
+    ofMany(userIds: readonly number[]): Promise<readonly SdkAccountUsage[]>;
 }
 
 /** One email to an account. Plain text everywhere: the host lays it out and escapes it. */
@@ -381,6 +433,13 @@ export interface SdkPlanPauses {
     paused(key: string): readonly string[];
 }
 
+/** Where the owner stands against one limit of YOUR `manifest.quotas`. */
+export interface SdkQuotaUse {
+    /** By YOUR `server.quotas[key]`, over every workspace the owner owns. */
+    used: number;
+    limit: number;
+}
+
 /**
  * What the account's plan allows of YOUR `manifest.quotas`. The account is the
  * OWNER of the workspace of the call: in a shared workspace, what a member
@@ -394,12 +453,19 @@ export interface SdkQuota extends SdkPlanPauses {
      * Call it BEFORE creating. `countAfter` receives the ids of every workspace
      * the owner account owns and returns how many there would be once created;
      * it is never called when unlimited. Throws `quota_exceeded` beyond the
-     * limit.
+     * limit. Count with the same repo function as `server.quotas[key]`: the
+     * usage shown and the refusal must agree.
      */
     assert(
         key: string,
         countAfter: (ownerWorkspaceIds: readonly number[]) => Promise<number>
     ): Promise<void>;
+    /**
+     * Where the owner stands, counted by YOUR `server.quotas[key]`: what a
+     * screen says BEFORE the refusal. `null` = unlimited, and nothing is
+     * counted. A `perOperation` key throws `validation`: nothing accumulates.
+     */
+    usage(key: string): Promise<SdkQuotaUse | null>;
     /**
      * Call it before running a `stock` item on demand (check now, deploy now,
      * open a session): throws `quota_exceeded` when its owner's plan holds it
@@ -426,14 +492,24 @@ export interface SdkPlanPauseChange {
     resumed: readonly SdkStockItem[];
 }
 
-/** Your half of one `stock` quota: the host ranks, you list. */
-export interface FeatureStockEntry<Repo = unknown> {
+/**
+ * How the host counts one of your quotas, for `ctx.quota.usage` and an
+ * account's usage (`'accounts.usage'`): a `stock` by its list, any other by
+ * its count, under the very WHERE of the counter you pass to `assert`.
+ */
+export interface FeatureQuotaEntry<Repo = unknown> {
     /**
-     * The items the quota counts in these workspaces, OLDEST FIRST (creation,
-     * then id), under the very WHERE of the counter you pass to `assert`. The
+     * `stock` quotas only, required there: the items the quota counts in these
+     * workspaces, OLDEST FIRST (creation, then id). How many is the usage; the
      * host keeps the first `limit` running and pauses the rest.
      */
-    list(repo: Repo, ownerWorkspaceIds: readonly number[]): Promise<readonly SdkStockItem[]>;
+    list?(repo: Repo, ownerWorkspaceIds: readonly number[]): Promise<readonly SdkStockItem[]>;
+    /**
+     * Any other quota but `perOperation`, required there: what the limit is
+     * compared to now (this month's events, the bytes held). A month is the
+     * current UTC month unless your feature keeps a calendar of its own.
+     */
+    count?(repo: Repo, ownerWorkspaceIds: readonly number[]): Promise<number>;
 }
 
 /** A workspace as the fleet sees it: enough to attach a device to it. */
@@ -1226,6 +1302,8 @@ export interface FeatureServiceDeps<Repo = unknown> {
     devices: SdkFleetDevices;
     /** Capability `'accounts.read'`. */
     accounts: SdkAccounts;
+    /** Capability `'accounts.usage'`. */
+    usage: SdkUsage;
     /** Capability `'accounts.mail'`. */
     accountMail: SdkAccountMail;
     /**
@@ -1319,8 +1397,8 @@ export interface FeatureServer<Repo = unknown> {
     items?: FeatureItemsEntry<Repo>;
     /** Required when the manifest declares `domains`, refused otherwise. */
     domains?: FeatureDomainsEntry<Repo>;
-    /** One entry per `stock` quota of the manifest, by its key, and none other. */
-    quotas?: Readonly<Record<string, FeatureStockEntry<Repo>>>;
+    /** One entry per quota of the manifest, by its key, `perOperation` ones excepted, and none other. */
+    quotas?: Readonly<Record<string, FeatureQuotaEntry<Repo>>>;
     /**
      * The environment variables you read, as the spec you read them with
      * (`defineModuleEnv`). Plain data: the host reads it again at boot and

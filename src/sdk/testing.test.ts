@@ -81,6 +81,7 @@ test('the harness searches accounts like the app: substring, exact id first, cap
         email: `${username}@example.com`,
         isAdmin: false,
         e2e: false,
+        suspended: false,
         created: 0
     });
     const { accounts } = createTestServiceDeps({
@@ -95,6 +96,10 @@ test('the harness searches accounts like the app: substring, exact id first, cap
     assert.deepEqual(await ids('12abc'), []);
     assert.deepEqual(await ids('', 1), [12]);
     assert.equal((await ids('', 0)).length, 1, 'a limit below one is raised to one');
+    assert.deepEqual(
+        (await accounts.all()).map((a) => a.id),
+        [7, 12, 3]
+    );
 });
 
 test('the harness scopes domains to the workspace, and finds a host whatever its spelling', async () => {
@@ -143,6 +148,66 @@ test('the harness bounds a quota like the app: never counted when unlimited, ref
 
     bounded.live.accountChanged(7);
     assert.deepEqual(bounded.recorded.accountChanges, [7]);
+});
+
+test('the harness reads usage like the app: nothing counted when unlimited, a stock by its list', async () => {
+    let counted = 0;
+    const quotas = {
+        monitors: {
+            list: (_repo: undefined, owned: readonly number[]) => {
+                counted++;
+                return Promise.resolve(owned.map((id) => ({ id: String(id), workspaceId: id })));
+            }
+        },
+        events: {
+            count: (_repo: undefined, owned: readonly number[]) => {
+                counted++;
+                return Promise.resolve(owned.length * 10);
+            }
+        }
+    };
+    assert.equal(await createTestContext({ quotas }).quota.usage('monitors'), null);
+    assert.equal(counted, 0);
+
+    const ctx = createTestContext({
+        quotas,
+        quotaLimits: { monitors: 0, events: 50 },
+        ownerWorkspaceIds: [1, 2]
+    });
+    assert.deepEqual(await ctx.quota.usage('monitors'), { used: 2, limit: 0 });
+    assert.deepEqual(await ctx.quota.usage('events'), { used: 20, limit: 50 });
+    assert.deepEqual(
+        await createTestServiceDeps({ quotas, quotaLimits: { events: 5 } })
+            .quotaFor(1)
+            .usage('events'),
+        { used: 10, limit: 5 }
+    );
+    await assert.rejects(
+        createTestContext({ quotaLimits: { monitors: 1 } }).quota.usage('monitors'),
+        /pass your server's quotas/
+    );
+});
+
+test('the harness reads an account usage like the app: its own, or anyone for an administrator', async () => {
+    const accountUsage = [
+        { userId: 1, quotas: { 'x.monitors': { used: 2, paused: 0 } } },
+        { userId: 2, quotas: { 'x.monitors': { used: 9, paused: 4 } } }
+    ];
+    const me = createTestContext({ userId: 1, accountUsage });
+    assert.equal((await me.deveye.usage.of(1)).quotas['x.monitors'].used, 2);
+    await assert.rejects(me.deveye.usage.of(2), { code: 'forbidden' });
+    await assert.rejects(me.deveye.usage.ofMany([1]), { code: 'forbidden' });
+
+    const admin = createTestContext({ userId: 1, isAdmin: true, accountUsage });
+    assert.deepEqual(
+        (await admin.deveye.usage.ofMany([2, 5, 1])).map((u) => u.userId),
+        [2, 1]
+    );
+    await assert.rejects(admin.deveye.usage.of(5), { code: 'not_found' });
+    assert.equal(
+        (await createTestServiceDeps({ accountUsage }).usage.of(2)).quotas['x.monitors'].paused,
+        4
+    );
 });
 
 test('the harnesses hold the plan pauses and refuse a paused item on demand', async () => {

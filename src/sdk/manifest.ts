@@ -65,7 +65,9 @@ export const MAX_FEATURE_QUOTAS = 8;
 /**
  * Something your feature creates that an account plan may bound (monitors,
  * paired agents). You count, the host decides: see `SdkQuota`. Without a plan
- * provider installed (a self-hosted DevEye), every quota is unlimited.
+ * provider installed (a self-hosted DevEye), every quota is unlimited. A quota
+ * that is neither `stock` nor `perOperation` is a flow, counted by
+ * `server.quotas[key].count`.
  */
 export interface FeatureQuotaSpec {
     /** Same shape as an extra permission key. The plan names it `<featureId>.<key>`. */
@@ -79,10 +81,16 @@ export interface FeatureQuotaSpec {
      * agent), as opposed to a flow checked at each use (events per month, the
      * size of one file). When the limit drops below what exists, the host
      * pauses the most recently created ones, never deletes them, and resumes
-     * them once the limit rises or a slot frees: see `SdkPlanPauses`. Requires
-     * `server.quotas[key]`; never with `unit: 'bytes'`.
+     * them once the limit rises or a slot frees: see `SdkPlanPauses`. Listed by
+     * `server.quotas[key].list`; never with `unit: 'bytes'`.
      */
     stock?: true;
+    /**
+     * The limit bounds ONE operation (the size of one file): nothing
+     * accumulates, so there is nothing to count, no `server.quotas[key]`, and
+     * an account's usage reads `null`. Never with `stock`.
+     */
+    perOperation?: true;
 }
 
 /** Hard cap on `extraPermissions`: keeps role editors legible. */
@@ -135,12 +143,19 @@ export type NativeCapability =
      */
     | 'live.publish'
     /**
-     * Read accounts (id, email, username, creation date): the caller's own in a
-     * handler, any account from a service, by id, by email or by search. For
-     * what belongs to an account and not to a workspace (a subscription, a
-     * receipt to address).
+     * Read accounts (id, email, username, creation date, suspension): the
+     * caller's own in a handler, any account from a service, by id, by email,
+     * by search or all of them. For what belongs to an account and not to a
+     * workspace (a subscription, a receipt to address).
      */
     | 'accounts.read'
+    /**
+     * What an account uses of every limit a plan may bound, across every
+     * feature (`ctx.deveye.usage`, `deps.usage`): the caller's own, or any
+     * account's for a global administrator. What a plan provider shows beside
+     * the limits it sets.
+     */
+    | 'accounts.usage'
     /**
      * Email an account of this DevEye at its own address, in the server's
      * name (`deps.accountMail`): what the account must receive, by law or by
@@ -471,6 +486,9 @@ export function validateManifest(m: FeatureManifest): void {
         if (!quota.label.trim()) fail(m.id, `quota « ${quota.key} »: empty label`);
         if (quota.stock && quota.unit === 'bytes') {
             fail(m.id, `quota « ${quota.key} »: a stock counts things`);
+        }
+        if (quota.stock && quota.perOperation) {
+            fail(m.id, `quota « ${quota.key} »: a per-operation limit is no stock`);
         }
     }
 

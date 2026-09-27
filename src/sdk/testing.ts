@@ -14,6 +14,7 @@ import {
     type FeatureServiceDeps,
     type FeatureStore,
     type SdkAccount,
+    type SdkAccountMailMessage,
     type SdkCipher,
     type SdkDevice,
     type SdkFeatureContext,
@@ -650,6 +651,8 @@ export interface RecordedServiceCalls extends RecordedCalls {
     liveChanges: number[];
     /** `live.changed` calls that named topics, as `{ workspaceId, topics }` (a bare beat is not listed here). */
     liveTopicChanges: { workspaceId: number; topics: readonly string[] }[];
+    /** Emails `accountMail.send` accepted, with the address they went to. */
+    mails: { userId: number; to: string; message: SdkAccountMailMessage }[];
 }
 
 export interface TestServiceDeps<Repo> extends FeatureServiceDeps<Repo> {
@@ -674,8 +677,10 @@ export interface TestServiceOverrides<Repo> {
     archives?: Readonly<Record<string, TestFolderArchive | Error>>;
     /** What `deps.access` answers. Default: every member holds every right. */
     access?: Partial<FeatureServiceDeps['access']>;
-    /** The accounts `deps.accounts` knows. Default none. */
+    /** The accounts `deps.accounts` knows, and `deps.accountMail` writes to. Default none. */
     accounts?: readonly SdkAccount[];
+    /** What `deps.accountMail.configured` answers. Default true. */
+    mailConfigured?: boolean;
     /** The plan's limits `deps.quotaFor` applies, by YOUR quota key. Default none (unlimited). */
     quotaLimits?: Record<string, number>;
     /** The items the plan holds paused (`deps.pauses`), by YOUR `stock` quota key. Default none. */
@@ -715,7 +720,8 @@ export function createTestServiceDeps<Repo = undefined>(
         accountChanges: [],
         tickers: [],
         liveChanges: [],
-        liveTopicChanges: []
+        liveTopicChanges: [],
+        mails: []
     };
     const stores = new Map<number, TestFeatureStore>();
     const sealedBytes = new Map<string, Uint8Array>();
@@ -835,6 +841,22 @@ export function createTestServiceDeps<Repo = undefined>(
                 return Promise.resolve(
                     found.slice(0, Math.min(Math.max(1, Math.trunc(limit ?? 20)), 50))
                 );
+            }
+        },
+        accountMail: {
+            configured: overrides.mailConfigured ?? true,
+            send(userId, message) {
+                if (overrides.mailConfigured === false) {
+                    return Promise.reject(new FeatureError('conflict', 'no mail transport'));
+                }
+                const to = (overrides.accounts ?? []).find((a) => a.id === userId)?.email;
+                if (to === undefined) {
+                    return Promise.reject(
+                        new FeatureError('not_found', `account ${userId} unknown`)
+                    );
+                }
+                recorded.mails.push({ userId, to, message });
+                return Promise.resolve(to);
             }
         },
         audit: (entry) => {

@@ -329,6 +329,32 @@ export interface SdkAccounts {
     search(query: string, limit?: number): Promise<readonly SdkAccount[]>;
 }
 
+/** One email to an account. Plain text everywhere: the host lays it out and escapes it. */
+export interface SdkAccountMailMessage {
+    subject: string;
+    /** One paragraph each, in order. */
+    paragraphs: readonly string[];
+    /** Framed and set apart after the paragraphs: what the reader must not miss (a deadline). */
+    notice?: string;
+    /** A link drawn as a button, after the notice. */
+    button?: { label: string; url: string };
+    /** Small print, last. */
+    footnote?: string;
+}
+
+/** Emails to the accounts of this DevEye, from the server's own sender (capability `'accounts.mail'`). */
+export interface SdkAccountMail {
+    /** `false` when this server has no mail transport: `send` would throw `conflict`. */
+    readonly configured: boolean;
+    /**
+     * Sends to the account's own address, never another, and resolves that
+     * address for your records. Throws `not_found` for an unknown account and
+     * `conflict` without a transport; a refusal of the mail server rejects as
+     * is. Nothing is retried for you.
+     */
+    send(userId: number, message: SdkAccountMailMessage): Promise<string>;
+}
+
 /**
  * The items of YOUR `stock` quotas that their owner's plan holds paused: the
  * most recently created beyond the limit. Nothing of theirs is deleted; they
@@ -1184,6 +1210,8 @@ export interface FeatureServiceDeps<Repo = unknown> {
     devices: SdkFleetDevices;
     /** Capability `'accounts.read'`. */
     accounts: SdkAccounts;
+    /** Capability `'accounts.mail'`. */
+    accountMail: SdkAccountMail;
     /**
      * {@link SdkQuota} for a workspace, sessionless: for what gets created
      * outside any command (bytes an agent uploads). Same account rule, the

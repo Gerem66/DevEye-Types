@@ -140,7 +140,14 @@ export type NativeCapability =
      * what belongs to an account and not to a workspace (a subscription, a
      * receipt to address).
      */
-    | 'accounts.read';
+    | 'accounts.read'
+    /**
+     * Email an account of this DevEye at its own address, in the server's
+     * name (`deps.accountMail`): what the account must receive, by law or by
+     * its contract with you (a renewal notice). Never marketing, which the
+     * account never agreed to.
+     */
+    | 'accounts.mail';
 
 /**
  * Settings tabs the shell can render for you.

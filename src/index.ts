@@ -616,8 +616,13 @@ export {
     terminalUser
 } from './domain/device';
 export type { Device, DevicePlatform, DeviceRow, DeviceStatus } from './domain/device';
-export { packageManagerIdSchema, packageManagerSchema } from './domain/packages';
-export type { PackageManager, PackageManagerId } from './domain/packages';
+export {
+    isManagedPackageManager,
+    packageManagerIdSchema,
+    packageManagerSchema,
+    unmanagedUpdaterIdSchema
+} from './domain/packages';
+export type { PackageManager, PackageManagerId, UnmanagedUpdaterId } from './domain/packages';
 export {
     agentInfoSchema,
     agentPolicySchema,

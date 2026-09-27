@@ -44,7 +44,11 @@ export interface SdkExportTable {
     where: string;
     /** A unique ordering key, for keyset paging. */
     key: readonly [string, ...string[]];
-    /** Encrypted columns, opened whatever their tier. */
+    /**
+     * Encrypted columns, opened whatever their tier. One ending in `_enc` is
+     * written without the suffix (`query_enc` as `query`), unless the row
+     * already has a column of that name.
+     */
     sealed?: readonly string[];
     /** Columns (sealed or not) holding JSON: written as values, not strings. */
     json?: readonly string[];
@@ -233,7 +237,9 @@ export async function* exportTableRows(
                     }
                 }
                 if (column in dates) value = isoOf(value, dates[column]);
-                out[column] = plainCell(value);
+                const plain =
+                    sealed.has(column) && column.endsWith('_enc') ? column.slice(0, -4) : column;
+                out[plain !== column && !(plain in row) ? plain : column] = plainCell(value);
             }
             bytes += JSON.stringify(out).length;
             yield out;

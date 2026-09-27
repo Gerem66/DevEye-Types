@@ -96,3 +96,20 @@ test('exportTableRows pages by key, opens sealed cells, and never lets an omitte
     );
     assert.match(sql[1], /AND \(`id`\) > \(\?\)/);
 });
+
+test('exportTableRows writes an opened `_enc` column without its suffix, unless the name is taken', async () => {
+    const { q } = fakeTable([
+        { id: 1, workspace_id: 3, query_enc: 'sealed:a', title: 't', title_enc: 'sealed:b' }
+    ]);
+    const out: Record<string, unknown>[] = [];
+    for await (const row of exportTableRows(
+        q,
+        'lookups',
+        { ...spec, sealed: ['query_enc', 'title_enc'] },
+        3,
+        async (blob) => blob.slice(7)
+    )) {
+        out.push(row);
+    }
+    assert.deepEqual(out, [{ id: 1, workspace_id: 3, query: 'a', title: 't', title_enc: 'b' }]);
+});

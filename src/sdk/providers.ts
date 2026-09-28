@@ -633,6 +633,15 @@ export interface AccountPlan {
     changesAt?: number;
 }
 
+/**
+ * Whether a plan is a paying one: the paid tier (trial included), an
+ * administrator, a plan granted on the paid tier (`priority`), or no provider
+ * at all (`null`, a self-hosted instance).
+ */
+export function isPaidPlan(plan: AccountPlan | null): boolean {
+    return plan === null || plan.id === 'pro' || plan.id === 'admin' || plan.priority;
+}
+
 export interface AccountPlanProvider {
     /** `fresh`: never from a cache, the host is about to pause or resume on the answer. */
     planFor(userId: number, opts?: { fresh?: boolean }): Promise<AccountPlan>;

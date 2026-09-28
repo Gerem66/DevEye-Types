@@ -1,4 +1,9 @@
+import { readFile, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
 import type { ZodType } from 'zod';
+import { DEFAULT_METRIC_INTERVAL_SECONDS } from '../domain/device';
 import type { ItemAccess } from '../domain/sharing';
 import type { PathExclusion } from '../domain/pathExclusions';
 import { normaliseDomainHost } from './domains';
@@ -21,6 +26,7 @@ import {
     type SdkDevice,
     type SdkFeatureContext,
     type SdkLogger,
+    type SdkObjectStore,
     type SdkOrigins,
     type SdkPlanPauses,
     type SdkProviders,
@@ -183,6 +189,7 @@ export function testDevice(over: Partial<SdkDevice> & { id: string }): SdkDevice
         ownerUserId: 1,
         workspaceId: 1,
         metricIntervalSeconds: null,
+        effectiveMetricIntervalSeconds: 60,
         report: null,
         ...over
     };
@@ -235,6 +242,8 @@ interface TestAgents {
     dockerInventory?: DevEyeFacade['agents']['dockerInventory'];
     /** By device id. A device without an entry answers nothing: its stream throws. */
     archives?: Readonly<Record<string, TestFolderArchive | Error>>;
+    /** The plan `metricIntervals` applies. Default paid. */
+    paid?: boolean;
 }
 
 /** Replays the planned pieces; the summary appears once the last one is taken, as in the app. */
@@ -274,6 +283,17 @@ function recordingAgents(recorded: RecordedCalls, docker: TestAgents = {}): DevE
         isOnline: () => true,
         requestScan: req('requestScan'),
         pushConfig: (deviceId) => Promise.resolve(req('pushConfig')(deviceId)),
+        // The app's rule with the harness's plan: paid unless `paid: false`.
+        metricIntervals: (devices) =>
+            Promise.resolve(
+                new Map(
+                    devices.map((d) => [
+                        d.id,
+                        d.metric_interval_seconds ??
+                            DEFAULT_METRIC_INTERVAL_SECONDS[docker.paid === false ? 'free' : 'paid']
+                    ])
+                )
+            ),
         requestSyncConfig: req('requestSyncConfig'),
         requestSyncScan: req('requestSyncScan'),
         requestSyncPush: req('requestSyncPush'),
@@ -421,6 +441,8 @@ export interface TestContextOverrides<Repo> {
     account?: SdkAccount;
     /** The plan's limits, by YOUR quota key. An absent key is unlimited. Default none. */
     quotaLimits?: Record<string, number>;
+    /** What `quota.paid()` answers. Default true, a self-hosted instance. */
+    paid?: boolean;
     /** The workspaces the owner account owns, handed to a quota counter. Default: the workspace of the call. */
     ownerWorkspaceIds?: readonly number[];
     /** Your server's `quotas`: `quota.usage` counts through them. */
@@ -593,6 +615,7 @@ export function createTestContext<Repo = undefined>(
         quota: {
             ...pauses,
             limit: (key) => Promise.resolve(overrides.quotaLimits?.[key] ?? null),
+            paid: () => Promise.resolve(overrides.paid ?? true),
             // The exact rule of the app: never counted when unlimited, refused
             // once the count AFTER creation passes the limit.
             async assert(key, countAfter) {
@@ -743,6 +766,10 @@ export interface TestServiceOverrides<Repo> {
     mailConfigured?: boolean;
     /** The plan's limits `deps.quotaFor` applies, by YOUR quota key. Default none (unlimited). */
     quotaLimits?: Record<string, number>;
+    /** What `quotaFor(...).paid()` answers. Default true, a self-hosted instance. */
+    paid?: boolean;
+    /** What `deps.objects(...)` returns. Default one {@link memoryObjectStore} for every `localDir`. */
+    objects?: SdkObjectStore;
     /** Your server's `quotas`: `quotaFor(...).usage` counts through them. */
     quotas?: FeatureServer<Repo>['quotas'];
     /** What `deps.usage` knows, by account. Default none. */
@@ -797,6 +824,7 @@ export function createTestServiceDeps<Repo = undefined>(
     );
     const devices = recordingDevices(overrides.devices ?? []);
     const pauses = memoryPauses(overrides.pausedItems);
+    const objects = overrides.objects ?? memoryObjectStore();
     return {
         recorded,
         stores,
@@ -862,6 +890,7 @@ export function createTestServiceDeps<Repo = undefined>(
         quotaFor: () => ({
             ...pauses,
             limit: (key) => Promise.resolve(overrides.quotaLimits?.[key] ?? null),
+            paid: () => Promise.resolve(overrides.paid ?? true),
             async assert(key, countAfter) {
                 const limit = overrides.quotaLimits?.[key];
                 if (limit === undefined) return;
@@ -941,6 +970,7 @@ export function createTestServiceDeps<Repo = undefined>(
             recorded.audits.push({ action: entry.action, description: entry.description });
         },
         agents: recordingAgents(recorded, overrides),
+        objects: () => objects,
         access: {
             feature: overrides.access?.feature ?? (() => Promise.resolve({ ok: true })),
             device: overrides.access?.device ?? (() => Promise.resolve({ ok: true }))
@@ -990,6 +1020,76 @@ export function testDomain(over: Partial<SdkDomain> & { id: number; host: string
         verifiedAt: 1,
         planPaused: false,
         ...over
+    };
+}
+
+/** An in-memory {@link SdkObjectStore}, with its objects exposed for assertions. */
+export interface MemoryObjectStore extends SdkObjectStore {
+    readonly objects: Map<string, Buffer>;
+}
+
+function assertTestKey(key: string): void {
+    if (!key || key.startsWith('/') || key.includes('\0') || key.split('/').includes('..')) {
+        throw new Error(`invalid object key « ${key} »`);
+    }
+}
+
+/**
+ * The object store of the harness: `kind` says `'s3'` by default so a test
+ * exercises the remote path; the spool is a real directory, since partial
+ * uploads are written there with plain `fs`.
+ */
+export function memoryObjectStore(
+    opts: { kind?: 'local' | 's3'; spoolDir?: string } = {}
+): MemoryObjectStore {
+    const objects = new Map<string, Buffer>();
+    const spool = opts.spoolDir ?? path.join(os.tmpdir(), `deveye-spool-${process.pid}`);
+    return {
+        objects,
+        kind: opts.kind ?? 's3',
+        describe: () => 'mémoire',
+        async put(key, body) {
+            assertTestKey(key);
+            const parts: Buffer[] = [];
+            if (body instanceof Uint8Array) parts.push(Buffer.from(body));
+            else for await (const chunk of body) parts.push(Buffer.from(chunk));
+            const bytes = Buffer.concat(parts);
+            objects.set(key, bytes);
+            return { size: bytes.length };
+        },
+        async putFile(key, localPath) {
+            assertTestKey(key);
+            const bytes = await readFile(localPath);
+            objects.set(key, bytes);
+            await rm(localPath, { force: true });
+            return { size: bytes.length };
+        },
+        async *get(key, range) {
+            const bytes = objects.get(key);
+            if (!bytes) throw new Error(`no object « ${key} »`);
+            const start = range?.start ?? 0;
+            const end = range?.end === undefined ? bytes.length : range.end + 1;
+            yield bytes.subarray(start, end);
+        },
+        head: (key) => {
+            const bytes = objects.get(key);
+            return Promise.resolve(bytes ? { size: bytes.length } : null);
+        },
+        async *list(prefix) {
+            for (const [key, bytes] of [...objects]) {
+                if (key.startsWith(prefix)) yield { key, size: bytes.length };
+            }
+        },
+        delete: (key) => {
+            objects.delete(key);
+            return Promise.resolve();
+        },
+        deletePrefix: (prefix) => {
+            if (!prefix.endsWith('/')) throw new Error(`prefix « ${prefix} » must end with /`);
+            for (const key of [...objects.keys()]) if (key.startsWith(prefix)) objects.delete(key);
+            return Promise.resolve();
+        },
+        spoolDir: () => spool
     };
 }
 

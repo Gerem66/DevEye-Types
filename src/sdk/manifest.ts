@@ -162,7 +162,13 @@ export type NativeCapability =
      * its contract with you (a renewal notice). Never marketing, which the
      * account never agreed to.
      */
-    | 'accounts.mail';
+    | 'accounts.mail'
+    /**
+     * The host's object store (`deps.objects`): the files a module keeps on
+     * behalf of its members, on the server's disk or on the S3 bucket the host
+     * configured. Declared, because what lands there is billed to the host.
+     */
+    | 'objects';
 
 /**
  * Settings tabs the shell can render for you.

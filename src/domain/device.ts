@@ -63,9 +63,12 @@ export const deviceSchema = z.object({
     report: deviceReportSchema.nullable().default(null),
     /**
      * The agent's single collection interval in seconds — one tick yields
-     * metrics *and* processes under one timestamp. Null → server default (60).
+     * metrics *and* processes under one timestamp. Null → the default of the
+     * owner's plan ({@link DEFAULT_METRIC_INTERVAL_SECONDS}).
      */
     metricIntervalSeconds: z.number().int().positive().nullable().default(null),
+    /** The cadence the agent actually runs at, resolved by the server (own setting or plan default). */
+    effectiveMetricIntervalSeconds: z.number().int().positive().default(60),
     /** How much of the process list each tick carries; null → server default (`all`). */
     processCapture: processCaptureSchema.nullable().default(null),
     /**
@@ -152,8 +155,9 @@ export interface DeviceRow {
 /**
  * Réglages appliqués à un appareil qui n'a rien choisi. Source unique : le
  * serveur les applique en construisant la config poussée à l'agent, et le
- * dialogue de configuration les affiche comme valeurs de départ.
+ * dialogue de configuration les affiche comme valeurs de départ. La cadence
+ * dépend de l'offre du propriétaire : c'est elle qui fait le volume écrit.
  */
-export const DEFAULT_METRIC_INTERVAL_SECONDS = 60;
+export const DEFAULT_METRIC_INTERVAL_SECONDS = { paid: 60, free: 300 } as const;
 export const DEFAULT_PROCESS_CAPTURE = 'all' as const;
 export const DEFAULT_RETENTION_DAYS = 30;

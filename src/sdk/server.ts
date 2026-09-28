@@ -482,6 +482,13 @@ export interface SdkQuota extends SdkPlanPauses {
      * paused, which opens the plan prompt on the client.
      */
     assertActive(key: string, itemId: string): Promise<void>;
+    /**
+     * Whether the owner pays: a paid or trial plan, a plan granted on the paid
+     * tier, an administrator, or no plan provider at all (a self-hosted
+     * instance). What a default that costs the host keys on (a probe cadence),
+     * never a refusal: refusals go through `limit` and `assert`.
+     */
+    paid(): Promise<boolean>;
 }
 
 /** One item a `stock` quota counts. */
@@ -566,6 +573,17 @@ export interface AgentsFacade {
      * offline (it receives the config at its next connection anyway).
      */
     pushConfig(deviceId: string): Promise<boolean>;
+    /**
+     * The cadence each device's agent runs at, by device id: its own setting,
+     * or the default of the plan of its HOME workspace's owner.
+     */
+    metricIntervals(
+        devices: readonly {
+            id: string;
+            workspace_id: number | null;
+            metric_interval_seconds: number | null;
+        }[]
+    ): Promise<ReadonlyMap<string, number>>;
     requestSyncConfig(deviceId: string, payload: AgentSyncConfigPayload): boolean;
     requestSyncScan(deviceId: string, payload: AgentSyncScanPayload): boolean;
     requestSyncPush(deviceId: string, payload: AgentSyncPushPayload): boolean;
@@ -714,6 +732,50 @@ export interface SdkProviders {
     get<T>(key: string): T | undefined;
 }
 
+/** One object of an {@link SdkObjectStore}, as `list` yields it. */
+export interface SdkStoredObject {
+    key: string;
+    size: number;
+}
+
+/**
+ * Where a module keeps files (capability `'objects'`): the server's disk, or
+ * the S3 bucket the host configured. A key is a relative path (`a/b/c`, no
+ * `..`, no leading `/`); store only the KEY in your tables, never where it
+ * resolves, so the host can move the whole tree (another disk, another
+ * bucket) without a row to rewrite. Writes are atomic: a reader sees the
+ * whole object or none.
+ */
+export interface SdkObjectStore {
+    /** `'local'`: the server's disk. `'s3'`: every byte read costs egress. */
+    readonly kind: 'local' | 's3';
+    /** Where it lives, for a screen: « disque du serveur », « S3 : bucket ». */
+    describe(): string;
+    put(key: string, body: AsyncIterable<Uint8Array> | Uint8Array): Promise<{ size: number }>;
+    /**
+     * Stores a finished local file under `key`, then removes the local file:
+     * a rename on the server's disk, an upload on S3. For a file assembled
+     * in {@link spoolDir}.
+     */
+    putFile(key: string, localPath: string): Promise<{ size: number }>;
+    /** The object's bytes, streamed. `range` is inclusive, like HTTP's. Throws when absent. */
+    get(key: string, range?: { start: number; end?: number }): AsyncIterable<Buffer>;
+    /** `null` when absent. */
+    head(key: string): Promise<{ size: number } | null>;
+    /** Every object whose key starts with `prefix`, in no guaranteed order. */
+    list(prefix: string): AsyncIterable<SdkStoredObject>;
+    /** Idempotent: an absent key is not an error. */
+    delete(key: string): Promise<void>;
+    /** Every object under `prefix`, which must end with `/`. */
+    deletePrefix(prefix: string): Promise<void>;
+    /**
+     * A directory on the server's disk, whatever `kind`, for what cannot be
+     * written as a whole object at once (a partial upload resumed later).
+     * Yours alone; the store never cleans it.
+     */
+    spoolDir(): string;
+}
+
 /**
  * Raw bytes under the SERVER key, for wrapping module-owned key material; never
  * for user data, which goes through ciphers and the store. The host seals under
@@ -752,6 +814,8 @@ export interface SdkDevice {
     workspaceId: number | null;
     /** The agent's metric cadence in seconds, null when it follows the default. */
     metricIntervalSeconds: number | null;
+    /** The cadence the agent actually runs at: its own, or the default of its owner's plan. */
+    effectiveMetricIntervalSeconds: number;
     /** The last OS/security report, null before the first one (or unreadable). */
     report: DeviceReport | null;
 }
@@ -1367,6 +1431,12 @@ export interface FeatureServiceDeps<Repo = unknown> {
     };
     /** Raw key wrapping under the server key, and derived keys. */
     keys: SdkServerKeys;
+    /**
+     * The object store (capability `'objects'`). `localDir` is where your
+     * objects live while the host keeps them on its disk, typically a path of
+     * your `env`; with an S3 configured, it only holds your `spoolDir()`.
+     */
+    objects(localDir: string): SdkObjectStore;
     /** Redeems a ticket minted by `ctx.secrecy.ticket` of THIS module; `null` when invalid, expired or another module's. */
     secrecy: { redeem(ticket: string): Promise<SdkRedeemedTicket | null> };
     /** Where DevEye lives (the same `origins` a request context gets): for a page or a link a route hands to the browser. */

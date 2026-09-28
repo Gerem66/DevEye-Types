@@ -19,7 +19,10 @@ export const ErrorCodeSchema = z.enum([
     'locked',
     // The site, or the feature the command belongs to, is under maintenance
     // (see `domain/maintenance.ts`). The message is the one to show.
-    'maintenance'
+    'maintenance',
+    // The server is full for this kind of account: the socket waits in line
+    // (see `domain/admission.ts`). `details` carries `{ position }`.
+    'queued'
 ]);
 
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;

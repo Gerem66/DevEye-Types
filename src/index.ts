@@ -314,6 +314,15 @@ export type {
     FeedbackViewTrace
 } from './domain/feedback';
 export {
+    IDLE_CLOSE_CODE,
+    QUEUE_CLOSE_CODE,
+    queueRefusalSchema,
+    seatCapsSchema,
+    seatSchema,
+    SESSION_ACTIVE_COMMAND
+} from './domain/admission';
+export type { QueueRefusal, Seat, SeatCaps } from './domain/admission';
+export {
     featureMaintenanceLevelSchema,
     MAINTENANCE_CLOSE_CODE,
     MAINTENANCE_EVENT,
@@ -836,6 +845,7 @@ export {
     adminMaintenanceGet,
     adminMaintenancePriority,
     adminMaintenanceSchema,
+    adminMaintenanceSeats,
     adminMaintenanceSignups,
     adminMaintenanceSite,
     adminSetUserRole,

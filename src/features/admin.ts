@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { seatCapsSchema } from '../domain/admission';
 import { featureMaintenanceLevelSchema, MAINTENANCE_MESSAGE_MAX } from '../domain/maintenance';
 import { userRoleSchema } from '../domain/role';
 import { userStatusSchema } from '../domain/user';
@@ -88,6 +89,20 @@ export const adminMaintenanceSchema = z.object({
         updated: z.number().int().nonnegative().nullable(),
         updatedBy: maintenanceAuthorSchema
     }),
+    /** Les places simultanées de ce serveur seulement, et qui les occupe à l'instant. */
+    seats: seatCapsSchema.extend({
+        origin: z.string(),
+        updated: z.number().int().nonnegative().nullable(),
+        updatedBy: maintenanceAuthorSchema,
+        present: z.object({
+            free: z.number().int().nonnegative(),
+            paid: z.number().int().nonnegative()
+        }),
+        waiting: z.object({
+            free: z.number().int().nonnegative(),
+            paid: z.number().int().nonnegative()
+        })
+    }),
     /** Chaque module installé, ouvert ou non. */
     features: z.array(
         z.object({
@@ -145,6 +160,13 @@ export const adminMaintenanceSignups = {
     output: adminMaintenanceSchema
 };
 
+/** Baisser un plafond ne ferme aucune session : les suivants attendent. */
+export const adminMaintenanceSeats = {
+    command: 'admin.maintenanceSeats' as const,
+    input: seatCapsSchema,
+    output: adminMaintenanceSchema
+};
+
 /** Ferme le rappel de `MAINTENANCE=1`, pour tous les administrateurs. */
 export const adminMaintenanceDismissNotice = {
     command: 'admin.maintenanceDismissNotice' as const,
@@ -162,5 +184,6 @@ export const adminCommands = [
     adminMaintenanceFeature,
     adminMaintenancePriority,
     adminMaintenanceSignups,
+    adminMaintenanceSeats,
     adminMaintenanceDismissNotice
 ] as const;

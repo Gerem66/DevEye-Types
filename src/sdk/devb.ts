@@ -118,3 +118,149 @@ export function openChunk(
 export function openStreamDecipher(key: Buffer, nonce: Buffer): crypto.DecipherGCM {
     return crypto.createDecipheriv('aes-256-gcm', key, nonce);
 }
+
+/**
+ * Scelle un clair en v2. Ré-agrège en blocs de {@link BLOB_CHUNK_BYTES} quel
+ * que soit le découpage d'entrée : l'ouvreur compte les blocs pour retrouver
+ * leur rang.
+ */
+export async function* sealStream(
+    key: Buffer,
+    source: AsyncIterable<Uint8Array>
+): AsyncGenerator<Buffer> {
+    const header = createBlobHeader();
+    const nonce = header.subarray(5, 17);
+    yield header;
+
+    let pending: Buffer[] = [];
+    let pendingLen = 0;
+    let index = 0;
+
+    for await (const part of source) {
+        pending.push(Buffer.from(part.buffer, part.byteOffset, part.byteLength));
+        pendingLen += part.byteLength;
+        while (pendingLen >= BLOB_CHUNK_BYTES) {
+            const joined = Buffer.concat(pending, pendingLen);
+            yield sealChunk(key, nonce, index, joined.subarray(0, BLOB_CHUNK_BYTES), false);
+            index += 1;
+            const rest = joined.subarray(BLOB_CHUNK_BYTES);
+            pending = rest.length > 0 ? [rest] : [];
+            pendingLen = rest.length;
+        }
+    }
+
+    // Toujours un dernier bloc, même vide : c'est lui qui porte le marqueur de
+    // fin dans l'AAD, et donc ce qui rend un blob tronqué détectable.
+    yield sealChunk(key, nonce, index, Buffer.concat(pending, pendingLen), true);
+}
+
+/** Ouvre un flux v2. Lève dès qu'un bloc ne s'authentifie pas : jamais de lecture tolérante. */
+export async function* openSealedStream(
+    key: Buffer,
+    source: AsyncIterable<Buffer>
+): AsyncGenerator<Buffer> {
+    let buffer: Buffer = Buffer.alloc(0);
+    let nonce: Buffer | null = null;
+    let index = 0;
+
+    const take = (n: number): Buffer | null => {
+        if (buffer.length < n) return null;
+        const out = buffer.subarray(0, n);
+        buffer = buffer.subarray(n);
+        return out;
+    };
+
+    for await (const part of source) {
+        buffer = buffer.length === 0 ? part : Buffer.concat([buffer, part]);
+
+        if (nonce === null) {
+            const header = take(BLOB_HEADER_LEN);
+            if (header === null) continue;
+            const parsed = parseBlobHeader(header);
+            if (parsed.version !== BLOB_V2) throw new Error('DEVB : format de bloc inattendu');
+            nonce = parsed.nonce;
+        }
+
+        // Garder de quoi former un dernier bloc : à exactement `BLOB_CHUNK_SEALED`
+        // octets, on ne sait pas s'il est intermédiaire ou final, et l'AAD diffère.
+        while (buffer.length > BLOB_CHUNK_SEALED) {
+            const sealed = take(BLOB_CHUNK_SEALED);
+            if (sealed === null) break;
+            yield openChunk(key, nonce, index, sealed, false);
+            index += 1;
+        }
+    }
+
+    if (nonce === null) throw new Error('DEVB : en-tête absent ou tronqué');
+    yield openChunk(key, nonce, index, buffer, true);
+}
+
+/** Taille sur le disque d'un clair de `plainSize` octets scellé en v2. */
+export function sealedSize(plainSize: number): number {
+    const full = Math.floor(plainSize / BLOB_CHUNK_BYTES);
+    return (
+        BLOB_HEADER_LEN +
+        full * BLOB_CHUNK_SEALED +
+        (plainSize - full * BLOB_CHUNK_BYTES) +
+        BLOB_TAG_LEN
+    );
+}
+
+/**
+ * Les octets `[start, end]` (inclus) du clair d'un blob v2 de `plainSize`
+ * octets, sans lire le reste : l'en-tête, puis les seuls blocs qui les
+ * portent, chacun authentifié avec son rang et son statut de dernier bloc.
+ * `read` lit une étendue inclusive du blob scellé, `SdkObjectStore.get` tel
+ * quel. Une troncature hors de l'étendue n'est pas vue : c'est une lecture
+ * partielle.
+ */
+export async function* openSealedRange(
+    key: Buffer,
+    read: (range: { start: number; end: number }) => AsyncIterable<Buffer>,
+    plainSize: number,
+    range: { start: number; end: number }
+): AsyncGenerator<Buffer> {
+    const { start, end } = range;
+    if (
+        !Number.isInteger(start) ||
+        !Number.isInteger(end) ||
+        start < 0 ||
+        end < start ||
+        end >= plainSize
+    ) {
+        throw new Error('DEVB : étendue hors du blob');
+    }
+    const parts: Buffer[] = [];
+    for await (const part of read({ start: 0, end: BLOB_HEADER_LEN - 1 })) parts.push(part);
+    const { version, nonce } = parseBlobHeader(Buffer.concat(parts));
+    if (version !== BLOB_V2) throw new Error('DEVB : format de bloc inattendu');
+
+    const finalIndex = Math.floor(plainSize / BLOB_CHUNK_BYTES);
+    const finalPlain = plainSize - finalIndex * BLOB_CHUNK_BYTES;
+    const sealedLength = (i: number) =>
+        i === finalIndex ? finalPlain + BLOB_TAG_LEN : BLOB_CHUNK_SEALED;
+    const first = Math.floor(start / BLOB_CHUNK_BYTES);
+    const last = Math.floor(end / BLOB_CHUNK_BYTES);
+    const from = BLOB_HEADER_LEN + first * BLOB_CHUNK_SEALED;
+    const to = BLOB_HEADER_LEN + last * BLOB_CHUNK_SEALED + sealedLength(last) - 1;
+
+    let buffer: Buffer = Buffer.alloc(0);
+    let index = first;
+    const emit = (plain: Buffer): Buffer => {
+        const offset = index * BLOB_CHUNK_BYTES;
+        const lo = index === first ? start - offset : 0;
+        const hi = index === last ? end - offset + 1 : plain.length;
+        return plain.subarray(lo, hi);
+    };
+    for await (const part of read({ start: from, end: to })) {
+        buffer = buffer.length === 0 ? part : Buffer.concat([buffer, part]);
+        while (index <= last && buffer.length >= sealedLength(index)) {
+            const n = sealedLength(index);
+            const plain = openChunk(key, nonce, index, buffer.subarray(0, n), index === finalIndex);
+            buffer = buffer.subarray(n);
+            yield emit(plain);
+            index += 1;
+        }
+    }
+    if (index <= last) throw new Error('DEVB : blob tronqué');
+}

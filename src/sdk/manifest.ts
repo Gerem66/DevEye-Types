@@ -312,7 +312,7 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
      * but `'never'` commits the module to the sharing contract: a server entry
      * with `items`, listings that read `ctx.sharing.scope()` and pick the
      * cipher row by row, and `ctx.items.restrictions()` applied to what they
-     * return. External modules declare `'never'` for now.
+     * return. Requires `hasItems`: without items there is nothing to project.
      */
     shareTier: 'open' | 'perItem' | 'never';
 
@@ -346,6 +346,14 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
      * installed module at most may ask for it.
      */
     accountEntry?: { label: string; signupHint?: boolean };
+    /**
+     * A page of yours among the system pages of the account menu, which only a
+     * global administrator sees and opens: what the operator of the instance
+     * handles for everyone (reports to moderate). Needs
+     * `FeatureClient.AdminView`, and every command it sends declares
+     * `access.admin`. `icon` defaults to the manifest's.
+     */
+    adminEntry?: { label: string; icon?: string };
     /**
      * The module lives in the user menu only: no card, no row in the roles
      * screen, `Widget` and `Full` not required. Requires `accountEntry`, no
@@ -414,8 +422,8 @@ export function validateManifest(m: FeatureManifest): void {
     if (!m.label.trim()) fail(m.id, 'empty label');
     if (!m.description.trim()) fail(m.id, 'empty description');
     if (m.hasItems && !m.itemNoun?.trim()) fail(m.id, 'hasItems requires itemNoun');
-    if (external && m.shareTier !== 'never') {
-        fail(m.id, "external modules must declare shareTier 'never' for now");
+    if (m.shareTier !== 'never' && !m.hasItems) {
+        fail(m.id, `shareTier '${m.shareTier}' requires hasItems`);
     }
 
     if (m.commandPrefix !== undefined) {
@@ -499,6 +507,7 @@ export function validateManifest(m: FeatureManifest): void {
     }
 
     if (m.accountEntry && !m.accountEntry.label.trim()) fail(m.id, 'accountEntry requires a label');
+    if (m.adminEntry && !m.adminEntry.label.trim()) fail(m.id, 'adminEntry requires a label');
     if (m.accountOnly) {
         if (!m.accountEntry) fail(m.id, 'accountOnly requires accountEntry');
         if (m.hasItems) fail(m.id, 'accountOnly modules own no items');

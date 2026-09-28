@@ -26,12 +26,18 @@ test('validateManifest accepts a minimal external manifest', () => {
     assert.doesNotThrow(() => validateManifest(base));
 });
 
+test('validateManifest lets an external module with items share them', () => {
+    assert.doesNotThrow(() =>
+        validateManifest({ ...base, hasItems: true, itemNoun: 'pack', shareTier: 'open' })
+    );
+});
+
 test('validateManifest rejects the classic mistakes', () => {
     const rejects = (patch: Partial<FeatureManifest>, fragment: string) =>
         assert.throws(() => validateManifest({ ...base, ...patch }), new RegExp(fragment));
     rejects({ label: '  ' }, 'empty label');
     rejects({ hasItems: true }, 'itemNoun');
-    rejects({ shareTier: 'open' }, "shareTier 'never'");
+    rejects({ shareTier: 'open' }, 'requires hasItems');
     rejects({ commandPrefix: 'x-demo.' }, 'commandPrefix');
     rejects(
         { commands: [{ command: 'other.get', input: z.object({}), output: z.object({}) }] },

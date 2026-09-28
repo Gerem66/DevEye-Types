@@ -37,7 +37,14 @@ import type {
     CloudSyncStatePush
 } from '../protocol/agent';
 
-export { isPublicIp, isSafePublicUrl } from './net';
+export {
+    isPublicIp,
+    isSafePublicUrl,
+    NetRefused,
+    resolvesPublicly,
+    safeFetchText,
+    type SafeFetchOptions
+} from './net';
 export { mapLimit } from './pool';
 export {
     defineModuleEnv,
@@ -420,6 +427,13 @@ export interface SdkAccountMail {
      * is. Nothing is retried for you.
      */
     send(userId: number, message: SdkAccountMailMessage): Promise<string>;
+    /**
+     * One copy to each active administrator of this DevEye, for what only the
+     * operator can act on (a report of illicit content). Resolves the addresses
+     * reached, empty when there is no active administrator. Every address is
+     * tried; the first refusal then rejects. Throws `conflict` without a transport.
+     */
+    sendToAdmins(message: SdkAccountMailMessage): Promise<readonly string[]>;
 }
 
 /**
@@ -1950,7 +1964,7 @@ export type {
     SdkWorkspaceExportContext
 } from './accountExport';
 
-// Le conteneur chiffré que CloudSync et Backup partagent (voir `devb.ts`).
+// Le conteneur chiffré des modules qui stockent des fichiers (voir `devb.ts`).
 export {
     BLOB_CHUNK_BYTES,
     BLOB_CHUNK_SEALED,
@@ -1960,7 +1974,12 @@ export {
     BLOB_VERSION_STREAM,
     createBlobHeader,
     openChunk,
+    openSealedRange,
+    openSealedStream,
     openStreamDecipher,
     parseBlobHeader,
-    sealChunk
+    sealChunk,
+    sealedSize,
+    sealStream
 } from './devb';
+export { contentDisposition, parseByteRange } from './download';

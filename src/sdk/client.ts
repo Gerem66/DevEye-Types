@@ -51,6 +51,11 @@ export interface AccountViewProps {
     hint?: string;
 }
 
+/** Props of {@link FeatureClient.AdminView}. */
+export interface AdminViewProps {
+    close(): void;
+}
+
 /**
  * Your package's `./client` export.
  */
@@ -65,6 +70,8 @@ export interface FeatureClient {
     Full?: ComponentType<FeatureViewProps>;
     /** The view `manifest.accountEntry` opens from the user menu. */
     AccountView?: ComponentType<AccountViewProps>;
+    /** The system page `manifest.adminEntry` opens, for a global administrator only. */
+    AdminView?: ComponentType<AdminViewProps>;
     /**
      * The vignette shown on your card in the home grid's add market and on
      * your "About" sheet. Without one, the host draws a neutral module mark:

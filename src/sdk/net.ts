@@ -6,11 +6,13 @@
  * because an external module has no import path into the app: without this, a
  * third-party module either reimplements the ranges or ships no guard at all.
  *
- * Pure predicates, no I/O: a hostname is NOT resolved. DNS would change under
+ * The predicates do no I/O: a hostname is NOT resolved. DNS would change under
  * the caller's feet between the check and the connection anyway, so the answer
  * is about the URL, and a caller that must also bound the address it finally
- * connects to has to say so at connection time.
+ * connects to has to say so at connection time. `safeFetchText` is the one
+ * fetch built on them, for a small text body (a domain's proof, a calendar).
  */
+import { resolve4, resolve6 } from 'node:dns/promises';
 import { isIP } from 'node:net';
 
 /**
@@ -73,4 +75,100 @@ export function isSafePublicUrl(input: URL | string): boolean {
     const bare = h.replace(/^\[|\]$/g, '');
     if (isIP(bare) !== 0) return isPublicIp(bare);
     return true;
+}
+
+const MAX_REDIRECTS = 3;
+
+/** What `safeFetchText` throws for anything it refuses, its message readable as is. */
+export class NetRefused extends Error {}
+
+/** Do all the addresses of a name read as public? A name without any address is refused. */
+export async function resolvesPublicly(host: string): Promise<boolean> {
+    const bare = host.replace(/^\[|\]$/g, '');
+    if (isIP(bare) !== 0) return isPublicIp(bare);
+    const found: string[] = [];
+    for (const lookup of [resolve4(host), resolve6(host)]) {
+        try {
+            found.push(...(await lookup));
+        } catch {
+            // One family missing is not an error; both missing is.
+        }
+    }
+    return found.length > 0 && found.every((address) => isPublicIp(address));
+}
+
+export interface SafeFetchOptions {
+    /** The read stops beyond it: a hostile server does not fill the memory. */
+    maxBytes: number;
+    timeoutMs: number;
+    /** Required of the final response, as a prefix. Omitted: anything. */
+    contentType?: string;
+    accept?: string;
+    userAgent?: string;
+}
+
+/**
+ * Fetches a text body, refusing anything off the public network: the URL,
+ * every address its name resolves to, and the same again at each redirect.
+ * Rebinding between the resolution and the connection stays possible with a
+ * bare `fetch`: fine for a token you compare, which is why the body is capped.
+ */
+export async function safeFetchText(raw: string, options: SafeFetchOptions): Promise<string> {
+    let target = raw;
+
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
+        if (!isSafePublicUrl(target)) {
+            throw new NetRefused('Adresse refusée : elle n’est pas publique.');
+        }
+        const url = new URL(target);
+        if (!(await resolvesPublicly(url.hostname))) {
+            throw new NetRefused('Adresse refusée : elle ne résout pas vers une adresse publique.');
+        }
+
+        const response = await fetch(url, {
+            redirect: 'manual',
+            signal: AbortSignal.timeout(options.timeoutMs),
+            headers: {
+                accept: options.accept ?? 'text/plain, */*',
+                'user-agent': options.userAgent ?? 'DevEye/1.0'
+            }
+        });
+
+        if (response.status >= 300 && response.status < 400) {
+            const next = response.headers.get('location');
+            if (next === null) throw new NetRefused('Redirection sans destination.');
+            target = new URL(next, url).toString();
+            continue;
+        }
+        if (!response.ok) throw new NetRefused(`Réponse ${response.status}`);
+
+        const kind = (response.headers.get('content-type') ?? '').toLowerCase();
+        if (options.contentType !== undefined && !kind.startsWith(options.contentType)) {
+            throw new NetRefused(`Type inattendu : ${kind.split(';')[0] || 'aucun'}`);
+        }
+        return readBounded(response, options.maxBytes);
+    }
+    throw new NetRefused('Trop de redirections.');
+}
+
+async function readBounded(response: Response, maxBytes: number): Promise<string> {
+    const body = response.body;
+    if (body === null) return '';
+
+    const reader = body.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > maxBytes) {
+            await reader.cancel();
+            throw new NetRefused(
+                `Réponse trop longue (plus de ${Math.round(maxBytes / 1024)} ko).`
+            );
+        }
+        chunks.push(value);
+    }
+    return Buffer.concat(chunks).toString('utf8');
 }

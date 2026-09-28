@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
+import { createServer, type Server } from 'node:http';
 import test from 'node:test';
 
-import { isPublicIp, isSafePublicUrl } from './net';
+import { isPublicIp, isSafePublicUrl, NetRefused, safeFetchText } from './net';
 
 test('isPublicIp: the private ranges of both families read as false', () => {
     for (const ip of ['8.8.8.8', '1.1.1.1', '2001:4860:4860::8888']) {
@@ -47,5 +48,45 @@ test('isSafePublicUrl: only public http(s) hosts, string or URL', () => {
         'not a url at all'
     ]) {
         assert.equal(isSafePublicUrl(url), false, url);
+    }
+});
+
+const OPTIONS = { maxBytes: 1024, timeoutMs: 2000 };
+
+async function listening(
+    handler: Parameters<typeof createServer>[1]
+): Promise<{ url: string; close: () => void }> {
+    const server: Server = createServer(handler);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    const port = typeof address === 'object' && address !== null ? address.port : 0;
+    return { url: `http://127.0.0.1:${port}`, close: () => server.close() };
+}
+
+test('safeFetchText: a loopback server is refused before any connection', async () => {
+    let touched = false;
+    const server = await listening((_req, res) => {
+        touched = true;
+        res.end('token');
+    });
+    try {
+        await assert.rejects(safeFetchText(server.url, OPTIONS), NetRefused);
+        assert.equal(touched, false);
+    } finally {
+        server.close();
+    }
+});
+
+test('safeFetchText: other schemes, names that do not resolve and private IPs are refused', async () => {
+    for (const url of [
+        'file:///etc/passwd',
+        'gopher://example.com',
+        'ftp://example.com/a',
+        'https://this-name-does-not-exist.invalid/a.ics',
+        'http://169.254.169.254/latest/meta-data/',
+        'http://10.0.0.1/',
+        'http://[::1]/'
+    ]) {
+        await assert.rejects(safeFetchText(url, OPTIONS), NetRefused, url);
     }
 });

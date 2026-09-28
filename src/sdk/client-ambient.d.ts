@@ -13,6 +13,7 @@ declare module 'deveye-sdk-client' {
         CSSProperties,
         ChangeEvent,
         ComponentType,
+        DragEvent,
         InputHTMLAttributes,
         ReactNode,
         RefObject,
@@ -462,6 +463,81 @@ declare module 'deveye-sdk-client' {
         onGripPointerDown: (e: ReactPointerEvent, id: string | number) => void;
         draggingId: string | number | null;
     };
+
+    // ── Files ──────────────────────────────────────────────────────────────
+    /** A file picked or dropped, with its relative path, name included (`photos/a.jpg`; `a.jpg` outside a folder). */
+    export interface PickedFile {
+        file: File;
+        path: string;
+    }
+    export interface UploadHandle {
+        done: Promise<void>;
+        abort(): void;
+    }
+    /** What `UploadHandle.done` rejects with: the server's message, or why the connection ended. */
+    export class UploadError extends Error {
+        readonly aborted: boolean;
+        constructor(message: string, aborted?: boolean);
+    }
+    /**
+     * POSTs the file as is (`application/octet-stream`) to a route of yours,
+     * typically a `postStream` URL carrying a ticket. `onProgress` gets 0 to 1;
+     * at 1 the server is still writing.
+     */
+    export function uploadFile(
+        url: string,
+        file: File,
+        onProgress: (ratio: number) => void
+    ): UploadHandle;
+    /** Downloads a URL served as an attachment, without leaving the page. */
+    export function saveFrom(url: string): void;
+    /** Opens the system picker; `folder` takes a whole folder, relative paths included. Cancelled: empty. */
+    export function pickFiles(opts?: {
+        multiple?: boolean;
+        folder?: boolean;
+        accept?: string;
+    }): Promise<PickedFile[]>;
+    /** Reads a drop: its files and, recursively, the content of the folders dropped. */
+    export function filesOfDrop(data: DataTransfer): Promise<PickedFile[]>;
+    /** Makes any element a drop target: spread `props` on it, `over` while files hover. */
+    export function useFileDrop(
+        onFiles: (files: PickedFile[]) => void,
+        disabled?: boolean
+    ): {
+        over: boolean;
+        props: {
+            onDragOver: (event: DragEvent) => void;
+            onDragLeave: (event: DragEvent) => void;
+            onDrop: (event: DragEvent) => void;
+        };
+    };
+    /**
+     * The drop area: a real button that opens the picker, dropping is a
+     * shortcut. `multiple` takes several files and whole folders; otherwise
+     * only the first file.
+     */
+    export const Dropzone: ComponentType<{
+        onFiles: (files: PickedFile[]) => void;
+        title: string;
+        hint?: string;
+        accept?: string;
+        multiple?: boolean;
+        disabled?: boolean;
+        className?: string;
+    }>;
+    /**
+     * The quiet gauge of a quota in a feature's header: the same count as the
+     * refusal. It warns at 80 %, alarms at 95 %, and leads the workspace owner
+     * to the plans. `limit: null` shows the usage alone. Bytes by default.
+     */
+    export const UsageMeter: ComponentType<{
+        used: number;
+        limit: number | null;
+        label: string;
+        explain?: string;
+        format?: (value: number) => string;
+        usedWord?: string;
+    }>;
 
     // ── Server push events ─────────────────────────────────────────────────
     /** Typed push subscription: filters `event`, safeParses, drops mismatches. */

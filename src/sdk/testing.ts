@@ -734,7 +734,7 @@ export interface RecordedServiceCalls extends RecordedCalls {
     liveChanges: number[];
     /** `live.changed` calls that named topics, as `{ workspaceId, topics }` (a bare beat is not listed here). */
     liveTopicChanges: { workspaceId: number; topics: readonly string[] }[];
-    /** Emails `accountMail.send` accepted, with the address they went to. */
+    /** Emails `accountMail.send` and `sendToAdmins` accepted, with the address they went to. */
     mails: { userId: number; to: string; message: SdkAccountMailMessage }[];
 }
 
@@ -964,6 +964,14 @@ export function createTestServiceDeps<Repo = undefined>(
                 }
                 recorded.mails.push({ userId, to, message });
                 return Promise.resolve(to);
+            },
+            sendToAdmins(message) {
+                if (overrides.mailConfigured === false) {
+                    return Promise.reject(new FeatureError('conflict', 'no mail transport'));
+                }
+                const admins = (overrides.accounts ?? []).filter((a) => a.isAdmin && !a.suspended);
+                for (const a of admins) recorded.mails.push({ userId: a.id, to: a.email, message });
+                return Promise.resolve(admins.map((a) => a.email));
             }
         },
         audit: (entry) => {

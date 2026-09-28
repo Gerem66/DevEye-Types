@@ -38,6 +38,7 @@ import type {
 } from '../protocol/agent';
 
 export { isPublicIp, isSafePublicUrl } from './net';
+export { mapLimit } from './pool';
 export {
     defineModuleEnv,
     MODULE_ENV_NAME_PATTERN,

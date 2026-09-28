@@ -775,6 +775,14 @@ export interface SdkObjectStore {
      * Yours alone; the store never cleans it.
      */
     spoolDir(): string;
+    /**
+     * The store's root when files written there would not last: on the
+     * server's disk, inside a container, a directory on no mounted volume,
+     * so its writable layer, wiped at the next redeploy. `null` otherwise,
+     * and always on S3. Refuse to write there, naming the variable that sets
+     * `localDir`: the files would vanish without a word.
+     */
+    ephemeralRoot(): Promise<string | null>;
 }
 
 /**

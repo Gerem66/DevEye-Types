@@ -1040,7 +1040,7 @@ function assertTestKey(key: string): void {
  * uploads are written there with plain `fs`.
  */
 export function memoryObjectStore(
-    opts: { kind?: 'local' | 's3'; spoolDir?: string } = {}
+    opts: { kind?: 'local' | 's3'; spoolDir?: string; ephemeralRoot?: string } = {}
 ): MemoryObjectStore {
     const objects = new Map<string, Buffer>();
     const spool = opts.spoolDir ?? path.join(os.tmpdir(), `deveye-spool-${process.pid}`);
@@ -1089,7 +1089,8 @@ export function memoryObjectStore(
             for (const key of [...objects.keys()]) if (key.startsWith(prefix)) objects.delete(key);
             return Promise.resolve();
         },
-        spoolDir: () => spool
+        spoolDir: () => spool,
+        ephemeralRoot: () => Promise.resolve(opts.ephemeralRoot ?? null)
     };
 }
 

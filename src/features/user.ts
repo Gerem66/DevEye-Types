@@ -110,6 +110,7 @@ export const accountPlanSchema = z.object({
     id: z.string(),
     label: z.string(),
     limits: z.record(z.string(), z.number().int().nonnegative()),
+    priority: z.boolean(),
     trialEndsAt: z.number().int().nonnegative().optional(),
     changesAt: z.number().int().nonnegative().optional()
 });

@@ -21,7 +21,13 @@ export const maintenanceStateSchema = z.object({
     /** The text shown to everyone the site maintenance keeps out. */
     message: z.string(),
     /** Features under maintenance only; an absent id is open. */
-    features: z.record(z.string(), featureMaintenanceLevelSchema)
+    features: z.record(z.string(), featureMaintenanceLevelSchema),
+    /**
+     * Accounts whose plan has `priority` are served first: the others stay
+     * signed in, with everything they run paused. Defaults for a remote
+     * instance on an older version.
+     */
+    priority: z.boolean().default(false)
 });
 export type MaintenanceState = z.infer<typeof maintenanceStateSchema>;
 

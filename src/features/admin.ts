@@ -73,6 +73,21 @@ export const adminMaintenanceSchema = z.object({
         updated: z.number().int().nonnegative(),
         updatedBy: maintenanceAuthorSchema
     }),
+    /** La priorité aux abonnés, commune à tous les serveurs qui partagent la base. */
+    priority: z.object({
+        active: z.boolean(),
+        /** Sans module qui tient les offres, personne n'est abonné : rien à activer. */
+        available: z.boolean(),
+        updated: z.number().int().nonnegative().nullable(),
+        updatedBy: maintenanceAuthorSchema
+    }),
+    /** Les inscriptions de ce serveur seulement, rangées par origine publique. */
+    signups: z.object({
+        open: z.boolean(),
+        origin: z.string(),
+        updated: z.number().int().nonnegative().nullable(),
+        updatedBy: maintenanceAuthorSchema
+    }),
     /** Chaque module installé, ouvert ou non. */
     features: z.array(
         z.object({
@@ -114,6 +129,22 @@ export const adminMaintenanceFeature = {
     output: adminMaintenanceSchema
 };
 
+/**
+ * Les comptes sans offre prioritaire restent connectés, mais tout ce qui tourne
+ * pour eux se met en pause et ils ne créent plus rien, jusqu'à la levée.
+ */
+export const adminMaintenancePriority = {
+    command: 'admin.maintenancePriority' as const,
+    input: z.object({ active: z.boolean() }),
+    output: adminMaintenanceSchema
+};
+
+export const adminMaintenanceSignups = {
+    command: 'admin.maintenanceSignups' as const,
+    input: z.object({ open: z.boolean() }),
+    output: adminMaintenanceSchema
+};
+
 /** Ferme le rappel de `MAINTENANCE=1`, pour tous les administrateurs. */
 export const adminMaintenanceDismissNotice = {
     command: 'admin.maintenanceDismissNotice' as const,
@@ -129,5 +160,7 @@ export const adminCommands = [
     adminMaintenanceGet,
     adminMaintenanceSite,
     adminMaintenanceFeature,
+    adminMaintenancePriority,
+    adminMaintenanceSignups,
     adminMaintenanceDismissNotice
 ] as const;

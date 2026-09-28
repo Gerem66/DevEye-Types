@@ -453,7 +453,10 @@ export interface SdkQuotaUse {
  * everything is unlimited.
  */
 export interface SdkQuota extends SdkPlanPauses {
-    /** `null` = unlimited. An undeclared key throws `validation`. */
+    /**
+     * `null` = unlimited. An undeclared key throws `validation`. Reads 0 while
+     * the host serves priority accounts first and the owner is not one.
+     */
     limit(key: string): Promise<number | null>;
     /**
      * Call it BEFORE creating. `countAfter` receives the ids of every workspace

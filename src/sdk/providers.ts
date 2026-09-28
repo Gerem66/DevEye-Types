@@ -618,6 +618,12 @@ export interface AccountPlan {
     label: string;
     /** `<featureId>.<quotaKey>` to its maximum. An absent key is unlimited. */
     limits: Readonly<Record<string, number>>;
+    /**
+     * The account is served first when the host sheds load. While the admin
+     * gives priority to such accounts, every limit of the others reads 0: their
+     * stock is paused and their creations refused, until the mode ends.
+     */
+    priority: boolean;
     /** The plan is a trial ending then (ms since the epoch). */
     trialEndsAt?: number;
     /**

@@ -28,6 +28,7 @@ import type {
     AgentSyncMovePayload,
     AgentSyncOpResultPayload,
     AgentSyncPushPayload,
+    AgentSyncPushAckPayload,
     AgentSyncScanPayload,
     AgentFilesMutatePayload,
     AgentFilesUploadPayload,
@@ -568,6 +569,7 @@ export interface AgentsFacade {
     requestSyncConfig(deviceId: string, payload: AgentSyncConfigPayload): boolean;
     requestSyncScan(deviceId: string, payload: AgentSyncScanPayload): boolean;
     requestSyncPush(deviceId: string, payload: AgentSyncPushPayload): boolean;
+    requestSyncPushAck(deviceId: string, payload: AgentSyncPushAckPayload): boolean;
     requestSyncApplyChunk(deviceId: string, payload: AgentSyncApplyChunkPayload): boolean;
     requestSyncApplyStart(deviceId: string, payload: AgentSyncApplyStartPayload): boolean;
     requestSyncApplyDir(deviceId: string, payload: AgentSyncApplyDirPayload): boolean;

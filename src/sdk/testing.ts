@@ -277,6 +277,7 @@ function recordingAgents(recorded: RecordedCalls, docker: TestAgents = {}): DevE
         requestSyncConfig: req('requestSyncConfig'),
         requestSyncScan: req('requestSyncScan'),
         requestSyncPush: req('requestSyncPush'),
+        requestSyncPushAck: req('requestSyncPushAck'),
         requestSyncApplyChunk: req('requestSyncApplyChunk'),
         requestSyncApplyStart: req('requestSyncApplyStart'),
         requestSyncApplyDir: req('requestSyncApplyDir'),

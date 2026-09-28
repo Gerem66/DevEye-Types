@@ -418,7 +418,13 @@ export const agentSyncChunkPayloadSchema = z.object({
     hash: sha256HexSchema.optional(),
     size: z.number().int().nonnegative().optional(),
     mtime: z.number().int().nonnegative().optional(),
-    error: z.string().max(500).optional()
+    error: z.string().max(500).optional(),
+    /**
+     * Rank of the frame in its push, from 0. Present only when the agent
+     * honours the push's `window`: the server then answers each data frame with
+     * `sync.pushAck`. Absent (an older agent), nothing is acknowledged.
+     */
+    seq: z.number().int().nonnegative().optional()
 });
 export type AgentSyncChunkPayload = z.infer<typeof agentSyncChunkPayloadSchema>;
 
@@ -922,9 +928,24 @@ export const agentSyncPushPayloadSchema = z.object({
     opId: syncOpId,
     shareId: z.number().int().positive(),
     relPath: syncRelPath,
-    startOffset: z.number().int().nonnegative().default(0)
+    startOffset: z.number().int().nonnegative().default(0),
+    /**
+     * Data frames the agent may have unacknowledged at once: it numbers its
+     * frames (`seq`) and waits for a `sync.pushAck` before going past the
+     * window. The server acks a frame once written, and paces its acks to cap
+     * the upload rate. Absent (an older server), the agent streams freely.
+     */
+    window: z.number().int().positive().max(64).optional()
 });
 export type AgentSyncPushPayload = z.infer<typeof agentSyncPushPayloadSchema>;
+
+/** One credit back for a windowed push: data frame `seq` of `opId` is written. */
+export const AGENT_SYNC_PUSH_ACK = 'sync.pushAck' as const;
+export const agentSyncPushAckPayloadSchema = z.object({
+    opId: syncOpId,
+    seq: z.number().int().nonnegative()
+});
+export type AgentSyncPushAckPayload = z.infer<typeof agentSyncPushAckPayloadSchema>;
 
 /**
  * Un chunk de download à installer. hash/size/mtime sont répétés sur chaque
@@ -1207,6 +1228,10 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_SYNC_PUSH),
         payload: agentSyncPushPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SYNC_PUSH_ACK),
+        payload: agentSyncPushAckPayloadSchema
     }),
     z.object({
         command: z.literal(AGENT_SYNC_APPLY_CHUNK),

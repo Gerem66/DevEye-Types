@@ -212,13 +212,19 @@ export type AgentServiceScope = z.infer<typeof agentServiceScopeSchema>;
  */
 export const agentPolicySchema = z.object({
     terminal: z.boolean(),
+    /** Browsing, searching and downloading files. Defaulted, like the switches below: an agent older than them reports without them, and does not refuse. */
+    filesRead: z.boolean().default(true),
     filesWrite: z.boolean(),
     power: z.boolean(),
     pkgUpgrade: z.boolean(),
     serviceElevate: z.boolean(),
     destroy: z.boolean(),
-    /** Deployments (`composeDeploy`). Defaulted: an agent older than the switch reports without it. */
-    dockerDeploy: z.boolean().default(true)
+    /** Every container action (start, stop, prune, deploy). */
+    docker: z.boolean().default(true),
+    /** Deployments (`composeDeploy`), on top of `docker`. */
+    dockerDeploy: z.boolean().default(true),
+    /** CloudSync shares: the server reading and writing a synced folder. */
+    sync: z.boolean().default(true)
 });
 export type AgentPolicy = z.infer<typeof agentPolicySchema>;
 
@@ -244,12 +250,15 @@ export const agentInfoSchema = z.object({
     probes: z.array(z.string().max(32)).max(16).default([]),
     policy: agentPolicySchema.default({
         terminal: true,
+        filesRead: true,
         filesWrite: true,
         power: true,
         pkgUpgrade: true,
         serviceElevate: true,
         destroy: true,
-        dockerDeploy: true
+        docker: true,
+        dockerDeploy: true,
+        sync: true
     }),
     /** The agent reaches this server over plain http/ws (opted in locally): everything, shell included, travels in clear. */
     insecureTransport: z.boolean().default(false)

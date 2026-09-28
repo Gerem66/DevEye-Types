@@ -1095,6 +1095,7 @@ export {
     agentTargetStatusSchema,
     enrollDeviceRequestSchema,
     enrollDeviceResponseSchema,
+    LINK_CODE_MAX_USES,
     LINK_CODE_TTL_MAX_SECONDS,
     linkCodeRequestSchema,
     linkCodeResponseSchema,

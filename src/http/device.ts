@@ -5,40 +5,58 @@ import { devicePlatformSchema, deviceSchema } from '../domain/device';
  * Device linking & enrollment (HTTP, distinct from the user feature protocol).
  *
  * Flow:
- *  1. A member holding `devices: write` issues a short-lived link code for the
- *     active workspace.
- *  2. The agent posts the code and its machine fingerprint to enroll.
+ *  1. A member holding `devices: write` issues a link code for the active
+ *     workspace: a lifetime and a number of uses (several for a fleet).
+ *  2. The agent posts the code and its machine fingerprint to enroll. Every
+ *     successful enrollment spends one use; the code is gone once expired or
+ *     spent. Failures lock the caller's IP out for a while, and a code whose
+ *     issuer no longer manages the workspace's devices is refused.
  *  3. A fingerprint new to the workspace is enrolled `active`, once the plan
- *     allows one more device (checked before the code is consumed). A known
- *     fingerprint takes over that device record: a fresh token replaces the
- *     old one and the device waits, `pending`, for someone to approve it.
+ *     allows one more device (checked before a use is spent). A known
+ *     fingerprint takes over that device record, but only through a
+ *     single-use code: a fresh token replaces the old one and the device
+ *     waits, `pending`, for someone to approve it. A multi-use code refuses it
+ *     (`conflict`), so two clones of one machine never steal each other's
+ *     record in silence.
  */
 
-/** Hard cap on a code lifetime (one hour). A link code is a key to the workspace. */
-export const LINK_CODE_TTL_MAX_SECONDS = 60 * 60;
+/** Hard cap on a code lifetime (seven days). A link code is a key to the workspace. */
+export const LINK_CODE_TTL_MAX_SECONDS = 7 * 24 * 60 * 60;
+
+/** Hard cap on the uses of one code. */
+export const LINK_CODE_MAX_USES = 1000;
 
 /**
- * Request a new link code. `ttlSeconds` omitted → server default lifetime,
- * otherwise a lifetime in seconds.
+ * Request a new link code. `ttlSeconds` omitted → server default lifetime;
+ * `maxUses` omitted → a single use.
  */
 export const linkCodeRequestSchema = z.object({
-    ttlSeconds: z.number().int().positive().max(LINK_CODE_TTL_MAX_SECONDS).optional()
+    ttlSeconds: z.number().int().positive().max(LINK_CODE_TTL_MAX_SECONDS).optional(),
+    maxUses: z.number().int().min(1).max(LINK_CODE_MAX_USES).optional()
 });
 
 export type LinkCodeRequest = z.infer<typeof linkCodeRequestSchema>;
 
 export const linkCodeResponseSchema = z.object({
-    /** Short human-typable code (e.g. shown in the UI, entered on the agent). */
+    /** Human-typable code (e.g. shown in the UI, entered on the agent). */
     code: z.string().min(6).max(32),
     /** Unix seconds when the code expires. */
-    expiresAt: z.number().int().positive()
+    expiresAt: z.number().int().positive(),
+    /** Enrollments the code allows in total. */
+    maxUses: z.number().int().min(1),
+    /** Enrollments already made with it. */
+    uses: z.number().int().min(0)
 });
 
 export type LinkCodeResponse = z.infer<typeof linkCodeResponseSchema>;
 
-/** The workspace's link codes still usable (unconsumed, unexpired). */
+/** The workspace's link codes still usable (uses left, unexpired). */
 export const linkCodesListResponseSchema = z.object({
-    codes: z.array(linkCodeResponseSchema)
+    codes: z.array(linkCodeResponseSchema),
+    /** The server origin an agent enrolls with: what an install command names. */
+    server: z.string().min(1),
+    /** Where the workspace owner stands against the plan's device limit; `null` = unlimited. */
+    quota: z.object({ used: z.number().int().min(0), limit: z.number().int().min(0) }).nullable()
 });
 
 export type LinkCodesListResponse = z.infer<typeof linkCodesListResponseSchema>;

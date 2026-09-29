@@ -95,8 +95,15 @@ export type UserSecurity = z.infer<typeof userSecuritySchema>;
  * - `feedbackHintDismissed` : la bulle qui présente le bouton de signalement a
  *   été vue. Posée par sa croix comme par l'ouverture du formulaire, elle ne
  *   se retire jamais : la bulle se montre une fois dans la vie d'un compte.
+ * - `homeLayoutHintDismissed`, `aboutHintDismissed` : de même pour les bulles
+ *   du bouton d'organisation de l'accueil et du numéro de version.
  */
-export const userSettingFlagSchema = z.enum(['hideLiveCursors', 'feedbackHintDismissed']);
+export const userSettingFlagSchema = z.enum([
+    'hideLiveCursors',
+    'feedbackHintDismissed',
+    'homeLayoutHintDismissed',
+    'aboutHintDismissed'
+]);
 export type UserSettingFlag = z.infer<typeof userSettingFlagSchema>;
 
 export const userSchema = z.object({

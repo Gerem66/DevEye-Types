@@ -242,6 +242,7 @@ interface TestAgents {
     dockerInventory?: DevEyeFacade['agents']['dockerInventory'];
     /** By device id. A device without an entry answers nothing: its stream throws. */
     archives?: Readonly<Record<string, TestFolderArchive | Error>>;
+    openTcp?: DevEyeFacade['agents']['openTcp'];
     /** The plan `metricIntervals` applies. Default paid. */
     paid?: boolean;
 }
@@ -334,6 +335,12 @@ function recordingAgents(recorded: RecordedCalls, docker: TestAgents = {}): DevE
             recorded.agentRequests.push({ method: 'archiveFolder', deviceId });
             recorded.archiveRequests.push({ deviceId, ...request });
             return replayedArchive(docker.archives?.[deviceId]);
+        },
+        openTcp(deviceId, target) {
+            recorded.agentRequests.push({ method: 'openTcp', deviceId });
+            return docker.openTcp
+                ? docker.openTcp(deviceId, target)
+                : Promise.reject(new Error('La machine n’est pas connectée.'));
         }
     };
 }
@@ -481,6 +488,8 @@ export interface TestContextOverrides<Repo> {
     dockerInventory?: DevEyeFacade['agents']['dockerInventory'];
     /** What `deveye.agents.archiveFolder` streams, by device id. Default none: the stream throws. */
     archives?: Readonly<Record<string, TestFolderArchive | Error>>;
+    /** What `deveye.agents.openTcp` resolves. Default a rejection, as for an offline device. */
+    openTcp?: DevEyeFacade['agents']['openTcp'];
     /** Instants `deveye.telemetry.snapshot` answers (matched within a second). Default none. */
     snapshots?: readonly SdkTelemetrySnapshot[];
     /** Override facade members entirely when the defaults are not enough. */
@@ -758,6 +767,8 @@ export interface TestServiceOverrides<Repo> {
     dockerInventory?: DevEyeFacade['agents']['dockerInventory'];
     /** What `deps.agents.archiveFolder` streams, by device id. Default none: the stream throws. */
     archives?: Readonly<Record<string, TestFolderArchive | Error>>;
+    /** What `deps.agents.openTcp` resolves. Default a rejection, as for an offline device. */
+    openTcp?: DevEyeFacade['agents']['openTcp'];
     /** What `deps.access` answers. Default: every member holds every right. */
     access?: Partial<FeatureServiceDeps['access']>;
     /** The accounts `deps.accounts` knows, and `deps.accountMail` writes to. Default none. */

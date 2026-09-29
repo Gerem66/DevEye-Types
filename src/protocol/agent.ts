@@ -345,6 +345,37 @@ export const agentFilesArchiveEndPayloadSchema = z.object({
 });
 export type AgentFilesArchiveEndPayload = z.infer<typeof agentFilesArchiveEndPayloadSchema>;
 
+const tunnelId = z.string().min(1).max(64);
+/** Raw bytes per `tunnel.data` or `tunnel.write` frame, before base64. */
+export const AGENT_TUNNEL_PIECE_BYTES = 64 * 1024;
+const tunnelData = z.string().max(90_000);
+
+/** Agent → server: the TCP connection of a `tunnel.open` is up; bytes may flow. */
+export const AGENT_TUNNEL_OPENED = 'tunnel.opened' as const;
+export const agentTunnelOpenedPayloadSchema = z.object({ deviceId: z.uuid(), tunnelId });
+export type AgentTunnelOpenedPayload = z.infer<typeof agentTunnelOpenedPayloadSchema>;
+
+/** Agent → server: bytes read from the target (`data` base64). Spends one credit. */
+export const AGENT_TUNNEL_DATA = 'tunnel.data' as const;
+export const agentTunnelDataPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    tunnelId,
+    data: tunnelData
+});
+export type AgentTunnelDataPayload = z.infer<typeof agentTunnelDataPayloadSchema>;
+
+/**
+ * Agent → server: the tunnel ended, the last frame for its id. `error` when it
+ * did not end with the target closing (refused, unreachable, cut).
+ */
+export const AGENT_TUNNEL_CLOSED = 'tunnel.closed' as const;
+export const agentTunnelClosedPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    tunnelId,
+    error: z.string().max(500).optional()
+});
+export type AgentTunnelClosedPayload = z.infer<typeof agentTunnelClosedPayloadSchema>;
+
 const syncOpId = z.string().min(1).max(64);
 const syncRelPath = z.string().min(1).max(SYNC_REL_PATH_MAX);
 
@@ -604,6 +635,18 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_FILES_ARCHIVE_END),
         payload: agentFilesArchiveEndPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_TUNNEL_OPENED),
+        payload: agentTunnelOpenedPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_TUNNEL_DATA),
+        payload: agentTunnelDataPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_TUNNEL_CLOSED),
+        payload: agentTunnelClosedPayloadSchema
     }),
     z.object({
         command: z.literal(AGENT_SYNC_CHANGED),
@@ -870,6 +913,43 @@ export type AgentFilesArchiveCreditPayload = z.infer<typeof agentFilesArchiveCre
 export const AGENT_FILES_ARCHIVE_CANCEL = 'files.archiveCancel' as const;
 export const agentFilesArchiveCancelPayloadSchema = z.object({ opId: filesOpId });
 export type AgentFilesArchiveCancelPayload = z.infer<typeof agentFilesArchiveCancelPayloadSchema>;
+
+/**
+ * Open a TCP connection from the machine to `host:port` and relay it: what
+ * lets a module reach a service only the machine can see (a database on its
+ * loopback). The agent answers `tunnel.opened` then `tunnel.data` frames under
+ * credits, or `tunnel.closed` with the reason. It only reaches its own
+ * loopback, plus the hosts its operator lists in `tunnel_targets`.
+ */
+export const AGENT_TUNNEL_OPEN = 'tunnel.open' as const;
+/** What an agent that knows `tunnel.open` declares in `report.agent.probes`. */
+export const AGENT_TUNNEL_PROBE = 'tunnel';
+export const agentTunnelOpenPayloadSchema = z.object({
+    tunnelId,
+    host: z.string().min(1).max(255),
+    port: z.number().int().min(1).max(65535),
+    /** Credits granted up front. */
+    window: z.number().int().min(1).max(64)
+});
+export type AgentTunnelOpenPayload = z.infer<typeof agentTunnelOpenPayloadSchema>;
+
+/** Bytes for the target (`data` base64). */
+export const AGENT_TUNNEL_WRITE = 'tunnel.write' as const;
+export const agentTunnelWritePayloadSchema = z.object({ tunnelId, data: tunnelData });
+export type AgentTunnelWritePayload = z.infer<typeof agentTunnelWritePayloadSchema>;
+
+/** More credits for a tunnel, as the server consumes its `tunnel.data` frames. */
+export const AGENT_TUNNEL_CREDIT = 'tunnel.credit' as const;
+export const agentTunnelCreditPayloadSchema = z.object({
+    tunnelId,
+    credits: z.number().int().min(1).max(64)
+});
+export type AgentTunnelCreditPayload = z.infer<typeof agentTunnelCreditPayloadSchema>;
+
+/** Close a tunnel. The agent sends nothing back: the server has already forgotten it. */
+export const AGENT_TUNNEL_CLOSE = 'tunnel.close' as const;
+export const agentTunnelClosePayloadSchema = z.object({ tunnelId });
+export type AgentTunnelClosePayload = z.infer<typeof agentTunnelClosePayloadSchema>;
 
 /**
  * CloudSync, serveur → agent. Le serveur orchestre tout : l'agent reçoit ses
@@ -1218,6 +1298,22 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
         payload: agentFilesArchiveCancelPayloadSchema
     }),
     z.object({
+        command: z.literal(AGENT_TUNNEL_OPEN),
+        payload: agentTunnelOpenPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_TUNNEL_WRITE),
+        payload: agentTunnelWritePayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_TUNNEL_CREDIT),
+        payload: agentTunnelCreditPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_TUNNEL_CLOSE),
+        payload: agentTunnelClosePayloadSchema
+    }),
+    z.object({
         command: z.literal(AGENT_SYNC_CONFIG),
         payload: agentSyncConfigPayloadSchema
     }),
@@ -1266,8 +1362,8 @@ export type OrderSignature = z.infer<typeof orderSignatureSchema>;
 /**
  * The orders the server signs (`ORDER_SIGNING_KEY`) and the agent refuses
  * unsigned: what runs code, writes or deletes files, changes the agent's
- * privileges or its life, or drives its containers. Mirror of
- * `SIGNED_COMMANDS` in `agent/src/protocol.rs`.
+ * privileges or its life, drives its containers, or reaches into its network.
+ * Mirror of `SIGNED_COMMANDS` in `agent/src/protocol.rs`.
  */
 export const SIGNED_AGENT_COMMANDS: ReadonlySet<string> = new Set([
     AGENT_TERM_OPEN,
@@ -1278,7 +1374,8 @@ export const SIGNED_AGENT_COMMANDS: ReadonlySet<string> = new Set([
     AGENT_DESTROY,
     AGENT_PKG_UPGRADE,
     AGENT_LIFECYCLE,
-    AGENT_DOCKER_ACTION
+    AGENT_DOCKER_ACTION,
+    AGENT_TUNNEL_OPEN
 ]);
 
 /**

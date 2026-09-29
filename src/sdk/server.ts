@@ -1,3 +1,4 @@
+import type { Duplex } from 'node:stream';
 import type { FeatureAccountExport } from './accountExport';
 import type { ItemTree, ItemTreeRows } from './copy';
 import type { z, ZodType } from 'zod';
@@ -655,6 +656,19 @@ export interface AgentsFacade {
         request: AgentFolderArchiveRequest,
         options?: { signal?: AbortSignal }
     ): AgentFolderArchive;
+    /**
+     * A TCP connection opened BY THE DEVICE to `host:port` and relayed by its
+     * agent: a service only the machine can reach (a database on its
+     * loopback) becomes a stream here, read at the consumer's pace. The agent
+     * only reaches its own loopback, plus the hosts its operator lists in
+     * `tunnel_targets`, and refuses everything under `allow_tunnel = false`.
+     * Rejects with the reason (offline, refused, unreachable, an agent that
+     * predates the order: check `report.agent.probes` for
+     * `AGENT_TUNNEL_PROBE` first to say so plainly). Once open, the stream is
+     * destroyed with an error when the device goes offline; ending or
+     * destroying it closes the connection on the machine.
+     */
+    openTcp(deviceId: string, target: { host: string; port: number }): Promise<Duplex>;
     /**
      * Bytes queued on the agent's socket, not yet on the wire. A sender that
      * streams towards an agent must watch it: the socket accepts everything,

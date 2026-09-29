@@ -224,7 +224,9 @@ export const agentPolicySchema = z.object({
     /** Deployments (`composeDeploy`), on top of `docker`. */
     dockerDeploy: z.boolean().default(true),
     /** CloudSync shares: the server reading and writing a synced folder. */
-    sync: z.boolean().default(true)
+    sync: z.boolean().default(true),
+    /** Tunnels (`tunnel.open`): a module reaching a service of the machine, such as a database. */
+    tunnel: z.boolean().default(true)
 });
 export type AgentPolicy = z.infer<typeof agentPolicySchema>;
 
@@ -258,7 +260,8 @@ export const agentInfoSchema = z.object({
         destroy: true,
         docker: true,
         dockerDeploy: true,
-        sync: true
+        sync: true,
+        tunnel: true
     }),
     /** The agent reaches this server over plain http/ws (opted in locally): everything, shell included, travels in clear. */
     insecureTransport: z.boolean().default(false)

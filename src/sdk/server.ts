@@ -1372,6 +1372,22 @@ export interface FeatureService {
     onAccountDeleted?(
         userId: number
     ): void | SdkAccountDeletedNote | Promise<void | SdkAccountDeletedNote>;
+    /**
+     * What your service knows of its own health that the host cannot see: a
+     * port it failed to open, an engine it depends on. Read by the public
+     * status page about once a minute. Answer from memory: no network call, no
+     * write, no heavy query; after 2 s the host counts you as degraded. Omit it
+     * when the process and the database are all you rely on: the host already
+     * watches those, along with your failing tickers and commands.
+     */
+    health?(): SdkServiceHealth | Promise<SdkServiceHealth>;
+}
+
+/** A service's own verdict on itself, as `FeatureService.health` gives it. */
+export interface SdkServiceHealth {
+    state: 'up' | 'degraded' | 'down';
+    /** Shown on the public status page: a short sentence for users, never an internal detail. */
+    reason?: string;
 }
 
 /** One paragraph of yours in the email confirming an account's deletion to its holder. */

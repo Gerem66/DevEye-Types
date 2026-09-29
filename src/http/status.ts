@@ -37,6 +37,12 @@ export const serverStatusSchema = z.object({
     version: z.string(),
     /** Does this server let another instance's page open a session (`FEDERATION_ORIGINS`)? */
     federation: z.boolean(),
+    /**
+     * The public status page watching this server (`STATUS_PAGE_URL`), which
+     * stays reachable when the server is down; `null` when none is set.
+     * Defaulted so an older remote instance still parses.
+     */
+    statusPageUrl: z.string().url().nullable().default(null),
     tasks: z.array(bootTaskSchema)
 });
 

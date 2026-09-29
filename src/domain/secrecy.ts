@@ -35,6 +35,19 @@ export const secrecyStatusSchema = z.object({
 
 export type SecrecyStatus = z.infer<typeof secrecyStatusSchema>;
 
+/**
+ * Pushed to every open socket of a session whenever the server caches or wipes
+ * its unlocked DEK (unlock, lock, grace expiry, disconnect of a sibling tab), so
+ * the client never shows a vault the server already forgot. Sliding the grace
+ * window is not pushed.
+ */
+export const SECRECY_STATE_EVENT = 'secrecy.state' as const;
+export const secrecyStatePushSchema = secrecyStatusSchema.pick({
+    unlocked: true,
+    unlockedUntil: true
+});
+export type SecrecyStatePush = z.infer<typeof secrecyStatePushSchema>;
+
 /** How the DEK is wrapped at rest. Mirrors the `wrap_mode` SQL column. */
 export const secrecyWrapModeSchema = z.enum(['server', 'password']);
 export type SecrecyWrapMode = z.infer<typeof secrecyWrapModeSchema>;

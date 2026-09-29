@@ -574,8 +574,18 @@ export type {
     UserSettingFlag,
     UserStatus
 } from './domain/user';
-export { secrecyStatusSchema, secrecyWrapModeSchema } from './domain/secrecy';
-export type { SecrecyStatus, SecrecyWrapMode, UserSecretKeyRow } from './domain/secrecy';
+export {
+    SECRECY_STATE_EVENT,
+    secrecyStatePushSchema,
+    secrecyStatusSchema,
+    secrecyWrapModeSchema
+} from './domain/secrecy';
+export type {
+    SecrecyStatePush,
+    SecrecyStatus,
+    SecrecyWrapMode,
+    UserSecretKeyRow
+} from './domain/secrecy';
 export { workspaceKindSchema, workspaceSchema } from './domain/workspace';
 export {
     REMOTE_INSTANCES_MAX,

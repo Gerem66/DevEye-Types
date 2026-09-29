@@ -471,12 +471,13 @@ export const SHARE_WIRED_FEATURES: readonly WorkspaceFeatureId[] = ['backup'];
  * le client n'affiche pas l'onglet. En relier une de plus, c'est une entrée ici
  * et une dans le `Record` du contrat.
  */
-export const PROJECT_LINKED_FEATURES: readonly WorkspaceFeatureId[] = [
+export const PROJECT_LINKED_FEATURES: readonly FeatureId[] = [
     'git',
     'database',
     'audience',
     'deploy',
-    'uptime'
+    'uptime',
+    'x-hosting'
 ];
 
 /** Les fonctionnalités qui savent prévenir, dans l'ordre du registre. */

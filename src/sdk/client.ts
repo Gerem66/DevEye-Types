@@ -425,6 +425,43 @@ export interface AudienceClientProvider {
     }>;
 }
 
+/** A folder of the workspace, as the Hosting client provider lists it for a project's picker. */
+export interface HostingLinkedCandidate {
+    id: number;
+    name: string;
+    /** Projected here from another workspace. */
+    foreign?: boolean;
+}
+
+/**
+ * What the Hosting module offers the host's screens under
+ * `HOSTING_CLIENT_PROVIDER`: the workspace's folders, a linked folder shown
+ * inside a project's tab, and the feature's own folder dialog.
+ */
+export interface HostingClientProvider {
+    /** The workspace's folders, in the module's own order. */
+    listPacks(): Promise<readonly HostingLinkedCandidate[]>;
+    /**
+     * The given folders, summarised for a project's dashboard tile, in ONE
+     * round trip. An id the caller cannot read, or that is gone, comes back
+     * `unavailable`, never as a throw.
+     */
+    summarize(packIds: readonly number[]): Promise<readonly SdkTileSummary[]>;
+    /**
+     * A folder linked to a project: its heading and status, its addresses,
+     * its latest files with their preview. Loads itself, follows the
+     * feature's invalidations, and renders the host's "unlink" as its
+     * trailing action.
+     */
+    LinkedPack: ComponentType<{ packId: number; canWrite: boolean; onUnlink: () => void }>;
+    /** The feature's folder form, to create a folder from a project. */
+    PackDialog: ComponentType<{
+        open: boolean;
+        onClose: () => void;
+        onSaved: (packId: number) => void;
+    }>;
+}
+
 /**
  * What the Invoicing module offers other screens under
  * `INVOICING_CLIENT_PROVIDER`. It sends Invoicing's own command under the

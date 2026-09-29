@@ -352,6 +352,33 @@ export const DEPLOY_CLIENT_PROVIDER = 'deploy.client' as const;
 export const DATABASE_CLIENT_PROVIDER = 'database.client' as const;
 
 /**
+ * Key under `FeatureService.providers` for the Hosting folders the app's
+ * Projects feature links to: same shape and same reason as
+ * `UPTIME_ITEMS_PROVIDER` (`project_hosting_links` is Projects' table).
+ * Hosting is a private module: absent, the tab never shows and nothing links.
+ */
+export const HOSTING_ITEMS_PROVIDER = 'hosting.items' as const;
+
+export interface HostingItemsProvider {
+    /** Is this folder visible from this workspace: its home, or one it is projected into? */
+    exists(packId: number, workspaceId: number): Promise<boolean>;
+    /**
+     * The item's display name as seen from `workspaceId` (its home, or a
+     * workspace it is projected into): the provider resolves the home and its
+     * OPEN cipher itself. `null` when it is gone or unreadable.
+     */
+    labelOf(packId: number, workspaceId: number): Promise<string | null>;
+}
+
+/**
+ * Key under `FeatureClient.providers` for the Hosting pieces the app's
+ * Projects screens compose: the list of the workspace's folders, a linked
+ * folder shown inside a project's tab, and the feature's own folder dialog.
+ * The contract types live in `@deveye/types/sdk/client`.
+ */
+export const HOSTING_CLIENT_PROVIDER = 'hosting.client' as const;
+
+/**
  * Key of what Projects knows about the items of OTHER features: the projects
  * of the workspace that link them (a module's list shows how many projects use
  * each item, its detail lists them by title), without reading Projects'

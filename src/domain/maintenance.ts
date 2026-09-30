@@ -48,11 +48,14 @@ export const MAINTENANCE_CLOSE_CODE = 4503;
 export const MAINTENANCE_MESSAGE_MAX = 1000;
 
 /**
- * The `session` frame that opens every socket. `maintenance` is optional: a
- * remote instance on an older version does not send it.
+ * The `session` frame that opens every socket. `version` is the server's app
+ * version, which a client compares with its own bundle to reload after an
+ * update. `version` and `maintenance` are optional: a remote instance on an
+ * older version does not send them.
  */
 export const sessionFrameSchema = z.object({
     userId: z.number().int().positive(),
+    version: z.string().optional(),
     maintenance: maintenanceStateSchema.optional()
 });
 export type SessionFrame = z.infer<typeof sessionFrameSchema>;

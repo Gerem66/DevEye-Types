@@ -182,8 +182,10 @@ export interface NotificationChannelRow {
     /** La fonctionnalité propriétaire : un canal est une source de sa feature. */
     feature: NotificationFeature;
     kind: NotificationChannelKind;
-    label_enc: string;
-    target_enc: string;
+    /** Libellé chiffré ; `null` = jamais nommé. */
+    label_enc: string | null;
+    /** Adresse ou URL chiffrée ; `null` sur un `email` = l'adresse du compte expéditeur. */
+    target_enc: string | null;
     mail_account_id: number | null;
     enabled: number;
     position: number;

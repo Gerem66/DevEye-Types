@@ -48,6 +48,19 @@ export {
 } from './net';
 export { mapLimit } from './pool';
 export {
+    authorizeRelayDevice,
+    DEVICE_ACCESS_DENIALS,
+    DEVICE_NETWORK_RIGHT,
+    localForwarder,
+    openDeviceTunnel,
+    relayDeviceOptions,
+    relayForAuthor,
+    relayOf,
+    type DeviceRelay,
+    type LocalTunnel,
+    type SavedDeviceChoice
+} from './deviceRelay';
+export {
     defineModuleEnv,
     MODULE_ENV_NAME_PATTERN,
     moduleEnvProblem,

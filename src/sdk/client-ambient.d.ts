@@ -35,6 +35,7 @@ declare module 'deveye-sdk-client' {
     } from '@deveye/types';
     import type {
         AccountPlan,
+        DeviceRelayOption,
         FeatureManifest,
         ManifestCommand,
         PageTheme,
@@ -698,6 +699,28 @@ declare module 'deveye-sdk-client' {
         disabled?: boolean;
         action?: ReactNode;
     }>;
+    /**
+     * The device through which a service is reached by its agent
+     * (`relayDeviceOptions` on the server side). `load` is the module's
+     * command listing them, `null` when read-only; a device one cannot choose
+     * stays listed, disabled, with its reason underneath. The label and the
+     * hint (what the device will see) stay with the caller.
+     */
+    export const DeviceRelayField: ComponentType<{
+        value: string;
+        onChange: (deviceId: string) => void;
+        load: (() => Promise<readonly DeviceRelayOption[]>) | null;
+        disabled?: boolean;
+        id?: string;
+        'aria-label'?: string;
+    }>;
+    /** The options of a `DeviceRelayField`, for a form that renders its own field. */
+    export function useDeviceRelayOptions(
+        load: (() => Promise<readonly DeviceRelayOption[]>) | null
+    ): {
+        devices: readonly DeviceRelayOption[];
+        error: string | null;
+    };
     /** One rule of a `PathExclusionsEditor`. */
     export interface PathExclusionItem {
         key: string | number;

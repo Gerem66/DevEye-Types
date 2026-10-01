@@ -204,7 +204,7 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         icon: 'rocket',
         notifies: true,
         notifications: {
-            hint: 'Envoyées à l’atterrissage d’un déploiement, échec comme succès, y compris ceux lancés ailleurs : depuis Dokploy, une CI ou un push git.'
+            hint: 'Envoyées à l’atterrissage d’un déploiement, échec comme succès, y compris ceux lancés ailleurs : depuis Dokploy, une CI ou un push git. Et quand le lien avec l’instance d’un accès se perd, puis revient.'
         },
         hasItems: true,
         itemNoun: 'cible',

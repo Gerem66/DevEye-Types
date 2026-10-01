@@ -16,8 +16,7 @@ declare module 'deveye-sdk-client' {
         DragEvent,
         InputHTMLAttributes,
         ReactNode,
-        RefObject,
-        SelectHTMLAttributes
+        RefObject
     } from 'react';
     import type { z, ZodType } from 'zod';
     import type {
@@ -53,7 +52,55 @@ declare module 'deveye-sdk-client' {
     export const TextInput: ComponentType<
         InputHTMLAttributes<HTMLInputElement> & { enableShowHideButton?: boolean; error?: string }
     >;
-    export const SelectInput: ComponentType<SelectHTMLAttributes<HTMLSelectElement>>;
+    export interface CopyButtonProps {
+        value: string;
+        /** What gets copied, for the tooltip and screen readers ("Copier la clé"). */
+        label?: string;
+        className?: string;
+    }
+    /** Copies `value` to the clipboard and confirms through its icon for two seconds; a refused clipboard stays silent. */
+    export const CopyButton: ComponentType<CopyButtonProps>;
+    export interface LoadingVeilProps {
+        /** Read by screen readers, and shown under the spinner when given. */
+        label?: string;
+        /** `top` for a long scrolling area: the spinner stays in view. */
+        align?: 'center' | 'top';
+        /** Appears after a quarter of a second: a brief read never flickers. */
+        delayed?: boolean;
+        className?: string;
+    }
+    /**
+     * The veil of a re-read: a layer over an area, the previous content legible
+     * underneath, taking no click and no scroll. Mount it as a SIBLING of the
+     * scrolling area inside a `position: relative` parent (inside an
+     * `overflow: auto` it would scroll away). Dim what it covers with
+     * `filter: opacity()`, never `opacity`.
+     */
+    export const LoadingVeil: ComponentType<LoadingVeilProps>;
+    export interface LogOutputProps {
+        /** The raw log, ANSI sequences included: the component cleans it. */
+        text: string;
+        /** A read in progress: the veil, over whatever is already shown. */
+        busy?: boolean;
+        /** Search, count and copy above the lines. Default `true`. */
+        toolbar?: boolean;
+        /** What reads when the log is empty. */
+        emptyText?: string;
+        /** Stays at the bottom when text arrives and the reader was there. Default `true`. */
+        follow?: boolean;
+        /** Caps the body's height outside a flex column (a block inside a sheet). */
+        maxHeight?: number;
+        className?: string;
+        'aria-label'?: string;
+    }
+    /**
+     * A readable raw log: the output of a provider or a tool, cleaned of ANSI
+     * codes and coloured by what each line says (step, error, warning,
+     * success), timestamps and durations set back. The toolbar filters lines
+     * and copies what is shown. Inside a flex column (a `Dialog tall`) it
+     * takes the remaining room.
+     */
+    export const LogOutput: ComponentType<LogOutputProps>;
     export const Checkbox: ComponentType<{
         checked: boolean;
         /** Receives the state AFTER the click — no event to unwrap. */
@@ -109,11 +156,18 @@ declare module 'deveye-sdk-client' {
         group?: string;
         disabled?: boolean;
     }
+    /** A chip under the search field that keeps only the options passing `test`. */
+    export interface SearchSelectFilter<T extends string = string> {
+        value: string;
+        label: string;
+        test: (option: SearchSelectOption<T>) => boolean;
+        /** Chips sharing a key exclude each other: activating one releases the others. */
+        exclusive?: string;
+    }
     /**
-     * A dropdown one can search in (accent- and case-insensitive, group names
-     * included), for a list too long to scan or sorted into groups:
-     * currencies, units, countries. Under ten ungrouped choices or so,
-     * `SelectInput` stays simpler. Safe inside a Dialog: the panel is portaled.
+     * The app's dropdown. The search field (accent- and case-insensitive, group
+     * names included) only appears from eight choices on, or on request; filter
+     * chips can narrow the list. Safe inside a Dialog: the panel is portaled.
      */
     export function SearchSelect<T extends string>(props: {
         value: T;
@@ -124,6 +178,14 @@ declare module 'deveye-sdk-client' {
         placeholder?: string;
         searchPlaceholder?: string;
         emptyText?: string;
+        /** The search field: `'auto'` (default) shows it from eight choices on. */
+        searchable?: boolean | 'auto';
+        /** Chips under the search, AND-combined, reset when the panel closes. */
+        filters?: readonly SearchSelectFilter<T>[];
+        /** The trigger's id, for a label's `htmlFor`. */
+        id?: string;
+        /** The field the opening Dialog focuses first (`data-autofocus`). */
+        autoFocus?: boolean;
         disabled?: boolean;
         className?: string;
     }): ReactNode;
@@ -222,15 +284,29 @@ declare module 'deveye-sdk-client' {
         open: boolean;
         onClose: () => void;
         title?: string;
+        /** A small line above the title: where this dialog sits. */
+        kicker?: ReactNode;
         description?: ReactNode;
         children?: ReactNode;
         footer?: ReactNode;
         /** Extra action in the top-right corner, left of the close button. */
         headerAction?: ReactNode;
         width?: number;
+        /** When false, overlay click and Escape no longer close the dialog. Default true. */
+        dismissible?: boolean;
         onSubmit?: () => void;
+        /** Move focus to the first field on open. Default true. */
+        autoFocus?: boolean;
+        /** Unsaved changes: closing first asks; requires `onSave`. */
+        dirty?: boolean;
+        onSave?: () => void;
+        /** A viewport-tall flex column: title and footer pinned, the body scrolls. */
+        tall?: boolean;
+        /** The height follows the content up to the viewport, then the body scrolls. */
         fill?: boolean;
         holdSecrecy?: boolean;
+        /** Without the close button (a progress dialog). Default true. */
+        closeButton?: boolean;
     }>;
     /** The "Annuler" button of a Dialog footer: closes through the guarded close. */
     export const DialogCancelButton: ComponentType<

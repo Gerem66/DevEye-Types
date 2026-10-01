@@ -63,7 +63,11 @@ export interface FeatureDescriptor {
      * d'onglet Notifications qui ne recevrait rien, et la route se coche à
      * l'échelle de la fonctionnalité. `feature` quand la fonctionnalité prévient
      * AUSSI en son nom propre, à côté de ses éléments : ce qui part par cette
-     * route, dit en une phrase au-dessus des cases de son onglet.
+     * route, dit en une phrase. Le module s'engage alors à suivre, tant que
+     * cette route n'a rien de coché, les canaux des éléments concernés
+     * (`notify.send(alert, { itemIds })`) : l'onglet montre un interrupteur
+     * « Suivre les canaux cochés par les éléments », allumé tant que la route
+     * est vide, et ses cases seulement quand on l'éteint.
      */
     notifications?: { hint: string; perItem?: boolean; feature?: string };
     /**

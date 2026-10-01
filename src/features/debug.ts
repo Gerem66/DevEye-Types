@@ -288,10 +288,36 @@ export const debugMailSend = {
     })
 };
 
+/**
+ * Une page publique de l'instance, mesurée par la balise : la page d'état
+ * (`STATUS_PAGE_URL`) ou le site vitrine (`SITE_URL`). Son site vit dans le
+ * même espace que celui de l'app.
+ */
+export const debugTrackingCompanionSchema = z.object({
+    kind: z.enum(['status', 'site']),
+    /** L'adresse réglée dans l'env, dont l'hôte est la seule origine admise. */
+    url: z.string(),
+    /** `null` tant que le site n'est pas déclaré. */
+    site: z
+        .object({
+            siteId: z.number().int().positive(),
+            /** `null` quand le site a disparu d'Audience. */
+            siteName: z.string().nullable(),
+            /** Publique par nature : la page qui la porte la montre à tous. */
+            key: z.string()
+        })
+        .nullable()
+});
+export type DebugTrackingCompanion = z.infer<typeof debugTrackingCompanionSchema>;
+
 export const debugTrackingSchema = z.object({
     /** L'origine de ce serveur : un réglage ne vaut que pour la sienne. */
     origin: z.string(),
+    /** D'où les pages chargent la balise (`AUDIENCE_ORIGIN`, sinon celle de l'app). */
+    ingestOrigin: z.string(),
     audienceInstalled: z.boolean(),
+    /** Les pages publiques qui ont une adresse ; vide, seule l'app est mesurée. */
+    companions: z.array(debugTrackingCompanionSchema),
     config: z
         .object({
             siteId: z.number().int().positive(),
@@ -323,7 +349,11 @@ export const debugTrackingGet = {
     output: debugTrackingSchema
 };
 
-/** Crée dans l'espace personnel de l'administrateur un site Audience réglé pour ce serveur, et s'y branche. */
+/**
+ * Crée ce qui manque : le site de l'app dans l'espace personnel de
+ * l'administrateur s'il n'est pas branché, puis celui de chaque page publique
+ * qui n'en a pas encore, dans le même espace. Tout déclaré, c'est un conflit.
+ */
 export const debugTrackingCreate = {
     command: 'debug.trackingCreate' as const,
     input: z.object({}),

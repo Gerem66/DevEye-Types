@@ -224,8 +224,10 @@ export interface AudienceItemsProvider {
 /**
  * Key under `FeatureService.providers` for DevEye's own usage figures: the
  * app reports the pages its members open and the actions they take into an
- * Audience site of this very instance, chosen by an administrator. Absent
- * module: nothing is reported, and the admin page says why.
+ * Audience site of this very instance, chosen by an administrator, and
+ * declares beside it a site for each of its public faces (status page,
+ * showcase site), measured by the public beacon. Absent module: nothing is
+ * reported, and the admin page says why.
  */
 export const AUDIENCE_SELF_PROVIDER = 'audience.self' as const;
 
@@ -252,16 +254,41 @@ export interface AudienceSelfEvent {
     screenWidth?: number;
 }
 
+/** A question of a feedback form the app declares: the public shape of the module's own field schema. */
+export interface AudienceSelfFormField {
+    name: string;
+    kind: 'text' | 'email' | 'number' | 'boolean' | 'choice';
+    required: boolean;
+    /** `choice` only: the admitted answers. */
+    choices?: readonly string[];
+    /** `choice` only: several boxes may be ticked. */
+    multiple?: boolean;
+}
+
 export interface AudienceSelfProvider {
     /**
-     * Creates an anonymous site for this host in this workspace, active, with
-     * no per-visitor limit. The caller owns the authorisation; the owner's
-     * plan still applies.
+     * Creates an anonymous site for this host in this workspace, active. The
+     * caller owns the authorisation; the owner's plan still applies.
+     *
+     * `measuredBy`: `server` for the app itself, which reports through
+     * `ingest` with no per-address cap (its members behind one network are
+     * one address); `beacon` for a public page that embeds the tracking
+     * script, where the per-address cap of a new site applies.
      */
     createSite(
         workspaceId: number,
-        input: { name: string; host: string }
+        input: { name: string; host: string; description: string; measuredBy: 'server' | 'beacon' }
     ): Promise<AudienceSelfSite & { publicKey: string }>;
+    /**
+     * Declares a strict feedback form on a site created here, or returns the
+     * one already bearing that name: a public page submits to it by name
+     * through the public gate.
+     */
+    declareForm(
+        workspaceId: number,
+        siteId: number,
+        input: { name: string; fields: readonly AudienceSelfFormField[] }
+    ): Promise<{ formId: number }>;
     /** The site behind this key, wherever it lives; `null` when unknown. */
     findByKey(publicKey: string): Promise<AudienceSelfSite | null>;
     /**

@@ -923,6 +923,7 @@ export {
     debugRunStatusSchema,
     debugStepStatusSchema,
     debugTrackingClear,
+    debugTrackingCompanionSchema,
     debugTrackingCreate,
     debugTrackingGet,
     debugTrackingSchema,
@@ -946,6 +947,7 @@ export type {
     DebugRunKind,
     DebugStepStatus,
     DebugTracking,
+    DebugTrackingCompanion,
     DebugWorkspaceSender
 } from './features/debug';
 export {

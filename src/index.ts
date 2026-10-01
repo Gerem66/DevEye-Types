@@ -759,6 +759,7 @@ export {
     NOTIFYING_FEATURES,
     allFeatureDescriptors,
     featureDescriptor,
+    featureNotifiesItself,
     featureLabel,
     itemNounForms,
     maybeFeatureDescriptor,

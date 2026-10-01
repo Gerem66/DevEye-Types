@@ -392,6 +392,22 @@ export function maybeFeatureDescriptor(id: FeatureId): FeatureDescriptor | undef
 }
 
 /** L'intitulé seul : le besoin de très loin le plus courant. */
+/**
+ * Does this feature send notifications in its own name, by the route with no
+ * item (`item_id = 0`)? True without items, when nothing goes out per item
+ * (`notifications.perItem: false`) and when it speaks for itself next to its
+ * items (`notifications.feature`). The shell shows that route's checkboxes,
+ * and the server accepts its selection, on exactly this rule.
+ */
+export function featureNotifiesItself(descriptor: FeatureDescriptor): boolean {
+    const notifications = descriptor.notifications;
+    return (
+        !descriptor.hasItems ||
+        notifications?.perItem === false ||
+        notifications?.feature !== undefined
+    );
+}
+
 export function featureLabel(id: FeatureId): string {
     return featureDescriptor(id).label;
 }

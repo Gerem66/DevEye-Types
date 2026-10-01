@@ -61,15 +61,11 @@ export interface FeatureDescriptor {
      * servent. Exigée dès que `notifies` est vrai. `perItem: false` quand rien
      * ne part jamais au nom d'un élément : ses réglages n'ont alors pas
      * d'onglet Notifications qui ne recevrait rien, et la route se coche à
-     * l'échelle de la fonctionnalité. `feature` quand la fonctionnalité prévient
-     * AUSSI en son nom propre, à côté de ses éléments : ce qui part par cette
-     * route, dit en une phrase. Le module s'engage alors à suivre, tant que
-     * cette route n'a rien de coché, les canaux des éléments concernés
-     * (`notify.send(alert, { itemIds })`) : l'onglet montre un interrupteur
-     * « Suivre les canaux cochés par les éléments », allumé tant que la route
-     * est vide, et ses cases seulement quand on l'éteint.
+     * l'échelle de la fonctionnalité. Un avis qui concerne plusieurs éléments
+     * à la fois suit leurs canaux, chacun une fois (`notify.send(alert,
+     * { itemIds })`) : il n'a pas de route à lui.
      */
-    notifications?: { hint: string; perItem?: boolean; feature?: string };
+    notifications?: { hint: string; perItem?: boolean };
     /**
      * Un de ses éléments peut-il être rendu visible depuis un autre espace ?
      * Décidé par le chiffrement : un élément partagé reste chiffré sous la clé
@@ -211,9 +207,7 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         icon: 'rocket',
         notifies: true,
         notifications: {
-            hint: 'Envoyées à l’atterrissage d’un déploiement, échec comme succès, y compris ceux lancés ailleurs : depuis Dokploy, une CI ou un push git.',
-            feature:
-                'Quand le lien avec l’instance d’un accès se perd, puis revient : un seul avis pour toutes les cibles qu’il dessert.'
+            hint: 'Envoyées à l’atterrissage d’un déploiement, échec comme succès, y compris ceux lancés ailleurs : depuis Dokploy, une CI ou un push git. Et quand le lien avec l’instance d’un accès se perd, puis revient : un seul avis, vers les canaux de toutes les cibles qu’il dessert.'
         },
         hasItems: true,
         itemNoun: 'cible',
@@ -398,18 +392,12 @@ export function maybeFeatureDescriptor(id: FeatureId): FeatureDescriptor | undef
 /** L'intitulé seul : le besoin de très loin le plus courant. */
 /**
  * Does this feature send notifications in its own name, by the route with no
- * item (`item_id = 0`)? True without items, when nothing goes out per item
- * (`notifications.perItem: false`) and when it speaks for itself next to its
- * items (`notifications.feature`). The shell shows that route's checkboxes,
+ * item (`item_id = 0`)? True without items, and when nothing goes out per item
+ * (`notifications.perItem: false`). The shell shows that route's checkboxes,
  * and the server accepts its selection, on exactly this rule.
  */
 export function featureNotifiesItself(descriptor: FeatureDescriptor): boolean {
-    const notifications = descriptor.notifications;
-    return (
-        !descriptor.hasItems ||
-        notifications?.perItem === false ||
-        notifications?.feature !== undefined
-    );
+    return !descriptor.hasItems || descriptor.notifications?.perItem === false;
 }
 
 export function featureLabel(id: FeatureId): string {

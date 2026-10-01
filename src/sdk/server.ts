@@ -251,8 +251,7 @@ export interface DevEyeFacade {
          * (`postLive`) already concluded on, so a channel never hears the
          * same news twice. `itemIds`: the channels routed to ANY of these
          * items, each channel once: for news that concerns several items at
-         * a time (the instance they share went down) when the feature's own
-         * route (`hasRoute()` with no item) has nothing checked.
+         * a time (the instance they share went down), told once.
          */
         send(
             alert: SdkAlert,

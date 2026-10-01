@@ -249,11 +249,14 @@ export interface DevEyeFacade {
          * Delivers to the configured channels. Resolves `true` if at least one
          * accepted. `except`: channel ids to skip, those a live message
          * (`postLive`) already concluded on, so a channel never hears the
-         * same news twice.
+         * same news twice. `itemIds`: the channels routed to ANY of these
+         * items, each channel once: for news that concerns several items at
+         * a time (the instance they share went down) when the feature's own
+         * route (`hasRoute()` with no item) has nothing checked.
          */
         send(
             alert: SdkAlert,
-            opts?: { itemId?: number; except?: readonly number[] }
+            opts?: { itemId?: number; itemIds?: readonly number[]; except?: readonly number[] }
         ): Promise<boolean>;
         /**
          * The routed channels able to carry a LIVE message: a rich message

@@ -119,6 +119,7 @@ export interface RecordedCalls {
         subject: string;
         body: string;
         itemId?: number;
+        itemIds?: readonly number[];
         embeds?: number;
         except?: readonly number[];
     }[];
@@ -158,6 +159,7 @@ function recordingNotify(
                 itemId: opts?.itemId,
                 // Only when the alert carries a layout: a test that
                 // deep-equals the plain record must not see the key appear.
+                ...(opts?.itemIds ? { itemIds: opts.itemIds } : {}),
                 ...(alert.embeds ? { embeds: alert.embeds.length } : {}),
                 ...(opts?.except ? { except: opts.except } : {})
             });

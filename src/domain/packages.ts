@@ -51,13 +51,12 @@ export function isManagedPackageManager(
 }
 
 /**
- * One detected update tool + its pending-update state. An unmanaged one
- * (`unmanagedUpdaterIdSchema`) carries no count and needs nothing.
+ * One update tool present on the machine. Presence is a file check, so the
+ * list arrives at once; a managed tool's pending count follows on its own
+ * (`pendingCountSchema`), as its probe can take a minute.
  */
 export const packageManagerSchema = z.object({
     id: z.union([packageManagerIdSchema, unmanagedUpdaterIdSchema]),
-    /** Pending update count; `null` when unknown (slow/best-effort probe). */
-    pendingCount: z.number().int().nonnegative().nullable(),
     /** Applying this manager's updates requires root/admin. */
     needsRoot: z.boolean(),
     /** A reboot is pending for updates this manager already applied. */
@@ -65,3 +64,6 @@ export const packageManagerSchema = z.object({
 });
 
 export type PackageManager = z.infer<typeof packageManagerSchema>;
+
+/** Pending update count of a managed tool; `null` when it gave none (probe failed or timed out). */
+export const pendingCountSchema = z.number().int().nonnegative().nullable();

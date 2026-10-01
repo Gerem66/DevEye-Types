@@ -116,9 +116,10 @@ export const agentUpdate = {
 };
 
 /**
- * Ask the agent to enumerate its package managers + pending updates. The result
- * arrives asynchronously as a `package.list` push event (the caller must be
- * subscribed to the device). The command itself only acknowledges the request.
+ * Ask the agent for its update tools and their pending updates. The tools
+ * present arrive as a `package.list` push event, then one `package.count` per
+ * managed tool as its probe finishes (the caller must be subscribed to the
+ * device). The command itself only acknowledges the request.
  */
 export const agentListPackages = {
     command: 'agent.listPackages' as const,

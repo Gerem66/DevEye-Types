@@ -33,7 +33,11 @@ import {
     dockerStatSchema
 } from '../domain/deviceDocker';
 import { metricsBatchSchema, metricSnapshotSchema } from '../domain/metrics';
-import { packageManagerIdSchema, packageManagerSchema } from '../domain/packages';
+import {
+    packageManagerIdSchema,
+    packageManagerSchema,
+    pendingCountSchema
+} from '../domain/packages';
 import {
     authWindowSchema,
     deviceReportSchema,
@@ -101,12 +105,25 @@ export const agentPowerActionSchema = z.enum([
 ]);
 export type AgentPowerAction = z.infer<typeof agentPowerActionSchema>;
 
-/** Agent's reply to `pkg.list`: the package managers present + their pending counts. */
+/** Agent's first reply to `pkg.list`: the update tools present on the host, without counts. */
 export const AGENT_PKG_LIST_RESULT = 'pkg.listResult' as const;
 
 export const agentPkgListResultPayloadSchema = z.object({
     deviceId: z.uuid(),
     managers: z.array(packageManagerSchema)
+});
+
+/**
+ * Then one per managed tool of that list, as each probe finishes: its pending
+ * count. A tool whose probe fails still gets its frame (`null`), so the
+ * screen never waits for a count that will not come.
+ */
+export const AGENT_PKG_COUNT = 'pkg.count' as const;
+
+export const agentPkgCountPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    manager: packageManagerIdSchema,
+    pendingCount: pendingCountSchema
 });
 
 /** Live line of an in-progress `pkg.upgrade`. */
@@ -561,6 +578,10 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
         payload: agentPkgListResultPayloadSchema
     }),
     z.object({
+        command: z.literal(AGENT_PKG_COUNT),
+        payload: agentPkgCountPayloadSchema
+    }),
+    z.object({
         command: z.literal(AGENT_PKG_PROGRESS),
         payload: agentPkgProgressPayloadSchema
     }),
@@ -741,7 +762,7 @@ export const AGENT_SERVICE = 'agent.service' as const;
 export const agentServicePayloadSchema = z.object({ action: agentServiceActionSchema });
 export type AgentServicePayload = z.infer<typeof agentServicePayloadSchema>;
 
-/** Ask the agent to enumerate its package managers + pending updates (`pkg.listResult`). */
+/** Ask the agent for its update tools (`pkg.listResult`), then their counts (one `pkg.count` each). */
 export const AGENT_PKG_LIST = 'pkg.list' as const;
 
 /** Ask the agent to apply all updates of one manager, streaming `pkg.progress`. */
@@ -1385,8 +1406,9 @@ export const SIGNED_AGENT_COMMANDS: ReadonlySet<string> = new Set([
 export const METRICS_PUSH_EVENT = 'metrics.push' as const;
 export const DEVICE_PRESENCE_EVENT = 'device.presence' as const;
 export const DEVICE_REPORT_EVENT = 'device.report' as const;
-/** Package-manager inventory, live upgrade progress, and completion (Appareils panel). */
+/** Update tools present, then one pending count per managed tool (Appareils panel). */
 export const PACKAGE_LIST_EVENT = 'package.list' as const;
+export const PACKAGE_COUNT_EVENT = 'package.count' as const;
 /**
  * Une mise à jour vient d'être acceptée pour ce gestionnaire. Émis par le
  * serveur avant la première ligne de sortie de l'outil, pour que tous les
@@ -1435,6 +1457,7 @@ export const CLOUD_SYNC_CHUNK_EVENT = 'cloudSync.chunk' as const;
 export const packageListPushSchema = agentPkgListResultPayloadSchema.extend({
     running: z.array(packageManagerIdSchema).default([])
 });
+export const packageCountPushSchema = agentPkgCountPayloadSchema;
 
 export const packageStartedPushSchema = z.object({
     deviceId: z.uuid(),
@@ -1486,6 +1509,7 @@ export type DeviceDockerProgressPush = z.infer<typeof deviceDockerProgressPushSc
 export type DeviceDockerDonePush = z.infer<typeof deviceDockerDonePushSchema>;
 
 export type PackageListPush = z.infer<typeof packageListPushSchema>;
+export type PackageCountPush = z.infer<typeof packageCountPushSchema>;
 export type PackageStartedPush = z.infer<typeof packageStartedPushSchema>;
 export type PackageProgressPush = z.infer<typeof packageProgressPushSchema>;
 export type PackageDonePush = z.infer<typeof packageDonePushSchema>;

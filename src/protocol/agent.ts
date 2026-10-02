@@ -486,6 +486,19 @@ export const agentSyncAckPayloadSchema = z.object({
 export type AgentSyncAckPayload = z.infer<typeof agentSyncAckPayloadSchema>;
 
 /**
+ * Keep-alive for a long local step of `opId` (re-reading a partial download,
+ * hashing a large file during a scan or before a local copy/move). The server
+ * only re-arms its silence timeout. Sent about every 15 s. For a scan, `opId`
+ * is the scan's session id.
+ */
+export const AGENT_SYNC_BUSY = 'sync.busy' as const;
+export const agentSyncBusyPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    opId: syncOpId
+});
+export type AgentSyncBusyPayload = z.infer<typeof agentSyncBusyPayloadSchema>;
+
+/**
  * Issue d'une op locale : install atomique (`apply`), création de dossier vide
  * (`applyDir`), copie locale d'un contenu déjà présent (`applyLocal`), amorce
  * de download avec offset de reprise (`applyReady`), corbeille (`delete`),
@@ -684,6 +697,10 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_SYNC_ACK),
         payload: agentSyncAckPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SYNC_BUSY),
+        payload: agentSyncBusyPayloadSchema
     }),
     z.object({
         command: z.literal(AGENT_SYNC_OP_RESULT),

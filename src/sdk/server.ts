@@ -21,6 +21,7 @@ import type {
     AgentSyncApplyDirPayload,
     AgentSyncApplyLocalPayload,
     AgentSyncApplyStartPayload,
+    AgentSyncBusyPayload,
     AgentSyncChangedPayload,
     AgentSyncChunkPayload,
     AgentSyncConfigPayload,
@@ -762,6 +763,8 @@ export interface FeatureAgentHooks {
     onSyncIndex?(deviceId: string, payload: AgentSyncIndexPayload): void;
     onSyncChunk?(deviceId: string, payload: AgentSyncChunkPayload): void;
     onSyncAck?(deviceId: string, payload: AgentSyncAckPayload): void;
+    /** The agent is still working on an op locally; nothing to do but let the op wait longer. */
+    onSyncBusy?(deviceId: string, payload: AgentSyncBusyPayload): void;
     onSyncOpResult?(deviceId: string, payload: AgentSyncOpResultPayload): void;
 }
 

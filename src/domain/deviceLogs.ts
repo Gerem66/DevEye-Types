@@ -81,7 +81,7 @@ export const deviceLogFilterSchema = z.object({
     search: z.string().max(500).optional(),
     /** Treat `search` as a regular expression. */
     regex: z.boolean().optional(),
-    /** Severity floor (inclusive): only lines with level >= this. */
+    /** Severity floor (inclusive): only lines with level >= this. A line whose level is unknown counts as `info`. */
     levelMin: deviceLogLevelSchema.optional(),
     /** journald unit / service filter (e.g. `nginx.service`). Ignored by other kinds. */
     unit: z.string().max(256).optional(),

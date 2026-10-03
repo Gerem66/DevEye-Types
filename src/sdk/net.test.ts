@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
 import test from 'node:test';
 
-import { isPublicIp, isSafePublicUrl, NetRefused, safeFetchText } from './net';
+import { isPublicIp, isRemoteFailure, isSafePublicUrl, NetRefused, safeFetchText } from './net';
 
 test('isPublicIp: the private ranges of both families read as false', () => {
     for (const ip of ['8.8.8.8', '1.1.1.1', '2001:4860:4860::8888']) {
@@ -89,4 +89,23 @@ test('safeFetchText: other schemes, names that do not resolve and private IPs ar
     ]) {
         await assert.rejects(safeFetchText(url, OPTIONS), NetRefused, url);
     }
+});
+
+test('isRemoteFailure: the far end is to blame, down the cause chain', () => {
+    const socket = (code: string) => Object.assign(new Error(code), { code });
+    assert.equal(isRemoteFailure(socket('ECONNREFUSED')), true);
+    assert.equal(
+        isRemoteFailure(new TypeError('fetch failed', { cause: socket('ENOTFOUND') })),
+        true
+    );
+    assert.equal(isRemoteFailure(new DOMException('timed out', 'TimeoutError')), true);
+    assert.equal(isRemoteFailure(new NetRefused('Réponse 404')), true);
+});
+
+test('isRemoteFailure: anything unexplained stays the instance’s', () => {
+    assert.equal(isRemoteFailure(new Error('boom')), false);
+    assert.equal(isRemoteFailure(Object.assign(new Error('dns'), { code: 'EAI_AGAIN' })), false);
+    assert.equal(isRemoteFailure(new DOMException('aborted', 'AbortError')), false);
+    assert.equal(isRemoteFailure('ECONNREFUSED'), false);
+    assert.equal(isRemoteFailure(null), false);
 });

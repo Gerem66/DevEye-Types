@@ -42,6 +42,7 @@ import type {
 
 export {
     isPublicIp,
+    isRemoteFailure,
     isSafePublicUrl,
     NetRefused,
     resolvesPublicly,
@@ -88,12 +89,38 @@ export {
  * native features only through the declared {@link DevEyeFacade}.
  */
 
-/** Structural subset of the app logger (pino-compatible). */
+/**
+ * Structural subset of the app logger (pino-compatible).
+ *
+ * `warn` and `error` are the operator's ladder: a bug, the instance's own
+ * configuration, a dependency of the instance. A failure a user's own side
+ * explains (their host unreachable, their credentials revoked, their agent
+ * outdated, a quota of theirs reached) goes out as `info` with the field
+ * `cause: 'user'`, see {@link logFailure}.
+ */
 export interface SdkLogger {
     debug(obj: unknown, msg?: string): void;
     info(obj: unknown, msg?: string): void;
     warn(obj: unknown, msg?: string): void;
     error(obj: unknown, msg?: string): void;
+}
+
+/**
+ * Logs a failure at the level its cause calls for. `userSide`: the user's own
+ * side explains it, and the line goes out as `info` tagged `cause: 'user'`, off
+ * the operator's ladder yet still searchable, so a wave of them across accounts
+ * still shows. Otherwise it stays at `level`. A failure nobody has explained is
+ * the instance's: pass `false`.
+ */
+export function logFailure(
+    logger: SdkLogger,
+    userSide: boolean,
+    fields: Record<string, unknown>,
+    msg: string,
+    level: 'warn' | 'error' = 'warn'
+): void {
+    if (userSide) logger.info({ ...fields, cause: 'user' }, msg);
+    else logger[level](fields, msg);
 }
 
 /**

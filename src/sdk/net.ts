@@ -82,6 +82,55 @@ const MAX_REDIRECTS = 3;
 /** What `safeFetchText` throws for anything it refuses, its message readable as is. */
 export class NetRefused extends Error {}
 
+/** Socket and TLS codes that put the fault at the far end of a connection. */
+const REMOTE_FAILURE_CODES = new Set([
+    'ENOTFOUND',
+    'ENODATA',
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'ECONNABORTED',
+    'ETIMEDOUT',
+    'ESOCKETTIMEDOUT',
+    'EHOSTUNREACH',
+    'EPIPE',
+    'ERR_STREAM_PREMATURE_CLOSE',
+    'UND_ERR_CONNECT_TIMEOUT',
+    'UND_ERR_HEADERS_TIMEOUT',
+    'UND_ERR_BODY_TIMEOUT',
+    'UND_ERR_SOCKET',
+    'CERT_HAS_EXPIRED',
+    'CERT_NOT_YET_VALID',
+    'DEPTH_ZERO_SELF_SIGNED_CERT',
+    'SELF_SIGNED_CERT_IN_CHAIN',
+    'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+    'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
+    'ERR_TLS_CERT_ALTNAME_INVALID'
+]);
+
+/**
+ * Did this failure come from the other end: a name that does not resolve, a
+ * connection refused, reset or left silent, a certificate that does not hold,
+ * a peer that hung up mid-transfer, or a {@link NetRefused} refusal? Walks the
+ * `cause` chain, where `fetch` hides the socket error. A resolver that answers
+ * nothing (`EAI_AGAIN`) or a network the instance cannot reach stays the
+ * instance's, as does anything unrecognised.
+ */
+export function isRemoteFailure(error: unknown): boolean {
+    let current: unknown = error;
+    for (let depth = 0; depth < 5 && typeof current === 'object' && current !== null; depth += 1) {
+        if (current instanceof NetRefused) return true;
+        const { name, code, cause } = current as {
+            name?: unknown;
+            code?: unknown;
+            cause?: unknown;
+        };
+        if (name === 'TimeoutError') return true;
+        if (typeof code === 'string' && REMOTE_FAILURE_CODES.has(code)) return true;
+        current = cause;
+    }
+    return false;
+}
+
 /** Do all the addresses of a name read as public? A name without any address is refused. */
 export async function resolvesPublicly(host: string): Promise<boolean> {
     const bare = host.replace(/^\[|\]$/g, '');

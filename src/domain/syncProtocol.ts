@@ -76,7 +76,9 @@ export const cloudSyncShareStatsSchema = z.object({
     fileCount: z.number().int().nonnegative(),
     liveBytes: z.number().int().nonnegative(),
     versionCount: z.number().int().nonnegative(),
-    versionBytes: z.number().int().nonnegative()
+    versionBytes: z.number().int().nonnegative(),
+    /** Journal errors not yet resolved: what still waits for the user. */
+    openProblems: z.number().int().nonnegative()
 });
 export type CloudSyncShareStats = z.infer<typeof cloudSyncShareStatsSchema>;
 /** Sens du transfert en cours (du point de vue de l'appareil). */
@@ -101,13 +103,13 @@ export const cloudSyncProgressSchema = z.object({
     error: z.string().max(500).nullable()
 });
 export type CloudSyncProgress = z.infer<typeof cloudSyncProgressSchema>;
-/** État agrégé d'un partage — pilote le héros « Synchronisé » de l'UI. */
+/** État agrégé d'un partage : pilote le héros « Synchronisé » de l'UI. */
 export const cloudSyncShareStateSchema = z.object({
     shareId: z.number().int().positive(),
     state: z.enum(['synced', 'syncing', 'paused', 'offline', 'error']),
     /** Précision facultative (ex. nom de l'appareil hors ligne ou en erreur). */
     detail: z.string().max(200).nullable(),
-    /** Volumétrie fraîche — l'en-tête de l'UI se met à jour sans re-fetch. */
+    /** Volumétrie fraîche : l'en-tête de l'UI se met à jour sans re-fetch. */
     stats: cloudSyncShareStatsSchema
 });
 export type CloudSyncShareState = z.infer<typeof cloudSyncShareStateSchema>;

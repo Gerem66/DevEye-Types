@@ -60,10 +60,17 @@ export type HomeFeatureId = NativeHomeFeatureId | ExternalFeatureId;
  *  - `secrecy`  → password-encryption lock state + re-validation countdown.
  *  - `live`     → qui d'autre est dans l'espace, et où (bulles cliquables).
  *  - `publicIp` → l'adresse publique par laquelle CE navigateur sort.
+ *  - `search`   → the magnifier that opens the feature search.
  * A module's widget is declared by its manifest (`topbarWidget`) and keyed by
  * its feature id (`homeTopbarWidgetIdSchema`).
  */
-export const nativeHomeTopbarWidgetIdSchema = z.enum(['weather', 'secrecy', 'live', 'publicIp']);
+export const nativeHomeTopbarWidgetIdSchema = z.enum([
+    'weather',
+    'secrecy',
+    'live',
+    'publicIp',
+    'search'
+]);
 export type NativeHomeTopbarWidgetId = z.infer<typeof nativeHomeTopbarWidgetIdSchema>;
 
 /**

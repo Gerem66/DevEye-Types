@@ -58,6 +58,19 @@ export type SyncSessionState = z.infer<typeof syncSessionStateSchema>;
  */
 export const syncEntryKindSchema = z.enum(['file', 'dir']);
 export type SyncEntryKind = z.infer<typeof syncEntryKindSchema>;
+/**
+ * Why the agent could not index a path. The server treats that path, and
+ * anything under it, as UNKNOWN: no deletion, no upload, no download; it
+ * enters neither the baseline nor the fingerprint.
+ */
+export const syncSkipReasonSchema = z.enum([
+    'unreadable',
+    'unportable',
+    'symlink',
+    'special',
+    'nonUtf8'
+]);
+export type SyncSkipReason = z.infer<typeof syncSkipReasonSchema>;
 /** Volumétrie d'un partage (index + versions ; tailles logiques en clair). */
 export const cloudSyncShareStatsSchema = z.object({
     fileCount: z.number().int().nonnegative(),

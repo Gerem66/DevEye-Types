@@ -226,6 +226,8 @@ export {
     orderSignatureSchema,
     SIGNED_AGENT_COMMANDS,
     syncIndexEntrySchema,
+    syncIndexLineSchema,
+    syncIndexSkippedEntrySchema,
     syncShareAssignmentSchema
 } from './protocol/agent';
 export type {
@@ -310,6 +312,8 @@ export type {
     PackageProgressPush,
     PackageStartedPush,
     SyncIndexEntry,
+    SyncIndexLine,
+    SyncIndexSkippedEntry,
     SyncShareAssignment
 } from './protocol/agent';
 
@@ -423,6 +427,7 @@ export {
     SYNC_STORAGE_PATH_MAX,
     syncDirectionSchema,
     syncEntryKindSchema,
+    syncSkipReasonSchema,
     syncIndexFingerprintSchema,
     syncScanModeSchema,
     syncSessionStateSchema,
@@ -442,6 +447,7 @@ export type {
     CloudSyncShareStats,
     SyncDirection,
     SyncEntryKind,
+    SyncSkipReason,
     SyncScanMode,
     SyncSessionState,
     SyncShareStatus

@@ -8,6 +8,7 @@ import {
     SYNC_REL_PATH_MAX,
     SYNC_STORAGE_PATH_MAX,
     syncEntryKindSchema,
+    syncSkipReasonSchema,
     syncIndexFingerprintSchema,
     syncScanModeSchema,
     syncShareStatusSchema
@@ -427,13 +428,28 @@ export const syncIndexEntrySchema = z.object({
 });
 export type SyncIndexEntry = z.infer<typeof syncIndexEntrySchema>;
 
+/** A path the agent saw but could not index: the server treats it, and anything under it, as unknown. */
+export const syncIndexSkippedEntrySchema = z.object({
+    relPath: syncRelPath,
+    kind: z.literal('skipped'),
+    reason: syncSkipReasonSchema
+});
+export type SyncIndexSkippedEntry = z.infer<typeof syncIndexSkippedEntrySchema>;
+
+/** One line of a `sync.index` batch: an indexed entry, or a skipped path. */
+export const syncIndexLineSchema = z.discriminatedUnion('kind', [
+    syncIndexEntrySchema,
+    syncIndexSkippedEntrySchema
+]);
+export type SyncIndexLine = z.infer<typeof syncIndexLineSchema>;
+
 /** Un lot d'index du scan (réponse à `sync.scan`, dernier lot `done: true`). */
 export const AGENT_SYNC_INDEX = 'sync.index' as const;
 export const agentSyncIndexPayloadSchema = z.object({
     deviceId: z.uuid(),
     sessionId: syncOpId,
     shareId: z.number().int().positive(),
-    entries: z.array(syncIndexEntrySchema).max(SYNC_INDEX_BATCH_MAX),
+    entries: z.array(syncIndexLineSchema).max(SYNC_INDEX_BATCH_MAX),
     done: z.boolean(),
     /**
      * L'agent a-t-il réellement parcouru le disque ? `false` répond à un

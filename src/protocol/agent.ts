@@ -4,6 +4,7 @@ import {
     cloudSyncShareStateSchema,
     sha256HexSchema,
     SYNC_CHUNK_MAX,
+    SYNC_RESUME_NONCES_MAX,
     SYNC_INDEX_BATCH_MAX,
     SYNC_REL_PATH_MAX,
     SYNC_STORAGE_PATH_MAX,
@@ -462,6 +463,12 @@ export const agentSyncIndexPayloadSchema = z.object({
     scanned: z.boolean().default(true),
     /** Empreinte de l'index détenu par l'agent, quand il sait la calculer. */
     fingerprint: syncIndexFingerprintSchema.nullable().default(null),
+    /**
+     * The hashes are keyed (end-to-end encrypted share), not plain SHA-256. An
+     * agent that predates encrypted shares never sets it: the server refuses
+     * its index for such a share instead of storing readable content.
+     */
+    encrypted: z.boolean().default(false),
     /** Posé sur le lot final quand le scan a échoué (la session est abandonnée). */
     error: z.string().max(500).optional()
 });
@@ -488,7 +495,13 @@ export const agentSyncChunkPayloadSchema = z.object({
      * honours the push's `window`: the server then answers each data frame with
      * `sync.pushAck`. Absent (an older agent), nothing is acknowledged.
      */
-    seq: z.number().int().nonnegative().optional()
+    seq: z.number().int().nonnegative().optional(),
+    /**
+     * Set with `error` on an encrypted push: the blocks the server kept from an
+     * earlier attempt do not encrypt the file as it is now. The server drops
+     * that partial; the next attempt starts over.
+     */
+    stalePartial: z.boolean().optional()
 });
 export type AgentSyncChunkPayload = z.infer<typeof agentSyncChunkPayloadSchema>;
 
@@ -531,6 +544,26 @@ export const agentSyncOpResultPayloadSchema = z.object({
     error: z.string().max(500).optional()
 });
 export type AgentSyncOpResultPayload = z.infer<typeof agentSyncOpResultPayloadSchema>;
+
+/** Base64 of a raw X25519 public key (32 bytes). */
+export const syncDevicePublicKeySchema = z
+    .string()
+    .length(44)
+    .regex(/^[A-Za-z0-9+/]{43}=$/);
+
+/**
+ * The device's X25519 public key, sent after every `sync.config`. The key of
+ * an encrypted share reaches the device sealed for it (see
+ * `syncShareAssignmentSchema.encryption`); the private half never leaves the
+ * machine. A different key than the last one means the machine lost its
+ * private key: whatever was sealed for the old one is unreadable.
+ */
+export const AGENT_SYNC_DEVICE_KEY = 'sync.deviceKey' as const;
+export const agentSyncDeviceKeyPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    publicKey: syncDevicePublicKeySchema
+});
+export type AgentSyncDeviceKeyPayload = z.infer<typeof agentSyncDeviceKeyPayloadSchema>;
 
 export const agentReportMessagePayloadSchema = z.object({
     deviceId: z.uuid(),
@@ -721,6 +754,10 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
     z.object({
         command: z.literal(AGENT_SYNC_OP_RESULT),
         payload: agentSyncOpResultPayloadSchema
+    }),
+    z.object({
+        command: z.literal(AGENT_SYNC_DEVICE_KEY),
+        payload: agentSyncDeviceKeyPayloadSchema
     })
 ]);
 
@@ -1025,7 +1062,18 @@ export const syncShareAssignmentSchema = z.object({
      */
     rateUpBps: z.number().int().positive().nullable().default(null),
     /** Rétention de `.deveye-trash/`, en jours. */
-    trashKeepDays: z.number().int().positive().max(3650).default(30)
+    trashKeepDays: z.number().int().positive().max(3650).default(30),
+    /**
+     * Set on an end-to-end encrypted share: the agent hashes with a key,
+     * encrypts what it uploads and decrypts what it installs. `wrappedKey` is
+     * the share secret sealed for this device's public key (base64), `null`
+     * while nobody has given it to this device: the agent then refuses every
+     * operation of the share and says why.
+     */
+    encryption: z
+        .object({ wrappedKey: z.string().max(256).nullable() })
+        .nullable()
+        .default(null)
 });
 export type SyncShareAssignment = z.infer<typeof syncShareAssignmentSchema>;
 
@@ -1069,7 +1117,27 @@ export const agentSyncPushPayloadSchema = z.object({
      * window. The server acks a frame once written, and paces its acks to cap
      * the upload rate. Absent (an older server), the agent streams freely.
      */
-    window: z.number().int().positive().max(64).optional()
+    window: z.number().int().positive().max(64).optional(),
+    /**
+     * The hash the scan announced. An encrypted push binds its blocks to it,
+     * so the server always sends it on an encrypted share.
+     */
+    hash: sha256HexSchema.optional(),
+    /**
+     * Encrypted share, `startOffset > 0`: what the server kept of an earlier
+     * attempt. `header` is the blob's 17-byte header and `nonces` the 12-byte
+     * nonce of each kept block in order (both base64), `tags` the hex SHA-256
+     * of their 16-byte tags laid end to end. The agent re-encrypts its own
+     * prefix with those nonces and compares before sending anything: content
+     * changed since then is refused (`stalePartial`).
+     */
+    resume: z
+        .object({
+            header: z.string().max(32),
+            nonces: z.string().max(SYNC_RESUME_NONCES_MAX),
+            tags: sha256HexSchema
+        })
+        .optional()
 });
 export type AgentSyncPushPayload = z.infer<typeof agentSyncPushPayloadSchema>;
 

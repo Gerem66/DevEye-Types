@@ -25,6 +25,7 @@ import type {
     AgentSyncChangedPayload,
     AgentSyncChunkPayload,
     AgentSyncConfigPayload,
+    AgentSyncDeviceKeyPayload,
     AgentSyncDeletePayload,
     AgentSyncIndexPayload,
     AgentSyncMovePayload,
@@ -766,6 +767,8 @@ export interface FeatureAgentHooks {
     /** The agent is still working on an op locally; nothing to do but let the op wait longer. */
     onSyncBusy?(deviceId: string, payload: AgentSyncBusyPayload): void;
     onSyncOpResult?(deviceId: string, payload: AgentSyncOpResultPayload): void;
+    /** The agent's X25519 public key, sent after every `sync.config` it receives. */
+    onSyncDeviceKey?(deviceId: string, payload: AgentSyncDeviceKeyPayload): void;
 }
 
 /**

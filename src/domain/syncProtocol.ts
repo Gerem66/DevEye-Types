@@ -16,6 +16,14 @@ export const SYNC_CHUNK_MAX = 1_400_000;
 /** Nombre max d'entrées d'index par frame `sync.index`. */
 export const SYNC_INDEX_BATCH_MAX = 500;
 /**
+ * Blocks of an encrypted partial a resumed push can build on (1 MiB each). The
+ * server keeps no more: their nonces must fit in one `sync.push` frame, and
+ * past 32 GiB a broken upload restarts from there rather than from zero.
+ */
+export const SYNC_RESUME_MAX_BLOCKS = 32_768;
+/** Base64 length of {@link SYNC_RESUME_MAX_BLOCKS} 12-byte nonces. */
+export const SYNC_RESUME_NONCES_MAX = Math.ceil((SYNC_RESUME_MAX_BLOCKS * 12) / 3) * 4;
+/**
  * Séparateur des champs d'une ligne d'empreinte d'index (voir
  * `src/cloudSync/fingerprint.ts` côté serveur et `sync::fingerprint` côté
  * agent). U+0001 est sûr : les caractères de contrôle sont déjà refusés dans un

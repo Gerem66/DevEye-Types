@@ -379,11 +379,14 @@ export interface GitClientProvider {
      * sync progress, and renders the host's "unlink" as its trailing action.
      */
     LinkedRepo: ComponentType<{ repoId: number; canWrite: boolean; onUnlink: () => void }>;
-    /** The feature's repository form, to declare a new repository from a project. */
+    /**
+     * The feature's repository form, to declare new repositories from a
+     * project. Several can be checked at once: `onSaved` receives every id added.
+     */
     RepoDialog: ComponentType<{
         open: boolean;
         onClose: () => void;
-        onSaved: (repoId: number) => void;
+        onSaved: (repoIds: readonly number[]) => void;
     }>;
 }
 

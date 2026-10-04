@@ -184,15 +184,8 @@ declare module 'deveye-sdk-client' {
         /** Chips sharing a key exclude each other: activating one releases the others. */
         exclusive?: string;
     }
-    /**
-     * The app's dropdown. The search field (accent- and case-insensitive, group
-     * names included) only appears from eight choices on, or on request; filter
-     * chips can narrow the list. Safe inside a Dialog: the panel is portaled.
-     */
-    export function SearchSelect<T extends string>(props: {
-        value: T;
+    interface SearchSelectCommonProps<T extends string> {
         options: readonly SearchSelectOption<T>[];
-        onChange: (value: T) => void;
         'aria-label': string;
         /** What the trigger shows when no option carries the current value. */
         placeholder?: string;
@@ -208,7 +201,28 @@ declare module 'deveye-sdk-client' {
         autoFocus?: boolean;
         disabled?: boolean;
         className?: string;
-    }): ReactNode;
+    }
+    /**
+     * The app's dropdown. The search field (accent- and case-insensitive, group
+     * names included) only appears from eight choices on, or on request; filter
+     * chips can narrow the list. Safe inside a Dialog: the panel is portaled.
+     * With `multiple`, each option is a check box: picking one toggles it and
+     * keeps the panel open.
+     */
+    export function SearchSelect<T extends string>(
+        props: SearchSelectCommonProps<T> & {
+            multiple?: false;
+            value: T;
+            onChange: (value: T) => void;
+        }
+    ): ReactNode;
+    export function SearchSelect<T extends string>(
+        props: SearchSelectCommonProps<T> & {
+            multiple: true;
+            value: readonly T[];
+            onChange: (value: T[]) => void;
+        }
+    ): ReactNode;
     /**
      * A labelled range input. `valueLabel` is how the value reads ("24", "80 %");
      * `marks` sit under the track; `indicator` draws a discreet tick at a

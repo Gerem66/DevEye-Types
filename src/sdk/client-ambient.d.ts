@@ -52,6 +52,24 @@ declare module 'deveye-sdk-client' {
     export const TextInput: ComponentType<
         InputHTMLAttributes<HTMLInputElement> & { enableShowHideButton?: boolean; error?: string }
     >;
+    export interface ActionMenuItem {
+        label: string;
+        icon?: string;
+        onSelect: () => void;
+        /** A destructive action: shown in red. */
+        danger?: boolean;
+        disabled?: boolean;
+        /** What the action does, in one sentence, under the label. */
+        detail?: string;
+    }
+    export interface ActionMenuProps {
+        items: readonly ActionMenuItem[];
+        /** The button's name, for screen readers and the tooltip. */
+        label?: string;
+        className?: string;
+    }
+    /** A "⋯" button that unfolds secondary actions above everything, never clipped by a scrolling parent. */
+    export const ActionMenu: ComponentType<ActionMenuProps>;
     export interface CopyButtonProps {
         value: string;
         /** What gets copied, for the tooltip and screen readers ("Copier la clé"). */

@@ -1270,7 +1270,12 @@ export const AGENT_SYNC_DELETE = 'sync.delete' as const;
 export const agentSyncDeletePayloadSchema = z.object({
     opId: syncOpId,
     shareId: z.number().int().positive(),
-    relPath: syncRelPath
+    relPath: syncRelPath,
+    /**
+     * Asked for by the user: the file goes to the trash even if it changed since
+     * the scan or was never indexed (unreadable, unportable name).
+     */
+    force: z.boolean().optional()
 });
 export type AgentSyncDeletePayload = z.infer<typeof agentSyncDeletePayloadSchema>;
 

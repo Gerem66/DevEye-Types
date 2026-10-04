@@ -67,6 +67,8 @@ declare module 'deveye-sdk-client' {
         /** The button's name, for screen readers and the tooltip. */
         label?: string;
         className?: string;
+        /** The button's content in place of "⋯": the round look goes, `className` draws it. */
+        trigger?: ReactNode;
     }
     /** A "⋯" button that unfolds secondary actions above everything, never clipped by a scrolling parent. */
     export const ActionMenu: ComponentType<ActionMenuProps>;

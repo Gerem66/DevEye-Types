@@ -519,6 +519,7 @@ export {
     nativeHomeTopbarWidgetIdSchema,
     HOME_FEATURE_IDS,
     HOME_FOLDER_MAX_ITEMS,
+    HOME_TOPBAR_MAX_WIDGETS,
     HOME_SECTION_MAX_TILES,
     isFeatureTile,
     isHomeFolder,

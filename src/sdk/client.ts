@@ -95,7 +95,8 @@ export interface FeatureClient {
      * The compact topbar widget declared by `manifest.topbarWidget`. Rendered
      * with NO props: everything it shows must come through YOUR feature's
      * commands, which the server authorizes against the caller's grants. The
-     * host mounts it only for members whose role grants your feature.
+     * host mounts it only for members whose role grants your feature, inside
+     * a button that opens your feature: put nothing interactive in it.
      */
     TopbarWidget?: ComponentType;
     /**

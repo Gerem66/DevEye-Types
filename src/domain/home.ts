@@ -129,12 +129,13 @@ export const shortcutItemSchema = z.object({
 export type ShortcutItem = z.infer<typeof shortcutItemSchema>;
 
 /**
- * Plafonds d'une section et d'un dossier. Exportés parce que le client doit
+ * Plafonds d'une section, d'un dossier et de la barre. Exportés parce que le client doit
  * refuser avant d'écrire : une disposition qui dépasse ne passe plus la
  * validation, et le client la relirait vide au démarrage suivant.
  */
 export const HOME_SECTION_MAX_TILES = 60;
 export const HOME_FOLDER_MAX_ITEMS = 20;
+export const HOME_TOPBAR_MAX_WIDGETS = 10;
 
 /**
  * Un dossier de la grille : plusieurs fonctionnalités derrière une seule tuile,
@@ -241,7 +242,7 @@ export type HomeSection = z.infer<typeof homeSectionSchema>;
 
 export const homeLayoutSchema = z.object({
     /** Navbar mini-widgets — not a grid section, edited in the navbar itself. */
-    topbar: z.array(homeTopbarWidgetIdSchema).max(10),
+    topbar: z.array(homeTopbarWidgetIdSchema).max(HOME_TOPBAR_MAX_WIDGETS),
     /** Ordered grid sections. Empty by default: a fresh home shows none. */
     sections: z.array(homeSectionSchema).max(12)
 });

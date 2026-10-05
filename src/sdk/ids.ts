@@ -2,7 +2,7 @@
  * Feature ids, re-exported for SDK consumers.
  *
  * DevEye has two id families sharing one namespace:
- *  - the sixteen **native** feature ids, a closed enum (`WorkspaceFeatureId`);
+ *  - the **native** feature ids, a closed enum (`WorkspaceFeatureId`);
  *  - **external** module ids, `x-<slug>` strings matching
  *    {@link EXTERNAL_FEATURE_ID_PATTERN}.
  *

@@ -1,29 +1,38 @@
 # @deveye/types
 
-Les contrats partagés de [DevEye](https://github.com/Gerem66/DevEye) : types
-TypeScript et schémas zod, consommés par le serveur, le client et les modules
-de features.
+The shared contracts of [DevEye](https://github.com/Gerem66/DevEye): TypeScript
+types and zod schemas, consumed by the server, the client and the feature
+modules.
 
-Le package sert ses sources directement (`src/*.ts`, aucun build) :
+The package ships its sources as is (`src/*.ts`, no build step). Its entries,
+as `package.json` exports them:
 
-- **`@deveye/types`** — le domaine transverse (espaces, rôles, live, partage…),
-  les protocoles (enveloppe WS, agent), le registre d'identité des features.
-- **`@deveye/types/sdk`** — le contrat des modules de features : `FeatureManifest`,
-  `validateManifest`, ids `x-<slug>`.
-- **`@deveye/types/sdk/server`** — le contexte serveur d'un module (handlers,
-  store, façade, service).
-- **`@deveye/types/sdk/client`** — les contrats de l'entrée client d'un module.
-- **`@deveye/types/sdk/testing`** — le harnais de test en mémoire des handlers.
+- **`@deveye/types`**: the cross-cutting domain (workspaces, roles, live
+  presence, sharing...), the protocols (WebSocket envelope, errors, agent) and
+  the feature identity registry.
+- **`@deveye/types/sdk`**: the contract of a feature module: `FeatureManifest`
+  and `validateManifest`, the `x-<slug>` ids, the provider contracts modules
+  offer one another, the look of a public page, the device a form offers as a
+  relay.
+- **`@deveye/types/sdk/server`**: what a module's handlers and background
+  service receive (context, store, facade, service deps), plus the server
+  helpers (SSRF guard, environment spec, domain names, item copy and move, the
+  holder's data export, sealed file container, device relay, download headers).
+- **`@deveye/types/sdk/client`**: the contracts of a module's client entry.
+- **`@deveye/types/sdk/testing`**: the in-memory harness for handlers,
+  services and domain hooks.
 
-Le portrait typé du barrel `deveye-sdk-client` (le runtime que l'app fournit
-aux modules) est publié ici aussi (`src/sdk/client-ambient.d.ts`) ; la CI de
-DevEye vérifie mécaniquement que le vrai barrel l'honore.
+The typed portrait of `deveye-sdk-client`, the runtime barrel the app provides
+to modules, is published here too (`src/sdk/client-ambient.d.ts`); DevEye's CI
+checks mechanically that the real barrel honours it.
 
-Pour écrire un module : partir du
-[template](https://github.com/Gerem66/DevEye-Feature-Template) et sa doc.
+To write a module, start from the
+[template](https://github.com/Gerem66/DevEye-Feature-Template) and its docs.
 
-## Licence
+## License
 
-[MIT](LICENSE). Un module bâti sur ce paquet se licencie comme son auteur
-l'entend : le cœur de DevEye est sous AGPL-3.0, avec une exception pour ce qui
-ne passe que par ce SDK (`LICENSING.md` du dépôt de l'app).
+[MIT](LICENSE). A module built on this package is licensed as its author sees
+fit: DevEye's core is AGPL-3.0, with an additional permission for what reaches
+the app only through this SDK
+([`LICENSING.md`](https://github.com/Gerem66/DevEye/blob/main/LICENSING.md) in
+the app's repository).

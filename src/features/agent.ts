@@ -75,13 +75,15 @@ export const agentLifecycle = {
 };
 
 /**
- * Enable/disable the agent's per-user autostart (survives reboot, no privilege).
- * Pushes `agent.service` to the connected agent (`install-user`/`uninstall-user`).
+ * Arm or disarm the agent's service for the next boot, whatever its privileges.
+ * Pushes `agent.service` (`autostart-on`/`autostart-off`). A system service needs
+ * root: an agent without it replies `needsManualCommand`, and the UI shows
+ * `manualCommand` to run on the device.
  */
 export const agentSetAutostart = {
     command: 'agent.setAutostart' as const,
     input: z.object({ deviceId, enabled: z.boolean() }),
-    output: z.object({ device: deviceSchema })
+    output: z.object({ device: deviceSchema, manualCommand: z.string() })
 };
 
 /**

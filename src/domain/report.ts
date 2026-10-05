@@ -236,11 +236,17 @@ export const agentInfoSchema = z.object({
     /** OS account the agent runs as (e.g. `root`, `deploy`). */
     user: z.string().max(128),
     /**
-     * How the agent is installed for persistence: `none` (transient run), `user`
-     * (per-user autostart, login session) or `system` (root/system service, boot).
-     * Optional + defaulted so reports from agents predating this field still parse.
+     * Which service carries the agent: `none` (started by hand), `user` (per-user
+     * service) or `system` (root/system service). Whether it comes back after a
+     * reboot is `autostart`.
      */
     serviceScope: agentServiceScopeSchema.default('none'),
+    /**
+     * The service is armed for the next boot (or login, for a per-user service on
+     * macOS and Windows). Always `false` without a service. Absent from agents too
+     * old to arm or disarm their service on their own.
+     */
+    autostart: z.boolean().optional(),
     /** True when launched by a service manager (so a self-update just exits to be relaunched). */
     managed: z.boolean().default(false),
     /**

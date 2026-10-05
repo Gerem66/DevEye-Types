@@ -76,14 +76,15 @@ export const agentUpdatedMessagePayloadSchema = z.object({
 
 /**
  * Persistence/privilege action the server can ask the agent to perform:
- * - `install-user`   install a per-user autostart (no privilege needed),
- * - `uninstall-user` remove it,
- * - `elevate`        (try to) become a root/system service — see the hybrid flow,
- * - `drop`           go back from system/root to a per-user service.
+ * - `autostart-on`  start with the machine (or the session): arm the installed
+ *   service, or install one matching the agent's privileges when there is none,
+ * - `autostart-off` disarm the service; the agent keeps running until the next boot,
+ * - `elevate`       (try to) become a root/system service, see the hybrid flow,
+ * - `drop`          go back from system/root to a per-user service.
  */
 export const agentServiceActionSchema = z.enum([
-    'install-user',
-    'uninstall-user',
+    'autostart-on',
+    'autostart-off',
     'elevate',
     'drop'
 ]);

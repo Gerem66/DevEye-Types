@@ -1080,6 +1080,11 @@ declare module 'deveye-sdk-client' {
     /** The CSS variable of an account colour, the one the live presence paints with. */
     export function userColorVar(color: MinimalUser['color']): string;
     /**
+     * The theme on screen. Code that reads theme tokens from JS (a canvas, a
+     * third-party library) depends on it to read them again when it changes.
+     */
+    export function useColorScheme(): 'dark' | 'light';
+    /**
      * Two sticky bands, one under the other: measure the top one and hand the
      * ancestor a `--sticky-head` variable the lower band offsets itself by.
      */

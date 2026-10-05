@@ -51,7 +51,15 @@ declare module 'deveye-sdk-client' {
         }
     >;
     export const TextInput: ComponentType<
-        InputHTMLAttributes<HTMLInputElement> & { enableShowHideButton?: boolean; error?: string }
+        InputHTMLAttributes<HTMLInputElement> & {
+            enableShowHideButton?: boolean;
+            error?: string;
+            /**
+             * Shows a clear button inside the field while it holds a value. On a date or time
+             * field it shows on touch screens only: desktop browsers draw their own.
+             */
+            onClear?: () => void;
+        }
     >;
     export interface ActionMenuItem {
         label: string;

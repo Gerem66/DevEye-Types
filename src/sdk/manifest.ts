@@ -345,7 +345,15 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
      * a sign-up that carried a hint (`/signup?plan=…`), and receives it. One
      * installed module at most may ask for it.
      */
-    accountEntry?: { label: string; signupHint?: boolean };
+    accountEntry?: {
+        label: string;
+        signupHint?: boolean;
+        /**
+         * The view also holds tools for global administrators (other accounts,
+         * site-wide figures): the menu marks the entry for them, and only them.
+         */
+        adminTools?: boolean;
+    };
     /**
      * A page of yours among the system pages of the account menu, which only a
      * global administrator sees and opens: what the operator of the instance

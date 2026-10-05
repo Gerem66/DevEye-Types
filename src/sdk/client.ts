@@ -13,10 +13,14 @@ import type { ComponentType, ReactNode } from 'react';
 /**
  * The scope a settings panel is opened for. An item id is text, whatever key
  * the feature's own table uses: a row-keyed feature reads it back with
- * `Number(...)`, a device is a UUID as it stands.
+ * `Number(...)`, a device is a UUID as it stands. A `record` is a row the
+ * feature opens on its own sheet without it being an item (an invoice, whose
+ * client is the item): its tabs are `manifest.settings.record`.
  */
 export type SdkSettingsScope =
-    { kind: 'feature' } | { kind: 'item'; itemId: string; itemLabel: string };
+    | { kind: 'feature' }
+    | { kind: 'item'; itemId: string; itemLabel: string }
+    | { kind: 'record'; recordId: string; recordLabel: string };
 
 export interface SettingsPanelProps {
     scope: SdkSettingsScope;

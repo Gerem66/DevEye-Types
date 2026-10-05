@@ -410,6 +410,13 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
     settings?: {
         feature?: readonly (SettingsTab | CustomTabRef)[];
         item?: readonly (SettingsTab | CustomTabRef)[];
+        /**
+         * The tabs of a record: a row your view opens on its own sheet without
+         * it being an item (an invoice, whose client is the item). Mounted with
+         * `FeatureSettingsButton` on a `record` scope; `general` and custom tabs
+         * only, since sharing, permissions and notifications belong to items.
+         */
+        record?: readonly ('general' | CustomTabRef)[];
     };
 
     commands: readonly ManifestCommand[];
@@ -588,6 +595,15 @@ export function validateManifest(m: FeatureManifest): void {
         }
         if ((m.settings?.[scope]?.length ?? 0) > 0 && scope === 'item' && !m.hasItems) {
             fail(m.id, 'item settings require hasItems');
+        }
+    }
+    for (const tab of m.settings?.record ?? []) {
+        if (typeof tab === 'string') {
+            if (tab !== 'general') {
+                fail(m.id, `record settings take general and custom tabs, not « ${String(tab)} »`);
+            }
+        } else if (!CUSTOM_TAB_PATTERN.test(tab.id) || BUILTIN_TABS.includes(tab.id)) {
+            fail(m.id, `invalid custom tab id « ${tab.id} »`);
         }
     }
 }

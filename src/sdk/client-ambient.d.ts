@@ -465,6 +465,15 @@ declare module 'deveye-sdk-client' {
                   itemId: string;
                   itemLabel: string;
                   shareable?: boolean;
+              }
+            | {
+                  /** A record (`manifest.settings.record`): a row with its own sheet that is not an item. */
+                  kind: 'record';
+                  feature: FeatureId;
+                  recordId: string;
+                  recordLabel: string;
+                  /** The sentence under the title: what these settings act on. */
+                  description: string;
               };
         /**
          * `link` renders an underlined word instead of a button, for the gesture
@@ -731,6 +740,12 @@ declare module 'deveye-sdk-client' {
         timeoutMs?: number;
         /** The updates the handler reports through `ctx.progress`, as they arrive. */
         onProgress?: (update: Omit<RequestProgress, 'requestId'>) => void;
+        /**
+         * Run the command in another workspace of this instance (one of
+         * `useWorkspaces()`) instead of the active one: copying a record
+         * across. The server checks membership and rights there as usual.
+         */
+        workspaceId?: number;
     }
     /**
      * The typed sender of any list of contracts (`featureApi` is it on a
@@ -1013,6 +1028,17 @@ declare module 'deveye-sdk-client' {
     export function useFeatureLifecycle(hooks: { onUnmount?: () => void }): void;
     /** The members of the active workspace, as the session lists them (empty before it answers). */
     export function useWorkspaceMembers(): readonly MinimalUser[];
+    /**
+     * The caller's workspaces on this instance, the active one included, with
+     * the features each has on. A target for `SendOptions.workspaceId`; the
+     * rights there are the server's to judge.
+     */
+    export function useWorkspaces(): ReadonlyArray<{
+        id: number;
+        kind: 'personal' | 'shared';
+        name: string;
+        features: readonly string[];
+    }>;
     /**
      * The domains of a feature whose manifest declares `domains`, in the
      * active workspace, kept live. For a form that designates one (filter on

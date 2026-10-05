@@ -143,6 +143,27 @@ test('validateManifest refuses a tab id it does not know', () => {
     );
 });
 
+test('validateManifest keeps record settings to general and custom tabs', () => {
+    assert.doesNotThrow(() =>
+        validateManifest({
+            ...base,
+            settings: { record: ['general', { id: 'copy', label: 'Copy' }] }
+        })
+    );
+    assert.throws(
+        () => validateManifest({ ...base, settings: { record: ['notifications' as 'general'] } }),
+        /record settings take general and custom tabs/
+    );
+    assert.throws(
+        () =>
+            validateManifest({
+                ...base,
+                settings: { record: [{ id: 'sharing', label: 'Share' }] }
+            }),
+        /invalid custom tab id/
+    );
+});
+
 test('validateManifest checks quotas and the account entry', () => {
     const rejects = (patch: Partial<FeatureManifest>, fragment: string) =>
         assert.throws(() => validateManifest({ ...base, ...patch }), new RegExp(fragment));

@@ -16,7 +16,8 @@ declare module 'deveye-sdk-client' {
         DragEvent,
         InputHTMLAttributes,
         ReactNode,
-        RefObject
+        RefObject,
+        TextareaHTMLAttributes
     } from 'react';
     import type { z, ZodType } from 'zod';
     import type {
@@ -59,6 +60,14 @@ declare module 'deveye-sdk-client' {
              * field it shows on touch screens only: desktop browsers draw their own.
              */
             onClear?: () => void;
+        }
+    >;
+    /** A multi-line field with the look of `TextInput`. */
+    export const TextArea: ComponentType<
+        TextareaHTMLAttributes<HTMLTextAreaElement> & {
+            /** The height follows the content from one line on, with no manual resize. */
+            autoGrow?: boolean;
+            error?: string;
         }
     >;
     export interface ActionMenuItem {

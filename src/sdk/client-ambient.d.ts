@@ -29,6 +29,7 @@ declare module 'deveye-sdk-client' {
         FeatureId,
         MinimalUser,
         PathExclusionKind,
+        RequestProgress,
         User,
         WorkspaceCapability
     } from '@deveye/types';
@@ -97,6 +98,30 @@ declare module 'deveye-sdk-client' {
      * `filter: opacity()`, never `opacity`.
      */
     export const LoadingVeil: ComponentType<LoadingVeilProps>;
+    export interface ProgressBarProps {
+        /** From 0 to 1 when the progress is measured; absent, the bar sweeps without promising anything. */
+        value?: number;
+        /** Read by screen readers. */
+        label: string;
+        className?: string;
+    }
+    export const ProgressBar: ComponentType<ProgressBarProps>;
+    export interface ProgressDialogProps {
+        open: boolean;
+        title: string;
+        /** What is being done, and why it is worth the wait. */
+        description?: string;
+        /** See {@link ProgressBarProps.value}. */
+        value?: number;
+        /** The current step, under the bar. */
+        step?: string;
+    }
+    /**
+     * A long operation under way: a dialog nothing closes while it lasts, and
+     * a bar. Its owner closes it (`open: false`) when the operation ends or
+     * gives up.
+     */
+    export const ProgressDialog: ComponentType<ProgressDialogProps>;
     export interface LogOutputProps {
         /** The raw log, ANSI sequences included: the component cleans it. */
         text: string;
@@ -697,6 +722,16 @@ declare module 'deveye-sdk-client' {
         readonly code: string;
         readonly details?: unknown;
     }
+    export interface SendOptions {
+        /**
+         * How long the command may stay silent, 15 s by default: stretch it for
+         * a command that queries a slow third party. With `onProgress`, each
+         * update restarts the count.
+         */
+        timeoutMs?: number;
+        /** The updates the handler reports through `ctx.progress`, as they arrive. */
+        onProgress?: (update: Omit<RequestProgress, 'requestId'>) => void;
+    }
     /**
      * The typed sender of any list of contracts (`featureApi` is it on a
      * manifest's commands). `commandsApi(agentCommands)` is how a module talks
@@ -711,7 +746,7 @@ declare module 'deveye-sdk-client' {
         send<N extends C[number]['command']>(
             name: N,
             input: z.input<Extract<C[number], { command: N }>['input'] & ZodType>,
-            opts?: { timeoutMs?: number }
+            opts?: SendOptions
         ): Promise<z.output<Extract<C[number], { command: N }>['output'] & ZodType>>;
     };
     export function featureApi<const M extends FeatureManifest>(
@@ -720,8 +755,7 @@ declare module 'deveye-sdk-client' {
         send<N extends M['commands'][number]['command']>(
             name: N,
             input: z.input<Extract<M['commands'][number], { command: N }>['input'] & ZodType>,
-            /** `timeoutMs` stretches the wait for a command that queries a slow third party. */
-            opts?: { timeoutMs?: number }
+            opts?: SendOptions
         ): Promise<z.output<Extract<M['commands'][number], { command: N }>['output'] & ZodType>>;
     };
 

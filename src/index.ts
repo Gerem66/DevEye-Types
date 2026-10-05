@@ -1,5 +1,15 @@
-export { clientMessageSchema, serverMessageSchema } from './protocol/envelope';
-export type { ClientMessage, ConnectionState, ServerMessage } from './protocol/envelope';
+export {
+    clientMessageSchema,
+    REQUEST_PROGRESS_EVENT,
+    requestProgressSchema,
+    serverMessageSchema
+} from './protocol/envelope';
+export type {
+    ClientMessage,
+    ConnectionState,
+    RequestProgress,
+    ServerMessage
+} from './protocol/envelope';
 export { ErrorCodeSchema, ProtocolErrorSchema } from './protocol/error';
 export type { ErrorCode, ProtocolError } from './protocol/error';
 export { err, ok, resultSchema } from './protocol/result';

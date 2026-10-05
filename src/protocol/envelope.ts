@@ -36,4 +36,21 @@ export const serverMessageSchema = z.object({
 
 export type ServerMessage = z.infer<typeof serverMessageSchema>;
 
+/**
+ * Progress of a pending command, pushed to its caller only (the `progress` of a
+ * handler context), as an unsolicited event carrying the request it belongs to.
+ * The client re-arms the request's timeout on each one: a command that keeps
+ * reporting never times out, `timeoutMs` bounds its silence.
+ */
+export const REQUEST_PROGRESS_EVENT = 'request.progress' as const;
+
+export const requestProgressSchema = z.object({
+    requestId: z.string().min(1),
+    done: z.number().int().nonnegative().optional(),
+    total: z.number().int().nonnegative().optional(),
+    step: z.string().max(200).optional()
+});
+
+export type RequestProgress = z.infer<typeof requestProgressSchema>;
+
 export type ConnectionState = 'idle' | 'connecting' | 'open' | 'closing' | 'closed' | 'error';

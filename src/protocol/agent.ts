@@ -1062,7 +1062,7 @@ export const syncShareAssignmentSchema = z.object({
      */
     rateUpBps: z.number().int().positive().nullable().default(null),
     /** Rétention de `.deveye-trash/`, en jours. */
-    trashKeepDays: z.number().int().positive().max(3650).default(30),
+    trashKeepDays: z.number().int().positive().max(3650).default(7),
     /**
      * Set on an end-to-end encrypted share: the agent hashes with a key,
      * encrypts what it uploads and decrypts what it installs. `wrappedKey` is

@@ -12,6 +12,7 @@ import {
     FeatureError,
     type AgentFolderArchive,
     type AgentFolderArchiveSummary,
+    type CommandProgress,
     type DevEyeFacade,
     type FeatureDomainsContext,
     type FeatureServer,
@@ -141,6 +142,12 @@ export interface RecordedCalls {
     livePublishes: { workspaceId: number; event: string; payload: unknown }[];
     /** Accounts beaten through `live.accountChanged`, in order. */
     accountChanges: number[];
+}
+
+/** What a command's test context records on top of {@link RecordedCalls}. */
+export interface RecordedContextCalls extends RecordedCalls {
+    /** Updates reported through `progress`, in order. */
+    progress: CommandProgress[];
 }
 
 function recordingNotify(
@@ -430,7 +437,7 @@ function fakeProviders(table: Readonly<Record<string, unknown>>): SdkProviders {
 }
 
 export interface TestContext<Repo> extends SdkFeatureContext<Repo> {
-    recorded: RecordedCalls;
+    recorded: RecordedContextCalls;
     store: TestFeatureStore;
     /** Item ids passed to `items.forget`, in order. */
     forgotten: string[];
@@ -525,7 +532,7 @@ export interface TestContextOverrides<Repo> {
 export function createTestContext<Repo = undefined>(
     overrides: TestContextOverrides<Repo> = {}
 ): TestContext<Repo> {
-    const recorded: RecordedCalls = {
+    const recorded: RecordedContextCalls = {
         notifications: [],
         liveMessages: [],
         audits: [],
@@ -533,7 +540,8 @@ export function createTestContext<Repo = undefined>(
         archiveRequests: [],
         pinnedInstants: [],
         livePublishes: [],
-        accountChanges: []
+        accountChanges: [],
+        progress: []
     };
     const isOwner = overrides.isOwner ?? true;
     const workspaceId = overrides.workspaceId ?? 1;
@@ -730,6 +738,9 @@ export function createTestContext<Repo = undefined>(
         },
         logger: silentLogger,
         requestId: 'test',
+        progress: (update) => {
+            recorded.progress.push(update);
+        },
         origins: overrides.origins ?? {
             app: 'https://deveye.test',
             public: 'https://public.deveye.test',

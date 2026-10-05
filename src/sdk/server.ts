@@ -139,6 +139,13 @@ export class FeatureError extends Error {
     }
 }
 
+/** One update of {@link SdkFeatureContext.progress}: what is known, the rest left out. */
+export interface CommandProgress {
+    done?: number;
+    total?: number;
+    step?: string;
+}
+
 /**
  * A cipher over strings. `decrypt` throws a {@link FeatureError} (`locked`
  * when the guarded tier is sealed, `forbidden` for a foreign caller);
@@ -1187,6 +1194,13 @@ export interface SdkFeatureContext<Repo = unknown> {
     }): void;
     logger: SdkLogger;
     requestId: string;
+    /**
+     * Report how far this command has got, to its caller only. Best effort, at
+     * most 4 frames a second (the last one always goes out); each frame re-arms
+     * the caller's timeout, so a long command that keeps reporting never times
+     * out. Steps are user-facing sentences.
+     */
+    progress(update: CommandProgress): void;
     /** The server key derivations, the same `keys` a service gets. */
     keys: SdkServerKeys;
     /** The push lane, in this workspace (capability `'live.publish'`). */

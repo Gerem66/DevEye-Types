@@ -375,6 +375,18 @@ export {
 } from './domain/admission';
 export type { QueueRefusal, Seat, SeatCaps } from './domain/admission';
 export {
+    externalServiceFactSchema,
+    externalServiceMeterSchema,
+    externalServiceSchema,
+    externalServiceStateSchema
+} from './domain/externalService';
+export type {
+    ExternalService,
+    ExternalServiceFact,
+    ExternalServiceMeter,
+    ExternalServiceState
+} from './domain/externalService';
+export {
     featureMaintenanceLevelSchema,
     MAINTENANCE_CLOSE_CODE,
     MAINTENANCE_EVENT,
@@ -909,6 +921,8 @@ export type {
 export {
     adminCommands,
     adminDeleteUser,
+    adminExternalServices,
+    adminExternalServicesSchema,
     adminMaintenanceDismissNotice,
     adminMaintenanceFeature,
     adminMaintenanceGet,
@@ -922,7 +936,7 @@ export {
     adminUserList,
     adminUserSchema
 } from './features/admin';
-export type { AdminMaintenance, AdminUser } from './features/admin';
+export type { AdminExternalServices, AdminMaintenance, AdminUser } from './features/admin';
 export {
     debugBenchCatalog,
     debugBenchContextSchema,

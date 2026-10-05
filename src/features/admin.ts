@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { seatCapsSchema } from '../domain/admission';
+import { externalServiceSchema } from '../domain/externalService';
 import { featureMaintenanceLevelSchema, MAINTENANCE_MESSAGE_MAX } from '../domain/maintenance';
 import { userRoleSchema } from '../domain/role';
 import { userStatusSchema } from '../domain/user';
@@ -174,6 +175,30 @@ export const adminMaintenanceDismissNotice = {
     output: z.object({})
 };
 
+const seatUseSchema = z.object({
+    /** `null`: no cap. */
+    cap: z.number().int().positive().nullable(),
+    present: z.number().int().nonnegative(),
+    waiting: z.number().int().nonnegative()
+});
+
+/** The "Services externes" page: every external dependency of the instance, then this server's seats. */
+export const adminExternalServicesSchema = z.object({
+    services: z.array(externalServiceSchema),
+    /** This server's simultaneous seats, the only limit on how many accounts it serves at once. */
+    seats: z.object({ free: seatUseSchema, paid: seatUseSchema }),
+    /** Milliseconds: when the services were last checked. */
+    checkedAt: z.number().int().nonnegative()
+});
+export type AdminExternalServices = z.infer<typeof adminExternalServicesSchema>;
+
+/** `refresh`: check again now rather than answer the last check (kept a few minutes). */
+export const adminExternalServices = {
+    command: 'admin.externalServices' as const,
+    input: z.object({ refresh: z.boolean() }),
+    output: adminExternalServicesSchema
+};
+
 export const adminCommands = [
     adminUserList,
     adminSetUserRole,
@@ -185,5 +210,6 @@ export const adminCommands = [
     adminMaintenancePriority,
     adminMaintenanceSignups,
     adminMaintenanceSeats,
-    adminMaintenanceDismissNotice
+    adminMaintenanceDismissNotice,
+    adminExternalServices
 ] as const;

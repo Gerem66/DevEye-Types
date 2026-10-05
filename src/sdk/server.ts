@@ -15,6 +15,7 @@ import type { UserColor } from '../domain/user';
 import type { SdkDnsRecord } from './domains';
 import type { MailTransportMessage } from './providers';
 import type { ModuleEnvSpec } from './env';
+import type { ExternalService } from '../domain/externalService';
 import type {
     AgentSyncAckPayload,
     AgentSyncApplyChunkPayload,
@@ -1608,6 +1609,17 @@ export interface FeatureServer<Repo = unknown> {
      */
     env?: ModuleEnvSpec;
     /**
+     * The external services you depend on at the instance level (a provider
+     * reached with the instance's own key), and their state: shown on the
+     * administrator's "Services externes" page each time it is opened or
+     * refreshed. Network calls are allowed; the host gives up after 8 s and
+     * shows them as not answering. Cache what is costly to read. Never a
+     * service a workspace sets up itself.
+     */
+    externalServices?(
+        ctx: SdkExternalServicesContext<Repo>
+    ): Promise<readonly SdkExternalService[]>;
+    /**
      * Every email you send, on made-up data, for the administrator's mail
      * tester: built by the SAME function as the real one, or the tester proves
      * nothing. `sender: 'server'` requires capability `'accounts.mail'`. Keys
@@ -1617,6 +1629,16 @@ export interface FeatureServer<Repo = unknown> {
     /** Your end-to-end scenarios, run by an administrator against this very server. */
     e2e?: FeatureE2eEntry<Repo>;
 }
+
+/** What `FeatureServer.externalServices` is called with. */
+export interface SdkExternalServicesContext<Repo = unknown> {
+    repo: Repo;
+    /** The administrator asked to check again: skip your cache. */
+    refresh: boolean;
+}
+
+/** One card of the "Services externes" page. */
+export type SdkExternalService = ExternalService;
 
 /** What a mail sample is built with. */
 export interface SdkMailSampleContext {

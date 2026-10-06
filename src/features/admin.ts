@@ -70,7 +70,7 @@ export const adminMaintenanceSchema = z.object({
         /** Le texte choisi, `null` pour celui par défaut. */
         message: z.string().nullable(),
         defaultMessage: z.string(),
-        /** Le processus a démarré avec `MAINTENANCE=1`. */
+        /** Le processus a démarré avec `MAINTENANCE=true`. */
         envSeeded: z.boolean(),
         updated: z.number().int().nonnegative(),
         updatedBy: maintenanceAuthorSchema
@@ -168,7 +168,7 @@ export const adminMaintenanceSeats = {
     output: adminMaintenanceSchema
 };
 
-/** Ferme le rappel de `MAINTENANCE=1`, pour tous les administrateurs. */
+/** Ferme le rappel de `MAINTENANCE=true`, pour tous les administrateurs. */
 export const adminMaintenanceDismissNotice = {
     command: 'admin.maintenanceDismissNotice' as const,
     input: z.object({}),

@@ -865,11 +865,7 @@ export {
     sharingCommands
 } from './features/sharing';
 export { linksCommands, projectLinksGet, projectLinksSet } from './features/links';
-export {
-    PROJECT_LINKED_FEATURES,
-    SHAREABLE_FEATURES,
-    SHARE_WIRED_FEATURES
-} from './domain/featureRegistry';
+export { PROJECT_LINKED_FEATURES, SHAREABLE_FEATURES } from './domain/featureRegistry';
 export {
     DNS_RECORD_TYPES,
     FEATURE_DOMAIN_HOST_MAX,

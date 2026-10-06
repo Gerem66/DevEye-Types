@@ -35,7 +35,7 @@ export const sessionBundleSchema = z.object({
     /** Where this server's source code is offered (`SOURCE_URL`), as the AGPL requires. `null`: none. */
     sourceUrl: z.string().url().nullable(),
     /**
-     * Admin only: the process booted with `MAINTENANCE=1` and no admin has
+     * Admin only: the process booted with `MAINTENANCE=true` and no admin has
      * closed the reminder. Shown once the site maintenance is lifted. Read at
      * load, not live.
      */

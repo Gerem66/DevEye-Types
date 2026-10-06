@@ -467,21 +467,10 @@ export const SHAREABLE_FEATURES: readonly WorkspaceFeatureId[] = FEATURE_REGISTR
 ).map((f) => f.id);
 
 /**
- * Celles dont la lecture élargie est réellement branchée : `shareTier` dit ce
- * que le chiffrement autorise, cette liste ce que le code fait. Partagée entre
- * client et serveur : le serveur refuse, le client n'affiche pas l'onglet.
- * Brancher une native : `listVisible` / `findVisible` dans son dépôt, le codec
- * par ligne dans son listage, une entrée ici. Un module se déclare par son
- * manifest (`shareTier` autre que `'never'`) et son entrée `items`.
- */
-export const SHARE_WIRED_FEATURES: readonly WorkspaceFeatureId[] = ['backup'];
-
-/**
  * Celles dont un projet relie les éléments : le module Projets tient une table
  * de liaison par famille, et son contrat d'usage (`PROJECTS_USAGE_PROVIDER`) ne
- * connaît que celles-ci. Partagée entre client et serveur, comme
- * {@link SHARE_WIRED_FEATURES} : le serveur rend une liste vide pour une autre,
- * le client n'affiche pas l'onglet. En relier une de plus, c'est une entrée ici
+ * connaît que celles-ci. Partagée entre client et serveur : le serveur rend une
+ * liste vide pour une autre, le client n'affiche pas l'onglet. En relier une de plus, c'est une entrée ici
  * et une dans le `Record` du contrat.
  */
 export const PROJECT_LINKED_FEATURES: readonly FeatureId[] = [

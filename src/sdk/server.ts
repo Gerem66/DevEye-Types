@@ -1,5 +1,6 @@
 import type { Duplex } from 'node:stream';
 import type { FeatureAccountExport } from './accountExport';
+import type { FeatureSealedColumn } from './sealed';
 import type { ItemTree, ItemTreeRows } from './copy';
 import type { z, ZodType } from 'zod';
 import type { ErrorCode } from '../protocol/error';
@@ -873,7 +874,9 @@ export interface SdkObjectStore {
  * Raw bytes under the SERVER key, for wrapping module-owned key material; never
  * for user data, which goes through ciphers and the store. The host seals under
  * a sub-key of its own for each module: a blob sealed by one module never opens
- * in another, nor as one of the app's own sealed keys.
+ * in another, nor as one of the app's own sealed keys. Declare every column you
+ * keep these blobs in ({@link FeatureServer.sealed}): a rotation of the server
+ * key re-wraps only what is declared.
  */
 export interface SdkServerKeys {
     /**
@@ -1600,6 +1603,11 @@ export interface FeatureServer<Repo = unknown> {
      * feature owns a table; without tables, the host exports your store alone.
      */
     accountExport?: FeatureAccountExport<Repo>;
+    /**
+     * The columns you fill with `keys.sealBytes`: see {@link FeatureSealedColumn}.
+     * Each table is one of yours, listed in `accountExport.tables`.
+     */
+    sealed?: readonly FeatureSealedColumn[];
     /** One entry per quota of the manifest, by its key, `perOperation` ones excepted, and none other. */
     quotas?: Readonly<Record<string, FeatureQuotaEntry<Repo>>>;
     /**
@@ -2068,6 +2076,8 @@ export type {
 } from './copy';
 
 export { accountExportProblem, EXPORT_SECRET_COLUMN, exportTableRows } from './accountExport';
+export { sealedColumnsProblem } from './sealed';
+export type { FeatureSealedColumn } from './sealed';
 export type {
     FeatureAccountExport,
     SdkAccountExportContext,

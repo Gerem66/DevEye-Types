@@ -421,7 +421,12 @@ export const persistenceEntrySchema = z.object({
     /** Mode POSIX en octal (`0644`) ; `null` sur Windows. */
     mode: z.string().max(8).nullable().default(null),
     /** Propriétaire du fichier ; `null` quand illisible. */
-    owner: z.string().max(64).nullable().default(null)
+    owner: z.string().max(64).nullable().default(null),
+    /**
+     * The content is exactly what the installed package ships (rpm or dpkg
+     * verification): an update, not an edit. `null` = not verified.
+     */
+    vendor: z.boolean().nullable().default(null)
 });
 export type PersistenceEntry = z.infer<typeof persistenceEntrySchema>;
 
@@ -431,6 +436,11 @@ export const PERSISTENCE_ENTRY_LIMIT = 2000;
 export const integrityReportSchema = z.object({
     /** Unix ms de la collecte sur l'agent. */
     collectedAt: z.number().int().positive(),
+    /**
+     * How the agent fingerprints entries. Two manifests of different formats
+     * cannot be diffed: the server learns a new format without findings.
+     */
+    format: z.number().int().positive().default(1),
     entries: z.array(persistenceEntrySchema).max(PERSISTENCE_ENTRY_LIMIT),
     /**
      * Le plafond a été atteint. Le serveur **n'émet alors aucun

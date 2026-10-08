@@ -453,6 +453,58 @@ export interface GitItemsProvider {
 }
 
 /**
+ * Key under `FeatureService.providers` for the CVE catalogue: the CVEs that
+ * affect a given product at a given version, read from the catalogue the CVE
+ * feature keeps for the whole server. A lookup never calls the NVD itself:
+ * the catalogue is the shared cache, filled by one ingestion queue that keeps
+ * to the NVD's quota.
+ */
+export const CVE_LOOKUP_PROVIDER = 'cve.lookup' as const;
+
+/** A product as the NVD's CPE names it: `f5` / `nginx`, `nodejs` / `node.js`. */
+export interface CveProductRef {
+    vendor: string;
+    product: string;
+}
+
+export interface CveLookupItem extends CveProductRef {
+    /** An exact version (`1.25.3`). A floating one (`1.25`) compares to nothing. */
+    version: string;
+}
+
+export interface CveLookupHit {
+    cveId: string;
+    severity: 'none' | 'low' | 'medium' | 'high' | 'critical';
+    score: number | null;
+    summary: string;
+    /** Epoch seconds. */
+    published: number;
+    /** The first version out of the affected range, when the NVD gives one. */
+    fixedIn: string | null;
+}
+
+export interface CveLookupResult {
+    /**
+     * `stale`: the catalogue cannot vouch for these products yet (their past
+     * CVEs are still being fetched, or the NVD has not answered for a day):
+     * `hits` is what is known, `reason` says why it may be incomplete.
+     */
+    status: 'ok' | 'stale';
+    reason: string | null;
+    hits: readonly { item: CveLookupItem; cves: readonly CveLookupHit[] }[];
+}
+
+export interface CveLookupProvider {
+    /**
+     * Products to keep in the catalogue for good: their whole CVE history is
+     * fetched once, then follows the ordinary feed, and the catalogue's
+     * retention spares them. Idempotent; cheap to call on every analysis.
+     */
+    watch(products: readonly CveProductRef[]): Promise<void>;
+    affecting(items: readonly CveLookupItem[]): Promise<CveLookupResult>;
+}
+
+/**
  * Key under `FeatureClient.providers` for the Git pieces the app's Projects
  * screens compose: the list of the workspace's repositories, a linked
  * repository shown in full inside a project's tab, and the feature's own

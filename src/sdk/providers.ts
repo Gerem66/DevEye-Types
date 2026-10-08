@@ -404,6 +404,8 @@ export const GIT_ITEMS_PROVIDER = 'git.items' as const;
 export interface GitHomeRepo {
     id: number;
     workspaceId: number;
+    /** The head of the default branch as the last sync saw it, `null` before any sync. */
+    headSha: string | null;
 }
 
 /** A repository as read from its home: its name, where it lives, its default branch. */

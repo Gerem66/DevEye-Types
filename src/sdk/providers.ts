@@ -11,42 +11,110 @@
  * itself.
  */
 
-/** Key under `FeatureService.providers` for the CloudSync backup source. */
-export const CLOUDSYNC_BACKUP_PROVIDER = 'cloudsync.backup' as const;
+import type { SdkAccessVerdict } from './server';
 
-export interface SyncBackupShare {
+/**
+ * Keys under `FeatureService.providers` of the file trees the Backup feature
+ * archives as a plain `tar`: a CloudSync share, a Hosting folder. Both offer a
+ * `TreeBackupProvider`. Absent (module not installed), the source kind leaves
+ * the picker and a job that names it fails its run with a clean message.
+ */
+export const CLOUDSYNC_BACKUP_PROVIDER = 'cloudsync.backup' as const;
+export const HOSTING_BACKUP_PROVIDER = 'hosting.backup' as const;
+
+/** One backupable tree of a workspace. */
+export interface TreeBackupRoot {
     id: number;
     name: string;
     workspaceId: number;
-    userId: number;
-}
-
-export interface SyncBackupStats {
     fileCount: number;
-    liveBytes: number;
+    bytes: number;
 }
 
-export interface SyncBackupFile {
+export interface TreeBackupEntry {
+    /** Relative to the root, `/`-separated. */
     relPath: string;
     kind: 'file' | 'dir';
-    hash: string;
+    /** The exact plaintext size: the tar header is written from it before the bytes. */
     size: number;
+    /** Unix milliseconds. */
     mtime: number;
     mode: number | null;
+    /** What `open` takes back for a file (a content hash, an entry id). */
+    ref: string;
+}
+
+export interface TreeBackupProvider {
+    /** The workspace's own trees (a projection is not a source), those the server can read. */
+    list(workspaceId: number): Promise<readonly TreeBackupRoot[]>;
+    /** `null` when unknown, unreadable, or not this workspace's own. */
+    find(id: number, workspaceId: number): Promise<TreeBackupRoot | null>;
+    entries(id: number): Promise<readonly TreeBackupEntry[]>;
+    /** Decrypted plaintext stream of one file. */
+    open(id: number, ref: string): Promise<AsyncIterable<Uint8Array>>;
 }
 
 /**
- * What the Backup feature needs from CloudSync, inverted: the CloudSync module
- * registers this; Backup consumes it. Absent provider = the backup run fails
- * with a clean "module not installed" error and the UI hides the source kind.
+ * Key of the Mail server's mailboxes as a backup source: the messages, their
+ * folders and flags, decrypted, for an archive a stock IMAP server reads.
  */
-export interface CloudSyncBackupProvider {
-    findShare(shareId: number): Promise<SyncBackupShare | null>;
-    listShares(workspaceId: number): Promise<readonly SyncBackupShare[]>;
-    statsByShare(shareId: number): Promise<SyncBackupStats>;
-    listPresentFiles(shareId: number): Promise<readonly SyncBackupFile[]>;
-    /** Decrypted plaintext stream of one blob. */
-    openBlob(shareId: number, hash: string): Promise<AsyncIterable<Uint8Array>>;
+export const MAILSERVER_BACKUP_PROVIDER = 'mailserver.backup' as const;
+
+export interface MailBackupMailbox {
+    id: number;
+    address: string;
+    workspaceId: number;
+    messageCount: number;
+    bytes: number;
+}
+
+export interface MailBackupFolder {
+    id: number;
+    /** `/`-separated, UTF-8; `INBOX` is the inbox. */
+    path: string;
+    /** `\Sent`, `\Drafts`, `\Trash`, `\Junk`, `\Archive`, or `null`. */
+    specialUse: string | null;
+    subscribed: boolean;
+    /** The IMAP keywords its messages carry, each once. */
+    keywords: readonly string[];
+}
+
+export type MailBackupFlag = 'seen' | 'answered' | 'flagged' | 'deleted' | 'draft';
+
+export interface MailBackupMessage {
+    id: number;
+    uid: number;
+    /** The exact plaintext size of the RFC 822 message. */
+    size: number;
+    /** Unix seconds. */
+    internalDate: number;
+    flags: readonly MailBackupFlag[];
+    keywords: readonly string[];
+}
+
+export interface MailServerBackupProvider {
+    /** The workspace's own addresses (a projection is not a source). */
+    listMailboxes(workspaceId: number): Promise<readonly MailBackupMailbox[]>;
+    findMailbox(mailboxId: number, workspaceId: number): Promise<MailBackupMailbox | null>;
+    /** Every folder, empty ones included: a restore must find them. */
+    folders(mailboxId: number): Promise<readonly MailBackupFolder[]>;
+    /** A page of a folder's messages, by ascending uid after `afterUid`. */
+    messages(
+        mailboxId: number,
+        folderId: number,
+        afterUid: number,
+        limit: number
+    ): Promise<readonly MailBackupMessage[]>;
+    /**
+     * Opens one message BEFORE resolving, so a message expunged since the
+     * listing answers `null` here rather than failing mid-stream.
+     */
+    open(mailboxId: number, messageId: number): Promise<AsyncIterable<Uint8Array> | null>;
+    /**
+     * May this member, without a session, read the mail of this address? Who
+     * can reset its password can; mere write access to the Mail server cannot.
+     */
+    authorize(mailboxId: number, workspaceId: number, userId: number): Promise<SdkAccessVerdict>;
 }
 
 /**

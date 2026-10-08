@@ -272,8 +272,12 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
      * Masculine by default.
      */
     itemNounGender?: 'm' | 'f';
-    /** Feature-scope reusable settings (API keys, destinations). Opens the Sources tab. */
-    sources?: { hint: string };
+    /**
+     * Feature-scope reusable settings (API keys, destinations). Opens the
+     * Sources tab, under `label` and `icon` when "Sources" would misname what
+     * it holds.
+     */
+    sources?: { hint: string; label?: string; icon?: string };
     /**
      * WHEN the feature notifies, as the lead sentence of its Notifications tab.
      * Required with `notifies`: a tab that lists channels without saying what

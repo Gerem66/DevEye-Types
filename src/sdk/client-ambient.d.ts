@@ -233,6 +233,14 @@ declare module 'deveye-sdk-client' {
         placeholder?: string;
         searchPlaceholder?: string;
         emptyText?: string;
+        /**
+         * Groups always listed, in this order, even without options: one
+         * without any reads `emptyGroupText` ("Aucun") under its heading.
+         * Groups missing here follow in order of first appearance. While a
+         * search or a chip narrows the list, empty groups step aside.
+         */
+        groups?: readonly string[];
+        emptyGroupText?: string;
         /** The search field: `'auto'` (default) shows it from eight choices on. */
         searchable?: boolean | 'auto';
         /** Chips under the search, AND-combined, reset when the panel closes. */

@@ -51,10 +51,11 @@ export interface FeatureDescriptor {
      * (un jeton, une destination) que chaque élément ne fait que désigner.
      * Ouvre l'onglet « Sources » à l'échelle de la fonctionnalité, seul endroit
      * où elles se créent et se corrigent ; `hint` est la phrase de tête de
-     * l'onglet. Les canaux de notification suivent la même logique dans
-     * l'onglet « Notifications » (voir `notifies`).
+     * l'onglet, `label` et `icon` son nom et son icône quand « Sources » dirait
+     * mal ce qu'il range (des destinations). Les canaux de notification suivent
+     * la même logique dans l'onglet « Notifications » (voir `notifies`).
      */
-    sources?: { hint: string };
+    sources?: { hint: string; label?: string; icon?: string };
     /**
      * La phrase de tête de l'onglet Notifications : QUAND la fonctionnalité
      * prévient. Sans elle, l'onglet liste des canaux sans dire à quoi ils
@@ -245,7 +246,9 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         hasItems: true,
         itemNoun: 'travail',
         sources: {
-            hint: 'Les destinations d’archives de l’espace : un dossier du serveur, une machine, un bucket S3, un serveur SFTP ou WebDAV. Chaque travail écrit vers l’une d’elles ; la corriger corrige d’un coup tous les travaux qui s’en servent.'
+            hint: 'Les destinations d’archives de l’espace : un dossier du serveur, une machine, un bucket S3, un serveur SFTP ou WebDAV. Chaque travail écrit vers l’une d’elles ; la corriger corrige d’un coup tous les travaux qui s’en servent.',
+            label: 'Destinations',
+            icon: 'cloud'
         },
         shareTier: 'open'
     },

@@ -51,7 +51,7 @@ export interface AccountViewProps {
     close(): void;
     /** The viewer is a global administrator of this DevEye. */
     isAdmin: boolean;
-    /** The hint a sign-up carried (`manifest.accountEntry.signupHint`), delivered once. */
+    /** The hint a sign-up carried (`manifest.accountEntry.signupHint`) or `openAccountView` passed, delivered once. */
     hint?: string;
 }
 

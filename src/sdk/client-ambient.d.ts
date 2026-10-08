@@ -1022,8 +1022,20 @@ declare module 'deveye-sdk-client' {
         onChange: (next: { theme: T; accent: string }) => void;
         preview?: ReactNode;
     }): ReactNode;
-    /** Opens an account view (`manifest.accountEntry`): the given module's, or the first one. No-op without any. */
-    export function openAccountView(featureId?: string): void;
+    /**
+     * Opens an account view (`manifest.accountEntry`): the given module's, or
+     * the first one. No-op without any. `hint` reaches the view once, on its
+     * mount (`'pro'` preselects the paid offer of the subscription view).
+     */
+    export function openAccountView(featureId?: string, hint?: string): void;
+    /**
+     * The app's "available with the Pro offer" prompt, before anything is
+     * sent: for a screen that already knows its owner's plan leaves a feature
+     * out (a quota whose limit is 0). The workspace owner is offered the plans,
+     * a member is told whom to ask. A command refused with a limit of 0 opens
+     * the same prompt by itself.
+     */
+    export function openProOffer(input: { title?: string; body: ReactNode }): void;
     export interface LiveOutlineProps {
         'data-live-peer'?: true;
         style?: CSSProperties;

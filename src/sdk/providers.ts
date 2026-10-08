@@ -52,6 +52,12 @@ export interface TreeBackupProvider {
     entries(id: number): Promise<readonly TreeBackupEntry[]>;
     /** Decrypted plaintext stream of one file. */
     open(id: number, ref: string): Promise<AsyncIterable<Uint8Array>>;
+    /**
+     * May this member, without a session, read the tree's files? The same
+     * right as downloading one from the feature's screens, the item's
+     * override included.
+     */
+    authorize(id: number, workspaceId: number, userId: number): Promise<SdkAccessVerdict>;
 }
 
 /**
@@ -155,6 +161,12 @@ export interface DatabaseBackupProvider {
     findDatabase(databaseId: number, workspaceId: number): Promise<DatabaseBackupCandidate | null>;
     /** null when the database is unknown to this workspace. */
     openAccess(databaseId: number, workspaceId: number): Promise<DatabaseBackupAccess | null>;
+    /**
+     * May this member, without a session, read the database's data? The same
+     * right as exploring it from the feature's screens, the item's override
+     * included: a dump holds every row.
+     */
+    authorize(databaseId: number, workspaceId: number, userId: number): Promise<SdkAccessVerdict>;
 }
 
 /**

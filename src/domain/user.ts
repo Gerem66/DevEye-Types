@@ -97,12 +97,15 @@ export type UserSecurity = z.infer<typeof userSecuritySchema>;
  *   se retire jamais : la bulle se montre une fois dans la vie d'un compte.
  * - `homeLayoutHintDismissed`, `aboutHintDismissed` : de même pour les bulles
  *   du bouton d'organisation de l'accueil et du numéro de version.
+ * - `hideHomeAddTile` : ne pas afficher, hors organisation, la carte d'ajout au
+ *   bout de chaque section de l'accueil.
  */
 export const userSettingFlagSchema = z.enum([
     'hideLiveCursors',
     'feedbackHintDismissed',
     'homeLayoutHintDismissed',
-    'aboutHintDismissed'
+    'aboutHintDismissed',
+    'hideHomeAddTile'
 ]);
 export type UserSettingFlag = z.infer<typeof userSettingFlagSchema>;
 

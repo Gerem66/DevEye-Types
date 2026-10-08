@@ -393,11 +393,36 @@ export interface AudienceSelfProvider {
 export const AUDIENCE_CLIENT_PROVIDER = 'audience.client' as const;
 
 /**
- * Key under `FeatureService.providers` for the Git repositories the app's
- * Projects feature links to: same shape and same reason as
- * `UPTIME_ITEMS_PROVIDER` (`project_repo_links` is Projects' table).
+ * Key under `FeatureService.providers` for the Git repositories other
+ * features build on: Projects links to them (`project_repo_links` is
+ * Projects' table, same reason as `UPTIME_ITEMS_PROVIDER`), and a code
+ * scanner follows them and clones them.
  */
 export const GIT_ITEMS_PROVIDER = 'git.items' as const;
+
+/** A repository at home in one of the workspaces asked for, as `listHome` lists it. */
+export interface GitHomeRepo {
+    id: number;
+    workspaceId: number;
+}
+
+/** A repository as read from its home: its name, where it lives, its default branch. */
+export interface GitRepoDescription {
+    workspaceId: number;
+    /** `owner/repo`. */
+    label: string;
+    /** The https URL a clone fetches from. */
+    cloneUrl: string;
+    /** The repository's page at the forge. */
+    webUrl: string;
+    /** `null` until a sync told it; a clone then follows the forge's HEAD. */
+    defaultBranch: string | null;
+}
+
+export interface GitCheckout extends GitRepoDescription {
+    /** The token of the repository's credential, `null` for a public repository or a token the server cannot read. */
+    token: string | null;
+}
 
 export interface GitItemsProvider {
     /** Is this repository visible from this workspace: its home, or one it is projected into? */
@@ -410,6 +435,21 @@ export interface GitItemsProvider {
      * an id.
      */
     labelOf(repoId: number, workspaceId: number): Promise<string | null>;
+    /**
+     * Every repository whose HOME is one of `workspaceIds`, oldest first, with
+     * nothing decrypted: what a feature that follows the workspace's
+     * repositories reconciles its own rows against. A projection is not
+     * listed, its home workspace holds it.
+     */
+    listHome(workspaceIds: readonly number[]): Promise<readonly GitHomeRepo[]>;
+    /** The repository read from its home workspace, `null` when gone or unreadable. */
+    describe(repoId: number, workspaceId: number): Promise<GitRepoDescription | null>;
+    /**
+     * `describe` plus the token a clone presents to the forge. Hands a secret
+     * out, like `DatabaseBackupProvider.openAccess`: call it from a sessionless
+     * service, right before the clone, and never store what it returns.
+     */
+    openCheckout(repoId: number, workspaceId: number): Promise<GitCheckout | null>;
 }
 
 /**

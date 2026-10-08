@@ -406,6 +406,8 @@ export interface GitHomeRepo {
     workspaceId: number;
     /** The head of the default branch as the last sync saw it, `null` before any sync. */
     headSha: string | null;
+    /** When that head was read at the forge (epoch seconds): a consumer that cloned later knows better. */
+    headSeenAt: number | null;
 }
 
 /** A repository as read from its home: its name, where it lives, its default branch. */

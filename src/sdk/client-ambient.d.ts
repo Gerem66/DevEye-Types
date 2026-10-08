@@ -49,6 +49,13 @@ declare module 'deveye-sdk-client' {
         ButtonHTMLAttributes<HTMLButtonElement> & {
             variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
             icon?: string;
+            /**
+             * Renders a real link with the button's look, so the browser opens,
+             * copies or tabs it itself. `target='_blank'` gets its safe `rel`.
+             */
+            href?: string;
+            target?: string;
+            rel?: string;
         }
     >;
     export const TextInput: ComponentType<

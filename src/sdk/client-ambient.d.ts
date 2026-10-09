@@ -715,6 +715,19 @@ declare module 'deveye-sdk-client' {
         format?: (value: number) => string;
         usedWord?: string;
     }>;
+    /**
+     * The top band of a view: its header, and the tab bar right under it. It
+     * stays at the top of the scrolling popup while the content moves under it,
+     * and draws a line once stuck. Its height is published as `--sticky-head`
+     * on its parent, which must be the view's root: a sticky band in the
+     * content sits under it with `top: var(--sticky-head, 0px)`.
+     */
+    export interface StickyHeaderProps {
+        /** The band's layout when it holds more than the header (a tab bar). */
+        className?: string;
+        children: ReactNode;
+    }
+    export const StickyHeader: ComponentType<StickyHeaderProps>;
 
     // ── Server push events ─────────────────────────────────────────────────
     /** Typed push subscription: filters `event`, safeParses, drops mismatches. */
@@ -1111,15 +1124,6 @@ declare module 'deveye-sdk-client' {
      * third-party library) depends on it to read them again when it changes.
      */
     export function useColorScheme(): 'dark' | 'light';
-    /**
-     * Two sticky bands, one under the other: measure the top one and hand the
-     * ancestor a `--sticky-head` variable the lower band offsets itself by.
-     */
-    export interface StickyOffset<T extends HTMLElement> {
-        ref: RefObject<T | null>;
-        style: CSSProperties;
-    }
-    export function useStickyOffset<T extends HTMLElement>(): StickyOffset<T>;
     /**
      * The client contract another module offers (`FeatureClient.providers`,
      * keys in `@deveye/types/sdk`): how a module composes another's screens

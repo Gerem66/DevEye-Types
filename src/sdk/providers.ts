@@ -454,6 +454,17 @@ export interface GitItemsProvider {
      * service, right before the clone, and never store what it returns.
      */
     openCheckout(repoId: number, workspaceId: number): Promise<GitCheckout | null>;
+    /** The repositories at home in the workspace, named `owner/repo`: what a picker offers. */
+    list(workspaceId: number): Promise<readonly ItemCandidate[]>;
+    /** May this member read the repository? The rule of the feature's screens, the item's override included. */
+    authorize(repoId: number, workspaceId: number, userId: number): Promise<SdkAccessVerdict>;
+    /**
+     * What put the repository's code online since `since`, asked of the forge
+     * on the spot: a successful workflow run on the default branch, or a
+     * successful deployment outside transient environments. A token without
+     * the right to read them answers through `error`, never by throwing.
+     */
+    activity(repoId: number, workspaceId: number, since: number): Promise<DeployActivity>;
 }
 
 /**
@@ -534,6 +545,38 @@ export interface DeployItemsProvider {
      * an id.
      */
     labelOf(targetId: number, workspaceId: number): Promise<string | null>;
+    /** The targets at home in the workspace: what a picker offers. */
+    list(workspaceId: number): Promise<readonly ItemCandidate[]>;
+    /** May this member read the target? The rule of the feature's screens, the item's override included. */
+    authorize(targetId: number, workspaceId: number, userId: number): Promise<SdkAccessVerdict>;
+    /**
+     * The target's deployments since `since`, wherever they were started from
+     * (DevEye, the provider's own screen, a CI). The target is synced with its
+     * provider first, so a deployment that just ended is not missed.
+     */
+    activity(targetId: number, workspaceId: number, since: number): Promise<DeployActivity>;
+}
+
+/** An item of another feature, as a picker lists it. */
+export interface ItemCandidate {
+    id: number;
+    name: string;
+    /** What tells two items apart beyond their name (a provider, a host), `null` when nothing does. */
+    detail: string | null;
+}
+
+/**
+ * What an item says of its deployments since a moment (epoch seconds): the
+ * latest one that succeeded, one still under way, or why it could not tell.
+ * What Uptime asks the sources of a site whose files changed.
+ */
+export interface DeployActivity {
+    /** The most recent success that ended at or after `since`; `what` names it for a journal, article included (`le déploiement « api »`). */
+    succeeded: { at: number; what: string } | null;
+    /** A deployment still queued or running. */
+    inFlight: { what: string } | null;
+    /** Why the item could not answer in full (a token without the right, a forge down), `null` when it did. */
+    error: string | null;
 }
 
 /**
@@ -691,6 +734,16 @@ export interface ProjectsUsageProvider {
         workspaceId: number,
         version: string
     ): Promise<void>;
+    /** May this member read the project? Open tier only: a guarded project is refused as `hidden`. */
+    authorize(projectId: number, workspaceId: number, userId: number): Promise<SdkAccessVerdict>;
+    /**
+     * The Deploy targets and Git repositories one project of the workspace
+     * links, by id. Empty for an unknown, projected or guarded project.
+     */
+    linkedItems(
+        projectId: number,
+        workspaceId: number
+    ): Promise<{ deploy: number[]; git: number[] }>;
 }
 
 /**

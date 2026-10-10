@@ -58,8 +58,8 @@ export const minimalUserSchema = z.object({
     username: z.string().min(1),
     avatar: z.string(),
     color: userColorSchema,
-    /** Époque Unix de la dernière connexion ; `0` pour un compte jamais venu. */
-    lastLogin: z.number().int().nonnegative(),
+    /** Seconds. The last time the account opened or used the app, to within a few minutes; `0` if it never came. */
+    lastSeen: z.number().int().nonnegative(),
     created: z.number().int().nonnegative()
 });
 
@@ -154,7 +154,10 @@ export interface UserRow {
     /** Espace favori chargé en premier ; `null` → l'espace personnel. */
     default_workspace_id: number | null;
     re_auth_interval: number | null;
+    /** Seconds. The last password sign-in; a session renews without one for weeks. */
     last_login: number;
+    /** Seconds. The last time the account opened or used the app, to within a few minutes. */
+    last_seen: number;
     created: number;
     /** Seconds. When the terms of use were accepted at sign-up; `null` for an account created without a site. */
     terms_accepted_at: number | null;

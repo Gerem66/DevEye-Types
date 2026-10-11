@@ -205,6 +205,13 @@ export interface DatabaseMeasureProvider {
         workspaceId: number,
         queries: readonly string[]
     ): Promise<readonly DatabaseNumberOutcome[] | null>;
+    /**
+     * May this member run their own queries against the database? The same
+     * right as exploring it from the feature's screens, the item's override
+     * included: a measurement reads any table. Ask it before linking a
+     * database and before saving, testing or running a measurement.
+     */
+    authorize(databaseId: number, workspaceId: number, userId: number): Promise<SdkAccessVerdict>;
 }
 
 export const DATABASE_ITEMS_PROVIDER = 'database.items' as const;

@@ -1002,8 +1002,9 @@ export interface SdkItems {
     restrictions(): Promise<ReadonlyMap<string, ItemAccess>>;
     /**
      * Throws `forbidden` unless THIS item is open to the caller at `level`
-     * (default `'read'`), role restriction included. Commands that target one
-     * item call it first.
+     * (default `'read'`), its override included. A command that names its
+     * item in `access.item` is already checked; call it for an item reached
+     * another way (the item a row belongs to).
      */
     assert(itemId: string, level?: FeatureAccess): Promise<void>;
     /**
@@ -1282,6 +1283,18 @@ export interface SdkFeatureContext<Repo = unknown> {
 }
 
 /**
+ * Finds the item a command reaches through another row; `undefined` or `null`
+ * when that row does not exist. Method-shaped so a definition typed with your
+ * repo stays assignable to the host's list of commands.
+ */
+export type SdkItemFinder<Repo, I extends ZodType> = {
+    find(
+        ctx: SdkFeatureContext<Repo>,
+        input: z.output<I>
+    ): Promise<string | number | null | undefined>;
+}['find'];
+
+/**
  * One command your module handles. The dispatcher validates `input` before the
  * handler and `output` after it, enforces `access` first, and broadcasts your
  * feature's live topic after a successful `mutates` command so every member's
@@ -1306,10 +1319,20 @@ export interface SdkFeatureDefinition<
      * `scope: 'account'`: the command acts on the caller's ACCOUNT, not on a
      * workspace. The host runs it in the caller's personal workspace whatever
      * the client sent, so the role held in a shared workspace never decides.
+     * `item`: the item the command targets, as the input field holding its
+     * id, or as a function that finds it when the command reaches it through
+     * another row (the site a form belongs to). The host checks `level` and
+     * `extras` on THAT item, whose override replaces the role in both
+     * directions, before your handler runs. The function runs first, with the
+     * same context; it returns `undefined` when the row does not exist. Without
+     * an item (or when the optional field is absent from a request), the role
+     * on your feature decides alone: an override never opens a command that
+     * does not name its item.
      */
     access?: {
         level?: FeatureAccess;
         extras?: readonly string[];
+        item?: Extract<keyof z.input<I>, string> | SdkItemFinder<Repo, I>;
         admin?: boolean;
         moderation?: boolean;
         scope?: 'account';

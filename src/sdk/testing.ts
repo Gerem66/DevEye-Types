@@ -666,18 +666,18 @@ export function createTestContext<Repo = undefined>(
         },
         items: {
             restrictions: () => Promise.resolve(restrictions),
-            // The exact rule of the app's dispatcher: the feature first (a
-            // restriction can only lower), then the row.
+            // The app's rule: the item's override replaces the feature level,
+            // in both directions; without one, the feature level decides.
             assert(itemId, level = 'read') {
-                if (level === 'write' && !canWrite) {
-                    return Promise.reject(new FeatureError('forbidden', 'write required'));
-                }
                 const restriction = restrictions.get(itemId);
                 if (restriction === 'none') {
                     return Promise.reject(new FeatureError('forbidden', 'item hidden'));
                 }
-                if (restriction === 'read' && level === 'write') {
+                if (level === 'write' && restriction === 'read') {
                     return Promise.reject(new FeatureError('forbidden', 'item read-only'));
+                }
+                if (level === 'write' && restriction === undefined && !canWrite) {
+                    return Promise.reject(new FeatureError('forbidden', 'write required'));
                 }
                 return Promise.resolve();
             },

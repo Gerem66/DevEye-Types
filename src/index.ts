@@ -896,6 +896,14 @@ export type {
     MetricsResolution
 } from './domain/metrics';
 export { twoFactorSetupSchema, twoFactorStatusSchema } from './domain/twoFactor';
+export {
+    STEP_UP_MINUTES_DEFAULT,
+    STEP_UP_MINUTES_MAX,
+    STEP_UP_MINUTES_MIN,
+    stepUpRequiredDetailsSchema,
+    stepUpStatusSchema
+} from './domain/stepUp';
+export type { StepUpRequiredDetails, StepUpStatus } from './domain/stepUp';
 export type {
     BackupCodeRow,
     TwoFactorRow,
@@ -1093,6 +1101,7 @@ export {
     notifyRouteSet,
     notifyRouteTest
 } from './features/notify';
+export { stepUpCommands, stepUpConfirm, stepUpSetInterval, stepUpStatus } from './features/stepUp';
 export {
     twoFactorCommands,
     twoFactorDisable,

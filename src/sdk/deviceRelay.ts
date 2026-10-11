@@ -59,7 +59,10 @@ export interface SavedDeviceChoice {
     authorUserId?: number | null;
 }
 
-/** The chosen device, if the caller may open its network; a `validation` error when none is chosen. */
+/**
+ * The chosen device, if the caller may open its network and confirmed with an
+ * authenticator code lately (`control`); a `validation` error when none is chosen.
+ */
 export async function authorizeRelayDevice(
     ctx: SdkFeatureContext<unknown>,
     deviceId: string | null,
@@ -68,7 +71,10 @@ export async function authorizeRelayDevice(
     if (!deviceId) {
         throw new FeatureError('validation', `Choisissez l’appareil par lequel joindre ${what}.`);
     }
-    return ctx.deveye.devices.authorize(deviceId, { extras: [DEVICE_NETWORK_RIGHT] });
+    return ctx.deveye.devices.authorize(deviceId, {
+        extras: [DEVICE_NETWORK_RIGHT],
+        control: true
+    });
 }
 
 /**

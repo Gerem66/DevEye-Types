@@ -379,8 +379,23 @@ export interface DevEyeFacade {
          * permissions of the Devices feature on this device (`docker` to drive
          * its containers), and throws `forbidden` otherwise: a module cannot
          * name another feature's permissions in its own `access`.
+         *
+         * `control: true` where the handler is about to make the machine act
+         * (save a source it reads, a target it deploys to, a folder it syncs):
+         * the caller must also have confirmed with an authenticator code
+         * lately, `stepup_required` otherwise, which the client turns into the
+         * prompt and a retry. Leave it out of a mere check of rights (a list of
+         * what the caller could pick).
          */
-        authorize(deviceId: string, options?: { extras?: readonly string[] }): Promise<SdkDevice>;
+        authorize(
+            deviceId: string,
+            options?: { extras?: readonly string[]; control?: boolean }
+        ): Promise<SdkDevice>;
+        /**
+         * The `control` confirmation alone, where no device exists yet (a code
+         * that pairs new machines).
+         */
+        assertControl(): Promise<void>;
         /** The devices this workspace sees: its own, and those shared into it. */
         list(): Promise<readonly SdkDevice[]>;
         isOnline(deviceId: string): boolean;

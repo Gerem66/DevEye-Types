@@ -222,6 +222,7 @@ function recordingDevices(
                       )
                   )
                 : Promise.resolve(devices.find((d) => d.id === id) ?? testDevice({ id })),
+        assertControl: () => Promise.resolve(),
         list: () => Promise.resolve([...devices]),
         isOnline: (id) => devices.find((d) => d.id === id)?.online ?? true
     };

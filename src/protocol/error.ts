@@ -22,7 +22,11 @@ export const ErrorCodeSchema = z.enum([
     'maintenance',
     // The server is full for this kind of account: the socket waits in line
     // (see `domain/admission.ts`). `details` carries `{ position }`.
-    'queued'
+    'queued',
+    // Driving a machine needs a fresh authenticator code in this session
+    // (see `domain/stepUp.ts`). `details` carries `{ twoFactor }`: `false`
+    // when the account has no authenticator app to ask a code from.
+    'stepup_required'
 ]);
 
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;

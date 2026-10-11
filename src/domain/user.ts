@@ -154,6 +154,8 @@ export interface UserRow {
     /** Espace favori chargé en premier ; `null` → l'espace personnel. */
     default_workspace_id: number | null;
     re_auth_interval: number | null;
+    /** Seconds without driving a machine after which the authenticator code is asked again. */
+    step_up_interval: number;
     /** Seconds. The last password sign-in; a session renews without one for weeks. */
     last_login: number;
     /** Seconds. The last time the account opened or used the app, to within a few minutes. */

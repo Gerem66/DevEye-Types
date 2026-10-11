@@ -5,7 +5,7 @@ import test from 'node:test';
 import { isPublicIp, isRemoteFailure, isSafePublicUrl, NetRefused, safeFetchText } from './net';
 
 test('isPublicIp: the private ranges of both families read as false', () => {
-    for (const ip of ['8.8.8.8', '1.1.1.1', '2001:4860:4860::8888']) {
+    for (const ip of ['8.8.8.8', '1.1.1.1', '2001:4860:4860::8888', '::ffff:808:808']) {
         assert.equal(isPublicIp(ip), true, ip);
     }
     for (const ip of [
@@ -21,8 +21,13 @@ test('isPublicIp: the private ranges of both families read as false', () => {
         '::1',
         'fd00::1',
         'fe80::1',
-        // IPv4-mapped: judged on the v4 part, not on the v6 prefix.
+        // IPv4 written in IPv6, dotted or in the hex form a URL parser gives
+        // back: judged on the v4 part, not on the v6 prefix.
         '::ffff:127.0.0.1',
+        '::ffff:7f00:1',
+        '::ffff:a9fe:a9fe',
+        '::ffff:a00:1',
+        '::7f00:1',
         'not-an-ip'
     ]) {
         assert.equal(isPublicIp(ip), false, ip);
@@ -40,6 +45,9 @@ test('isSafePublicUrl: only public http(s) hosts, string or URL', () => {
         'https://app.localhost',
         'http://192.168.1.10/admin',
         'http://[::1]:8080',
+        // The parser turns these into `[::ffff:7f00:1]` and `[::ffff:a9fe:a9fe]`.
+        'http://[::ffff:127.0.0.1]:3000/',
+        'http://[::ffff:169.254.169.254]/latest/meta-data/',
         // Anything but http(s): a git `ext::` or a `file://` would run a
         // command or read the server's disk.
         'file:///etc/passwd',

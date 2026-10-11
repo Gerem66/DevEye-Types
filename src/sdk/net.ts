@@ -13,41 +13,46 @@
  * fetch built on them, for a small text body (a domain's proof, a calendar).
  */
 import { resolve4, resolve6 } from 'node:dns/promises';
-import { isIP } from 'node:net';
+import { BlockList, isIP } from 'node:net';
+
+/**
+ * Every address that is not public, in both families: loopback, private
+ * ranges, link-local, CGNAT, multicast and reserved, and the IPv4-compatible
+ * `::/96` (which holds `::` and `::1`).
+ */
+const NON_PUBLIC = new BlockList();
+for (const [net, prefix] of [
+    ['0.0.0.0', 8],
+    ['10.0.0.0', 8],
+    ['100.64.0.0', 10],
+    ['127.0.0.0', 8],
+    ['169.254.0.0', 16],
+    ['172.16.0.0', 12],
+    ['192.168.0.0', 16],
+    ['224.0.0.0', 3]
+] as const) {
+    NON_PUBLIC.addSubnet(net, prefix, 'ipv4');
+}
+for (const [net, prefix] of [
+    ['::', 96],
+    ['fc00::', 7],
+    ['fe80::', 10],
+    ['ff00::', 8]
+] as const) {
+    NON_PUBLIC.addSubnet(net, prefix, 'ipv6');
+}
 
 /**
  * Is this a public, routable IP address? Loopback, private ranges, link-local,
- * CGNAT and multicast all read as false, in both families.
+ * CGNAT and multicast all read as false, in both families. An IPv4 address
+ * written in IPv6 (`::ffff:7f00:1`, the form a URL parser gives back) is judged
+ * on its IPv4 part: `BlockList.check` matches it against the IPv4 rules.
  */
 export function isPublicIp(raw: string): boolean {
-    const ip = raw.replace(/^\[|\]$/g, '').toLowerCase();
-    const v = isIP(ip);
-    if (v === 0) return false;
-
-    if (v === 4) return isPublicIpv4(ip);
-
-    // IPv4-mapped or compatible: judge the real v4 part.
-    const mapped = ip.match(/^::(?:ffff:)?(\d+\.\d+\.\d+\.\d+)$/);
-    if (mapped) return isPublicIpv4(mapped[1]);
-
-    if (ip === '::' || ip === '::1') return false;
-    // fc00::/7 (unique-local), fe80::/10 (link-local), ff00::/8 (multicast).
-    if (/^f[cd]/.test(ip)) return false;
-    if (/^fe[89ab]/.test(ip)) return false;
-    if (/^ff/.test(ip)) return false;
-    return true;
-}
-
-function isPublicIpv4(ip: string): boolean {
-    const o = ip.split('.').map(Number);
-    if (o.length !== 4 || o.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false;
-    if (o[0] === 0 || o[0] === 10 || o[0] === 127) return false;
-    if (o[0] === 169 && o[1] === 254) return false; // link-local
-    if (o[0] === 172 && o[1] >= 16 && o[1] <= 31) return false;
-    if (o[0] === 192 && o[1] === 168) return false;
-    if (o[0] === 100 && o[1] >= 64 && o[1] <= 127) return false; // CGNAT
-    if (o[0] >= 224) return false; // multicast and reserved
-    return true;
+    const ip = raw.replace(/^\[|\]$/g, '');
+    const family = isIP(ip);
+    if (family === 0) return false;
+    return !NON_PUBLIC.check(ip, family === 4 ? 'ipv4' : 'ipv6');
 }
 
 /**

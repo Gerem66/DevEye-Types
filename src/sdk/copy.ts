@@ -48,6 +48,15 @@ export interface ItemTreeTable {
      */
     sealed?: readonly string[];
     /**
+     * Sealed columns that hold a secret among other data: the copy carries
+     * what this returns instead of the clear text (a mail account's servers,
+     * without its password), and the copy arrives to be reconnected. A secret
+     * held in a column of its own belongs in `omit`. A copy goes through the
+     * browser of whoever makes it, who may only read the item: no password or
+     * token ever travels.
+     */
+    redact?: Readonly<Record<string, (plain: string) => string>>;
+    /**
      * Columns pointing at a row of a table of this tree (this one included),
      * by that table's name: rewritten to the ids the destination handed out. A
      * reference to anything OUTSIDE the tree belongs in `omit`.
@@ -155,6 +164,12 @@ export function itemTreeProblem(tree: ItemTree): string | null {
         const bad = names.find((n) => !IDENTIFIER.test(n));
         if (bad !== undefined) return `${t.table}: "${bad}" is not a plain SQL identifier`;
         if (seen.has(t.table)) return `${t.table}: listed twice`;
+        const unsealed = Object.keys(t.redact ?? {}).find(
+            (column) => !(t.sealed ?? []).includes(column)
+        );
+        if (unsealed !== undefined) {
+            return `${t.table}.${unsealed}: only a sealed column is redacted`;
+        }
         if (t.tier && t !== root) return `${t.table}: only the root chooses the tier`;
         if ((t.orderColumn || t.unique) && (t !== root || !t.workspaceColumn)) {
             return `${t.table}: orderColumn and unique are for a root that names its workspaceColumn`;
@@ -274,7 +289,7 @@ export async function exportItemTree(
                             `Une ligne de ${t.table} est illisible : copie annulée, rien n’a été écrit.`
                         );
                     }
-                    copy[column] = plain;
+                    copy[column] = t.redact?.[column]?.(plain) ?? plain;
                 } else copy[column] = toWire(value);
             }
             out[t.table].push(copy);
@@ -375,7 +390,14 @@ export async function importItemTree(
                         );
                     }
                     values[column] = mapped;
-                } else if (sealed.has(column) && typeof raw === 'string' && raw !== '') {
+                } else if (sealed.has(column) && raw !== null && raw !== '') {
+                    // Anything but text would land in an encrypted column unsealed.
+                    if (typeof raw !== 'string') {
+                        throw new FeatureError(
+                            'validation',
+                            `Valeur inattendue dans la copie : ${t.table}.${column}.`
+                        );
+                    }
                     values[column] = await cipher.encrypt(raw);
                 } else values[column] = fromWire(raw);
             }

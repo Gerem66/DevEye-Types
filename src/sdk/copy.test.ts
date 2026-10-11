@@ -314,6 +314,25 @@ describe('copie d’un élément', () => {
         );
     });
 
+    it('expurge un secret de sa colonne scellée, et refuse une valeur scellée qui ne serait pas du texte', async () => {
+        const tree: ItemTree = [
+            { ...TREE[0], redact: { content: (plain) => plain.replace('tableau', '•') } }
+        ];
+        const rows = await exportItemTree(fakeDb(seed()), tree, 1, cipherOf('A'));
+        assert.equal(rows.boards[0].content, '•');
+
+        const target = seed();
+        await assert.rejects(
+            importItemTree(
+                fakeDb(target),
+                TREE,
+                { boards: [{ id: 1, content: { $wire: 'x' } }] },
+                into('B')
+            ),
+            /Valeur inattendue/
+        );
+    });
+
     it('refuse un élément que la destination tient déjà sous le même nom', async () => {
         const tree: ItemTree = [
             { ...TREE[0], unique: { column: 'name_ref', message: 'Déjà là.' } }
@@ -369,6 +388,10 @@ describe('arbre d’un élément', () => {
         assert.match(
             itemTreeProblem([TREE[0], TREE[1], TREE[2], { ...LABELS, refs: {} }]) ?? '',
             /scoped/
+        );
+        assert.match(
+            itemTreeProblem([{ ...TREE[0], redact: { name: (p) => p } }]) ?? '',
+            /redacted/
         );
     });
 });

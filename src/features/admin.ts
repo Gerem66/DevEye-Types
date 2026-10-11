@@ -8,8 +8,8 @@ import { userStatusSchema } from '../domain/user';
 /**
  * Administration des comptes, à l'échelle du site et non d'un espace.
  *
- * Toutes ces commandes déclarent `admin: true` côté serveur : elles sont
- * réservées au rôle global, seul niveau au-dessus des espaces.
+ * Ces commandes déclarent `admin: true` côté serveur, sauf `admin.pending`
+ * (`moderation: true`) : le rôle global est le seul niveau au-dessus des espaces.
  */
 
 /** Un compte, tel que la page Utilisateurs l'affiche. */
@@ -199,6 +199,61 @@ export const adminExternalServices = {
     output: adminExternalServicesSchema
 };
 
+/**
+ * Ce qui attend une décision humaine, ce qui allume les badges du menu. Un
+ * modérateur ne reçoit que les onglets de modération des fonctionnalités qu'il
+ * peut ouvrir et les retours ; un administrateur reçoit tout.
+ */
+export const adminPendingSchema = z.object({
+    /** Les retours non lus ; 0 quand les retours sont fermés sur l'instance. */
+    feedback: z.number().int().nonnegative(),
+    /** Par fonctionnalité puis par onglet (`manifest.adminTabs`), seulement ce qui n'est pas nul. */
+    features: z.record(z.string(), z.record(z.string(), z.number().int().positive()))
+});
+export type AdminPending = z.infer<typeof adminPendingSchema>;
+
+export const adminPending = {
+    command: 'admin.pending' as const,
+    input: z.object({}),
+    output: adminPendingSchema
+};
+
+/** Un chiffre d'une fonctionnalité pour l'administrateur : un nombre, ou une taille en octets. */
+export const adminFeatureFactSchema = z.object({
+    label: z.string().min(1),
+    value: z.number().nonnegative(),
+    unit: z.enum(['count', 'bytes'])
+});
+export type AdminFeatureFact = z.infer<typeof adminFeatureFactSchema>;
+
+/** Les chiffres globaux d'une fonctionnalité, tous comptes confondus. */
+export const adminFeatureStatsSchema = z.object({
+    /** Espaces dont l'accueil porte la fonctionnalité, dossiers compris ; `null` sans tuile (menu du compte seul). */
+    workspaces: z.number().int().nonnegative().nullable(),
+    /** Comptes distincts membres de ces espaces, propriétaires compris ; `null` sans tuile. */
+    accounts: z.number().int().nonnegative().nullable(),
+    /** Ses tables, d'après les statistiques de MySQL : des estimations, qui peuvent retarder. */
+    storage: z.object({
+        tables: z.number().int().nonnegative(),
+        rows: z.number().int().nonnegative(),
+        bytes: z.number().int().nonnegative()
+    }),
+    /** Le total de chaque quota mesurable, tous espaces confondus, sous le libellé du quota. */
+    quotas: z.array(adminFeatureFactSchema),
+    /** Les chiffres propres du module ; `null` quand il n'a pas répondu. */
+    facts: z.array(adminFeatureFactSchema).nullable(),
+    /** Millisecondes : quand ces chiffres ont été calculés. */
+    computedAt: z.number().int().nonnegative()
+});
+export type AdminFeatureStats = z.infer<typeof adminFeatureStatsSchema>;
+
+/** `refresh` : recompter maintenant plutôt que rendre le dernier calcul (gardé quelques minutes). */
+export const adminFeatureStats = {
+    command: 'admin.featureStats' as const,
+    input: z.object({ featureId: z.string().min(1).max(64), refresh: z.boolean() }),
+    output: adminFeatureStatsSchema
+};
+
 export const adminCommands = [
     adminUserList,
     adminSetUserRole,
@@ -211,5 +266,7 @@ export const adminCommands = [
     adminMaintenanceSignups,
     adminMaintenanceSeats,
     adminMaintenanceDismissNotice,
-    adminExternalServices
+    adminExternalServices,
+    adminPending,
+    adminFeatureStats
 ] as const;

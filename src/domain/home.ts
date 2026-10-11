@@ -250,6 +250,19 @@ export const homeLayoutSchema = z.object({
 export type HomeLayout = z.infer<typeof homeLayoutSchema>;
 
 /**
+ * Every feature on the grid, folder contents included: a feature filed in a
+ * folder counts as placed, so the "not twice" rule needs no knowledge of folders.
+ */
+export function placedFeatureIds(layout: HomeLayout): HomeFeatureId[] {
+    return layout.sections.flatMap((section) =>
+        section.items.flatMap((tile) => {
+            if (isHomeFolder(tile)) return tile.items;
+            return isFeatureTile(tile) ? [tile] : [];
+        })
+    );
+}
+
+/**
  * Normalized preview returned for a rich shortcut template, so the client has a
  * single renderer regardless of the source. `ok: false` means the source could
  * not be fetched/parsed — the tile still works as a plain link.

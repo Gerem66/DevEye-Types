@@ -117,8 +117,8 @@ export const feedbackSnapshotSchema = z.object({
 export type FeedbackSnapshot = z.infer<typeof feedbackSnapshotSchema>;
 
 /**
- * A report as served to the admin view. `username` and `handledByName` are
- * resolved server-side from the ids (null when the account is gone).
+ * A report as served to the moderation view. `username` and `handledByName`
+ * are resolved server-side from the ids (null when the account is gone).
  */
 export const feedbackEntrySchema = z.object({
     id: z.number().int().positive(),
@@ -131,7 +131,8 @@ export const feedbackEntrySchema = z.object({
     /** Workspace open at submit time — context only, never a scope. */
     workspaceId: z.number().int().positive().nullable(),
     message: z.string(),
-    ip: z.string(),
+    /** Null for a moderator: only an administrator sees where a report came from. */
+    ip: z.string().nullable(),
     /** Server version at submit time. */
     appVersion: z.string(),
     /** The bug report; null for a plain remark. */

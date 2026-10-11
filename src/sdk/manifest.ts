@@ -93,6 +93,16 @@ export interface FeatureQuotaSpec {
     perOperation?: true;
 }
 
+/** One tab of `adminTabs`. */
+export interface AdminTabSpec {
+    /** Same shape as an extra permission key: the key of `FeatureClient.AdminTabs` and of `adminPending`. */
+    id: string;
+    /** A noun, as a tab reads: "Reports". */
+    label: string;
+    /** Moderators open it too; without it, global administrators only. */
+    moderation?: true;
+}
+
 /** Hard cap on `extraPermissions`: keeps role editors legible. */
 export const MAX_EXTRA_PERMISSIONS = 10;
 
@@ -364,13 +374,15 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
         adminTools?: boolean;
     };
     /**
-     * A page of yours among the system pages of the account menu, which only a
-     * global administrator sees and opens: what the operator of the instance
-     * handles for everyone (reports to moderate). Needs
-     * `FeatureClient.AdminView`, and every command it sends declares
-     * `access.admin`. `icon` defaults to the manifest's.
+     * Your tabs in the feature administration popup, after the overview the
+     * host draws: what the operator of the instance handles for everyone,
+     * across accounts. A `moderation` tab (reports to handle) also opens to
+     * moderators, and every command it sends declares `access.moderation`;
+     * any other is for global administrators only, its commands declaring
+     * `access.admin`. Each id needs its component in `FeatureClient.AdminTabs`;
+     * `server.adminPending` lights the badges, by tab id.
      */
-    adminEntry?: { label: string; icon?: string };
+    adminTabs?: readonly AdminTabSpec[];
     /**
      * The module lives in the user menu only: no card, no row in the roles
      * screen, `Widget` and `Full` not required. Requires `accountEntry`, no
@@ -531,7 +543,13 @@ export function validateManifest(m: FeatureManifest): void {
     }
 
     if (m.accountEntry && !m.accountEntry.label.trim()) fail(m.id, 'accountEntry requires a label');
-    if (m.adminEntry && !m.adminEntry.label.trim()) fail(m.id, 'adminEntry requires a label');
+    const adminTabIds = new Set<string>();
+    for (const tab of m.adminTabs ?? []) {
+        if (!EXTRA_KEY_PATTERN.test(tab.id)) fail(m.id, `invalid admin tab id « ${tab.id} »`);
+        if (adminTabIds.has(tab.id)) fail(m.id, `duplicate admin tab id « ${tab.id} »`);
+        adminTabIds.add(tab.id);
+        if (!tab.label.trim()) fail(m.id, `admin tab « ${tab.id} »: empty label`);
+    }
     if (m.accountOnly) {
         if (!m.accountEntry) fail(m.id, 'accountOnly requires accountEntry');
         if (m.hasItems) fail(m.id, 'accountOnly modules own no items');

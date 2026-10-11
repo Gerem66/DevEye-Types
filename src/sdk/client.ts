@@ -55,11 +55,6 @@ export interface AccountViewProps {
     hint?: string;
 }
 
-/** Props of {@link FeatureClient.AdminView}. */
-export interface AdminViewProps {
-    close(): void;
-}
-
 /**
  * Your package's `./client` export.
  */
@@ -74,8 +69,13 @@ export interface FeatureClient {
     Full?: ComponentType<FeatureViewProps>;
     /** The view `manifest.accountEntry` opens from the user menu. */
     AccountView?: ComponentType<AccountViewProps>;
-    /** The system page `manifest.adminEntry` opens, for a global administrator only. */
-    AdminView?: ComponentType<AdminViewProps>;
+    /**
+     * One component per tab of `manifest.adminTabs`, by its id, drawn under
+     * the header of the feature administration popup: no title of your own,
+     * the popup names your feature and the tab. No props: the data comes from
+     * `useResource`, and the commands it sends decide who may read what.
+     */
+    AdminTabs?: Readonly<Record<string, ComponentType>>;
     /**
      * The vignette shown on your card in the home grid's add market and on
      * your "About" sheet. Without one, the host draws a neutral module mark:

@@ -17,6 +17,7 @@ import type { SdkDnsRecord } from './domains';
 import type { MailTransportMessage } from './providers';
 import type { ModuleEnvSpec } from './env';
 import type { ExternalService } from '../domain/externalService';
+import type { AdminFeatureFact } from '../features/admin';
 import type {
     AgentSyncAckPayload,
     AgentSyncApplyChunkPayload,
@@ -417,6 +418,8 @@ export interface SdkAccount {
     username: string;
     /** A global administrator of this DevEye. */
     isAdmin: boolean;
+    /** A moderator or a global administrator: the accounts that handle reports. */
+    canModerate: boolean;
     /**
      * A throwaway account the app's end-to-end runner created and will delete:
      * never a person, and its address receives nothing. Check this, never the
@@ -508,12 +511,14 @@ export interface SdkAccountMail {
      */
     send(userId: number, message: SdkAccountMailMessage): Promise<string>;
     /**
-     * One copy to each active administrator of this DevEye, for what only the
-     * operator can act on (a report of illicit content). Resolves the addresses
-     * reached, empty when there is no active administrator. Every address is
-     * tried; the first refusal then rejects. Throws `conflict` without a transport.
+     * One copy to each active moderator and administrator of this DevEye, for
+     * what awaits their decision (a report of illicit content). A moderator
+     * never sees where a report came from: leave the reporter's address and IP
+     * out of the message. Resolves the addresses reached, empty when there is
+     * no one. Every address is tried; the first refusal then rejects. Throws
+     * `conflict` without a transport.
      */
-    sendToAdmins(message: SdkAccountMailMessage): Promise<readonly string[]>;
+    sendToModerators(message: SdkAccountMailMessage): Promise<readonly string[]>;
 }
 
 /**
@@ -1066,6 +1071,8 @@ export interface SdkLive {
     publish(workspaceId: number, event: string, payload: unknown): void;
     /** {@link SdkContextLive.accountChanged}, from a service (a webhook, a ticker). */
     accountChanged(userId: number): void;
+    /** {@link SdkContextLive.pendingChanged}, from a service or a public route (a report just filed). */
+    pendingChanged(): void;
 }
 
 /**
@@ -1083,6 +1090,12 @@ export interface SdkContextLive {
      * (pauses and resumes). No payload, so no capability.
      */
     accountChanged(userId: number): void;
+    /**
+     * What `server.adminPending` counts may have moved (a report decided): the
+     * host counts again and relights the badges of every moderator and
+     * administrator connected. Coalesced by the host, cheap to call.
+     */
+    pendingChanged(): void;
 }
 
 /** The whole fleet, sessionless (capability `'devices.read'`), for services. */
@@ -1268,8 +1281,9 @@ export interface SdkFeatureDefinition<
      * `level`: the caller's level on your feature (`read` by default).
      * `extras`: the extra permissions the caller must hold, ALL required.
      * `admin`: the caller must be a global administrator; the feature check
-     * still applies. Your feature id is implied: you cannot gate on another
-     * feature's rights.
+     * still applies. `moderation`: a moderator or a global administrator, for
+     * the commands of a `moderation` admin tab. Your feature id is implied:
+     * you cannot gate on another feature's rights.
      * `scope: 'account'`: the command acts on the caller's ACCOUNT, not on a
      * workspace. The host runs it in the caller's personal workspace whatever
      * the client sent, so the role held in a shared workspace never decides.
@@ -1278,6 +1292,7 @@ export interface SdkFeatureDefinition<
         level?: FeatureAccess;
         extras?: readonly string[];
         admin?: boolean;
+        moderation?: boolean;
         scope?: 'account';
     };
     /**
@@ -1714,7 +1729,30 @@ export interface FeatureServer<Repo = unknown> {
     mailSamples?: readonly SdkMailSample[];
     /** Your end-to-end scenarios, run by an administrator against this very server. */
     e2e?: FeatureE2eEntry<Repo>;
+    /**
+     * What awaits a human decision, by id of `manifest.adminTabs` (open
+     * reports, a queue running late): the badges of the account menu and of
+     * the administration popup. A tab absent or at 0 lights nothing. Cheap
+     * counts only: the host asks again on every `live.pendingChanged()`.
+     */
+    adminPending?(ctx: SdkAdminContext<Repo>): Promise<Readonly<Record<string, number>>>;
+    /**
+     * Your own figures for the overview of the administration popup, across
+     * every account (links created, files stored): what the host cannot count
+     * from your tables and quotas alone.
+     */
+    adminFacts?(ctx: SdkAdminContext<Repo>): Promise<readonly SdkAdminFact[]>;
 }
+
+/** What `FeatureServer.adminPending` and `adminFacts` are called with: no session, every account at once. */
+export interface SdkAdminContext<Repo = unknown> {
+    repo: Repo;
+    /** Your paused `stock` items, whatever the workspace. */
+    pauses: SdkPlanPauses;
+}
+
+/** One figure of `FeatureServer.adminFacts`. */
+export type SdkAdminFact = AdminFeatureFact;
 
 /** What `FeatureServer.externalServices` is called with. */
 export interface SdkExternalServicesContext<Repo = unknown> {

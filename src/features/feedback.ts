@@ -13,7 +13,7 @@ export const FEEDBACK_PAGE_DEFAULT = 30;
 
 /**
  * Submit a report. Open to any signed-in account, and the only command here
- * that is: reading feedback is an admin matter, writing one is not.
+ * that is: reading feedback is a moderation matter, writing one is not.
  *
  * The snapshot only makes sense on a `bug` — the server drops it otherwise, so
  * a remark can never quietly carry a technical report.
@@ -29,8 +29,8 @@ export const feedbackSubmit = {
 };
 
 /**
- * AND-combined filter for the admin list; every field is optional. All omitted
- * → the unfiltered, newest-first feed.
+ * AND-combined filter for the moderation list; every field is optional. All
+ * omitted → the unfiltered, newest-first feed.
  */
 export const feedbackFilterSchema = z.object({
     kind: feedbackKindSchema.optional(),
@@ -43,8 +43,9 @@ export const feedbackFilterSchema = z.object({
 export type FeedbackFilter = z.infer<typeof feedbackFilterSchema>;
 
 /**
- * Page through reports newest-first. Admin-only. `total` counts what matches
- * the filter, ignoring paging; `hasMore` says whether a page follows.
+ * Page through reports newest-first. Moderators and administrators. `total`
+ * counts what matches the filter, ignoring paging; `hasMore` says whether a
+ * page follows.
  */
 export const feedbackList = {
     command: 'feedback.list' as const,
@@ -61,7 +62,7 @@ export const feedbackList = {
     })
 };
 
-/** Move a report through triage. Admin-only. */
+/** Move a report through triage. Moderators and administrators. */
 export const feedbackSetStatus = {
     command: 'feedback.setStatus' as const,
     input: z.object({
@@ -71,7 +72,7 @@ export const feedbackSetStatus = {
     output: z.object({ entry: feedbackEntrySchema })
 };
 
-/** Drop a report for good. Admin-only. */
+/** Drop a report for good. Moderators and administrators. */
 export const feedbackDelete = {
     command: 'feedback.delete' as const,
     input: z.object({ id: z.number().int().positive() }),

@@ -526,7 +526,7 @@ export type {
 } from './domain/project';
 export { presenceEventSchema } from './domain/presence';
 export type { PresenceEvent, PresenceRow } from './domain/presence';
-export { userRoleSchema } from './domain/role';
+export { canModerate, userRoleSchema } from './domain/role';
 export type { UserRole } from './domain/role';
 export {
     homeFeatureIdSchema,
@@ -546,6 +546,7 @@ export {
     isFeatureTile,
     isHomeFolder,
     isShortcutTile,
+    placedFeatureIds,
     shortcutItemSchema,
     shortcutPreviewSchema,
     shortcutTemplateSchema,
@@ -919,6 +920,9 @@ export {
     adminDeleteUser,
     adminExternalServices,
     adminExternalServicesSchema,
+    adminFeatureFactSchema,
+    adminFeatureStats,
+    adminFeatureStatsSchema,
     adminMaintenanceDismissNotice,
     adminMaintenanceFeature,
     adminMaintenanceGet,
@@ -927,12 +931,21 @@ export {
     adminMaintenanceSeats,
     adminMaintenanceSignups,
     adminMaintenanceSite,
+    adminPending,
+    adminPendingSchema,
     adminSetUserRole,
     adminSetUserStatus,
     adminUserList,
     adminUserSchema
 } from './features/admin';
-export type { AdminExternalServices, AdminMaintenance, AdminUser } from './features/admin';
+export type {
+    AdminExternalServices,
+    AdminFeatureFact,
+    AdminFeatureStats,
+    AdminMaintenance,
+    AdminPending,
+    AdminUser
+} from './features/admin';
 export {
     debugBenchCatalog,
     debugBenchContextSchema,

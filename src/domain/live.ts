@@ -137,6 +137,12 @@ export const nativeLiveTopicSchema = z.enum([
      */
     'admin',
     /**
+     * Ce qui attend un modérateur ou un administrateur : signalements ouverts,
+     * retours non lus, files en retard. Comme `admin`, jamais diffusé dans une
+     * salle : les comptes qui modèrent sont visés un par un.
+     */
+    'pending',
+    /**
      * Les canaux d'alerte de l'espace et les routes qui pointent dessus. Un
      * sujet à part : les canaux se relisent depuis les réglages de n'importe
      * quelle fonctionnalité, et un canal change pour toutes à la fois alors que
@@ -209,6 +215,8 @@ export const TOPIC_FEATURE: Record<NativeLiveTopic, WorkspaceFeatureId | null> =
     // Réservé aux administrateurs, mais la garde est à l'émission : seuls
     // leurs comptes reçoivent la trame.
     admin: null,
+    // Même régime que `admin` : seuls les comptes qui modèrent reçoivent la trame.
+    pending: null,
     // Aucun droit de feature à vérifier : la relecture déclenchée est gardée
     // côté commande. Même nature que `workspace`.
     notify: null,

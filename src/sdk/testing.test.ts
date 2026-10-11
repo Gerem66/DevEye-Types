@@ -80,6 +80,7 @@ test('the harness searches accounts like the app: substring, exact id first, cap
         username,
         email: `${username}@example.com`,
         isAdmin: false,
+        canModerate: false,
         e2e: false,
         suspended: false,
         created: 0

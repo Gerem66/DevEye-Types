@@ -58,3 +58,24 @@ export interface WorkspaceMemberRow {
     workspace_id: number;
     date: number;
 }
+
+/** How long an invitation stays open, in seconds. */
+export const WORKSPACE_INVITATION_TTL_SECONDS = 14 * 24 * 3600;
+
+/**
+ * A standing invitation to join a workspace, addressed to an email (lower
+ * case) rather than to an account: the address may not have one yet. `role_id`
+ * is the role the invitee gets on accepting, fixed when the invitation was
+ * sent, so it is the one the inviter was allowed to hand out.
+ */
+export interface WorkspaceInvitationRow {
+    id: number;
+    workspace_id: number;
+    email: string;
+    role_id: number | null;
+    invited_by: number;
+    /** Seconds. */
+    created_at: number;
+    /** Seconds. */
+    expires_at: number;
+}

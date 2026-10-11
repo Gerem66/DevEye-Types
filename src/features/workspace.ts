@@ -74,14 +74,52 @@ export const workspaceRemoveMember = {
 };
 
 /**
- * Ajoute un membre à l'espace actif, désigné par son adresse. Pas de lien ni
- * d'acceptation : le compte existe déjà, et un lien serait un secret
- * transmissible de plus.
+ * Invite une adresse à rejoindre l'espace actif. La réponse ne dit jamais si un
+ * compte porte cette adresse : l'invitation est posée telle quelle, et c'est le
+ * compte qui l'accepte (`workspace.acceptInvite`) ou la refuse.
  */
-export const workspaceAddMember = {
-    command: 'workspace.addMember' as const,
+export const workspaceInvite = {
+    command: 'workspace.invite' as const,
     input: z.object({ email: z.string().email() }),
+    output: z.object({})
+};
+
+/** Les invitations en attente de l'espace actif, pour qui gère ses membres. */
+export const workspaceInvitations = {
+    command: 'workspace.invitations' as const,
+    input: z.object({}),
+    output: z.object({
+        invitations: z.array(
+            z.object({
+                id: z.number().int().positive(),
+                email: z.string(),
+                /** Seconds. */
+                expiresAt: z.number().int().nonnegative()
+            })
+        )
+    })
+};
+
+export const workspaceCancelInvite = {
+    command: 'workspace.cancelInvite' as const,
+    input: z.object({ invitationId: z.number().int().positive() }),
+    output: z.object({ invitationId: z.number().int().positive() })
+};
+
+/**
+ * Accepte une invitation adressée à l'appelant : il devient membre de l'espace,
+ * avec le rôle fixé à l'invitation. L'espace rendu est celui qu'il rejoint.
+ */
+export const workspaceAcceptInvite = {
+    command: 'workspace.acceptInvite' as const,
+    input: z.object({ invitationId: z.number().int().positive() }),
     output: z.object({ workspace: workspaceSchema })
+};
+
+export const workspaceDeclineInvite = {
+    command: 'workspace.declineInvite' as const,
+    input: z.object({ invitationId: z.number().int().positive() }),
+    output: z.object({ invitationId: z.number().int().positive() })
 };
 
 /** Le contenu modifiable d'un rôle. */
@@ -158,7 +196,11 @@ export const workspaceCommands = [
     workspaceRename,
     workspaceLeave,
     workspaceRemoveMember,
-    workspaceAddMember,
+    workspaceInvite,
+    workspaceInvitations,
+    workspaceCancelInvite,
+    workspaceAcceptInvite,
+    workspaceDeclineInvite,
     workspaceAdd,
     workspaceDelete,
     workspaceActivate,

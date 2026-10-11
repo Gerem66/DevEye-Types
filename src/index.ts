@@ -653,7 +653,11 @@ export type {
     SecrecyWrapMode,
     UserSecretKeyRow
 } from './domain/secrecy';
-export { workspaceKindSchema, workspaceSchema } from './domain/workspace';
+export {
+    WORKSPACE_INVITATION_TTL_SECONDS,
+    workspaceKindSchema,
+    workspaceSchema
+} from './domain/workspace';
 export {
     REMOTE_INSTANCES_MAX,
     REMOTE_LABEL_MAX,
@@ -691,6 +695,7 @@ export type {
 } from './domain/workspaceRole';
 export type {
     Workspace,
+    WorkspaceInvitationRow,
     WorkspaceKind,
     WorkspaceMemberRow,
     WorkspaceRow
@@ -1027,7 +1032,11 @@ export {
     workspaceDelete,
     workspaceLeave,
     workspaceRemoveMember,
-    workspaceAddMember,
+    workspaceInvite,
+    workspaceInvitations,
+    workspaceCancelInvite,
+    workspaceAcceptInvite,
+    workspaceDeclineInvite,
     workspaceAssignRole,
     workspaceRename,
     workspaceRoleCreate,
@@ -1057,6 +1066,7 @@ export {
     userExportPartSchema,
     userExportPrepare,
     userExportPreview,
+    userInvitations,
     userPlan,
     userSetAvatar,
     userSetColor,

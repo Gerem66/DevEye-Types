@@ -184,8 +184,31 @@ export const userExportPrepare = {
     })
 };
 
+/**
+ * Les invitations adressées à l'adresse du compte, encore ouvertes : l'espace
+ * qui invite et qui a invité, de quoi accepter ou refuser en connaissance.
+ */
+export const userInvitations = {
+    command: 'user.invitations' as const,
+    input: z.object({}),
+    output: z.object({
+        invitations: z.array(
+            z.object({
+                id: z.number().int().positive(),
+                workspaceId: z.number().int().positive(),
+                workspaceName: z.string(),
+                /** Username of the member who sent it. */
+                invitedBy: z.string(),
+                /** Seconds. */
+                expiresAt: z.number().int().nonnegative()
+            })
+        )
+    })
+};
+
 export const userCommands = [
     userDeleteAccount,
+    userInvitations,
     userExportPreview,
     userExportPrepare,
     userPlan,

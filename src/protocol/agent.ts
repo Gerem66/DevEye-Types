@@ -1475,10 +1475,12 @@ export type AgentServerMessage = z.infer<typeof agentServerMessageSchema>;
 
 /**
  * Signature of a high-impact order, carried next to `command` and `payload` as
- * `sig`. Ed25519 over `command \n nonce \n issuedAt \n` followed by the exact
- * bytes of the payload as sent. The agent verifies it against the key pinned at
- * enrolment, refuses an `issuedAt` more than five minutes off, and refuses a
- * nonce it has already seen.
+ * `sig`. Ed25519 over `command \n deviceId \n nonce \n issuedAt \n` followed
+ * by the exact bytes of the payload as sent. The agent verifies it against the
+ * key pinned at enrolment and its own device id (one key signs for every
+ * machine of a server: without the id, an order signed for one would run on
+ * all), refuses an `issuedAt` more than five minutes off, and refuses a nonce
+ * it has already seen.
  */
 export const orderSignatureSchema = z.object({
     nonce: z.string().length(32),
@@ -1489,10 +1491,13 @@ export type OrderSignature = z.infer<typeof orderSignatureSchema>;
 
 /**
  * The orders the server signs (`ORDER_SIGNING_KEY`) and the agent refuses
- * unsigned: what runs code, writes or deletes files, reads their content,
- * changes the agent's privileges or its life, drives its containers, reaches
- * into its network, or picks the folders CloudSync writes to.
- * Mirror of `SIGNED_COMMANDS` in `agent/src/protocol.rs`.
+ * unsigned: what runs code, writes, moves or deletes files, reads their
+ * content, changes the agent's privileges, its life or its token, drives its
+ * containers, reaches into its network, or drives what CloudSync writes.
+ * `sync.applyChunk` is not signed (a chunk per megabyte would exhaust the
+ * nonce window) but only lands in a transfer a signed `sync.applyStart`
+ * opened; `agent.update` is not signed so an agent that predates this format
+ * can still be updated. Mirror of `SIGNED_COMMANDS` in `agent/src/protocol.rs`.
  */
 export const SIGNED_AGENT_COMMANDS: ReadonlySet<string> = new Set([
     AGENT_TERM_OPEN,
@@ -1501,13 +1506,21 @@ export const SIGNED_AGENT_COMMANDS: ReadonlySet<string> = new Set([
     AGENT_FILES_DOWNLOAD,
     AGENT_FILES_ARCHIVE,
     AGENT_SYNC_CONFIG,
+    AGENT_SYNC_SCAN,
+    AGENT_SYNC_PUSH,
+    AGENT_SYNC_APPLY_START,
+    AGENT_SYNC_APPLY_DIR,
+    AGENT_SYNC_APPLY_LOCAL,
+    AGENT_SYNC_MOVE,
+    AGENT_SYNC_DELETE,
     AGENT_SERVICE,
     AGENT_POWER,
     AGENT_DESTROY,
     AGENT_PKG_UPGRADE,
     AGENT_LIFECYCLE,
     AGENT_DOCKER_ACTION,
-    AGENT_TUNNEL_OPEN
+    AGENT_TUNNEL_OPEN,
+    AGENT_TOKEN_ROTATE
 ]);
 
 /**

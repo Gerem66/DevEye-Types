@@ -25,6 +25,13 @@ export const loginChecksStatusSchema = z.object({
         /** The account's address, masked. */
         to: z.string()
     }),
+    sms: z.object({
+        /** This server sends texts (`SMS_OVH_*`): without it, the check does not exist. */
+        available: z.boolean(),
+        enabled: z.boolean(),
+        /** The verified number, masked; `null` without one. */
+        phone: z.string().nullable()
+    }),
     browsers: z.array(trustedBrowserSchema)
 });
 

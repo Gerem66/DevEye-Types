@@ -1112,7 +1112,11 @@ export {
     loginChecksCommands,
     loginChecksForgetBrowser,
     loginChecksForgetBrowsers,
+    loginChecksPhoneConfirm,
+    loginChecksPhoneRemove,
+    loginChecksPhoneStart,
     loginChecksSetEmail,
+    loginChecksSetSms,
     loginChecksStatus
 } from './features/loginChecks';
 export {

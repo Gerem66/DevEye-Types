@@ -375,10 +375,15 @@ export interface DevEyeFacade {
         /**
          * Throws `not_found` unless the device exists AND is visible in this
          * workspace (its own, or shared into it), a global administrator
-         * included: membership is the boundary. With `extras`, a handler also requires the CALLER to hold these
-         * permissions of the Devices feature on this device (`docker` to drive
-         * its containers), and throws `forbidden` otherwise: a module cannot
-         * name another feature's permissions in its own `access`.
+         * included: membership is the boundary. In a command, the CALLER must
+         * also see it: Devices open to their role, and the device not hidden
+         * from it. `level: 'write'` requires the device writable for them
+         * (`forbidden` on a read-only one), for a handler that changes what
+         * the machine does. With `extras`, a handler also requires the CALLER
+         * to hold these permissions of the Devices feature on this device
+         * (`docker` to drive its containers), and throws `forbidden`
+         * otherwise: a module cannot name another feature's permissions in its
+         * own `access`.
          *
          * `control: true` where the handler is about to make the machine act
          * (save a source it reads, a target it deploys to, a folder it syncs):
@@ -389,14 +394,17 @@ export interface DevEyeFacade {
          */
         authorize(
             deviceId: string,
-            options?: { extras?: readonly string[]; control?: boolean }
+            options?: { level?: FeatureAccess; extras?: readonly string[]; control?: boolean }
         ): Promise<SdkDevice>;
         /**
          * The `control` confirmation alone, where no device exists yet (a code
          * that pairs new machines).
          */
         assertControl(): Promise<void>;
-        /** The devices this workspace sees: its own, and those shared into it. */
+        /**
+         * The devices this workspace sees: its own, and those shared into it.
+         * In a command, without those hidden from the caller.
+         */
         list(): Promise<readonly SdkDevice[]>;
         isOnline(deviceId: string): boolean;
     };

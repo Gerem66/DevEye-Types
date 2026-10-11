@@ -708,7 +708,11 @@ export interface AgentsFacade {
      */
     requestFilesMutate(deviceId: string, payload: AgentFilesMutatePayload): boolean;
     requestFilesUpload(deviceId: string, payload: AgentFilesUploadPayload): boolean;
-    awaitFilesOp(opId: string, timeoutMs: number): Promise<{ ok: boolean; error?: string }>;
+    awaitFilesOp(
+        deviceId: string,
+        opId: string,
+        timeoutMs: number
+    ): Promise<{ ok: boolean; error?: string }>;
     /** Forgets a pending `awaitFilesOp` (the frame was never sent, or the caller gave up). */
     cancelFilesOp(opId: string): void;
     /**

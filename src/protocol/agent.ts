@@ -1489,14 +1489,18 @@ export type OrderSignature = z.infer<typeof orderSignatureSchema>;
 
 /**
  * The orders the server signs (`ORDER_SIGNING_KEY`) and the agent refuses
- * unsigned: what runs code, writes or deletes files, changes the agent's
- * privileges or its life, drives its containers, or reaches into its network.
+ * unsigned: what runs code, writes or deletes files, reads their content,
+ * changes the agent's privileges or its life, drives its containers, reaches
+ * into its network, or picks the folders CloudSync writes to.
  * Mirror of `SIGNED_COMMANDS` in `agent/src/protocol.rs`.
  */
 export const SIGNED_AGENT_COMMANDS: ReadonlySet<string> = new Set([
     AGENT_TERM_OPEN,
     AGENT_FILES_MUTATE,
     AGENT_FILES_UPLOAD,
+    AGENT_FILES_DOWNLOAD,
+    AGENT_FILES_ARCHIVE,
+    AGENT_SYNC_CONFIG,
     AGENT_SERVICE,
     AGENT_POWER,
     AGENT_DESTROY,

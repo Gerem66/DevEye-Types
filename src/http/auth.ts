@@ -46,7 +46,9 @@ export type SessionBundle = z.infer<typeof sessionBundleSchema>;
 
 export const loginRequestSchema = z.object({
     username: z.string().min(1).max(120),
-    password: z.string().min(1).max(512)
+    password: z.string().min(1).max(512),
+    /** A federated page's trusted-browser token for this account; a same-origin page holds a cookie instead. */
+    trustToken: z.string().max(256).optional()
 });
 
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
@@ -85,32 +87,62 @@ export const changePasswordResponseSchema = z.object({
 export type ChangePasswordResponse = z.infer<typeof changePasswordResponseSchema>;
 
 /**
+ * What may stand between a correct password and a session, in this order: a
+ * code mailed to a browser the account does not know, the authenticator app,
+ * a code texted to that browser.
+ */
+export const loginStepSchema = z.enum(['email', 'totp', 'sms']);
+
+export type LoginStep = z.infer<typeof loginStepSchema>;
+
+/** A login waiting for the code of `step`. */
+export const loginPendingSchema = z.object({
+    status: z.literal('pending'),
+    step: loginStepSchema,
+    /** Where the code went, masked (`g•••@gmail.com`, `•• •• •• 12 34`). */
+    to: z.string().optional(),
+    /** The challenge, for a federated origin (no cookie holds it there). */
+    challenge: z.string().optional()
+});
+
+export type LoginPending = z.infer<typeof loginPendingSchema>;
+
+/**
  * The auth flow returns the authenticated user and its workspaces in one shot.
  * Tokens are delivered as HttpOnly cookies, never in the JSON body, except to a
  * federated origin (`tokens`, see {@link sessionTokensSchema}).
  *
- * When 2FA is enabled, login first replies with `twoFactorRequired` and an
- * interim challenge token (a cookie, or `challenge` for a federated origin); the
- * client then posts a TOTP/backup code.
+ * A login may first reply `pending`: each code posted to `/login/verify` moves
+ * to the next step, until the session opens (`signedIn`).
  */
-export const loginResponseSchema = z.discriminatedUnion('twoFactorRequired', [
+export const loginResponseSchema = z.discriminatedUnion('status', [
     sessionBundleSchema.extend({
-        twoFactorRequired: z.literal(false),
-        tokens: sessionTokensSchema.optional()
+        status: z.literal('signedIn'),
+        tokens: sessionTokensSchema.optional(),
+        /** A federated page's new trusted-browser token, when it asked to be trusted. */
+        trustToken: z.string().optional()
     }),
-    z.object({ twoFactorRequired: z.literal(true), challenge: z.string().optional() })
+    loginPendingSchema
 ]);
 
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
 
-export const twoFactorChallengeRequestSchema = z.object({
-    /** A 6-digit TOTP code or a recovery backup code. */
+/** `POST /api/auth/login/verify`: the code of the current step. */
+export const loginVerifyRequestSchema = z.object({
+    /** Six digits, or a recovery code on the `totp` step. */
     code: z.string().min(6).max(24),
-    /** The challenge handed by `/login`, from a federated origin (no cookie holds it there). */
+    /** Trust this browser: its next logins skip the mailed and texted codes. */
+    trust: z.boolean().optional(),
+    /** The challenge handed by `/login`, from a federated origin. */
     challenge: z.string().max(2048).optional()
 });
 
-export type TwoFactorChallengeRequest = z.infer<typeof twoFactorChallengeRequestSchema>;
+export type LoginVerifyRequest = z.infer<typeof loginVerifyRequestSchema>;
+
+/** `POST /api/auth/login/resend` and `/login/cancel`: only a federated origin names its challenge. */
+export const loginChallengeRequestSchema = z.object({ challenge: z.string().max(2048).optional() });
+
+export type LoginChallengeRequest = z.infer<typeof loginChallengeRequestSchema>;
 
 /** Body of `/refresh` and `/logout` from a federated origin; a same-origin page sends none. */
 export const refreshRequestSchema = z.object({ refreshToken: z.string().max(2048) });

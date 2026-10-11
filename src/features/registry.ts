@@ -10,6 +10,7 @@ import { notifyCommands } from './notify';
 import { remoteCommands } from './remote';
 import { sharingCommands } from './sharing';
 import { secrecyCommands } from './secrecy';
+import { loginChecksCommands } from './loginChecks';
 import { stepUpCommands } from './stepUp';
 import { twoFactorCommands } from './twoFactor';
 import { userCommands } from './user';
@@ -32,6 +33,7 @@ export const featureCommands = [
     ...agentCommands,
     ...twoFactorCommands,
     ...stepUpCommands,
+    ...loginChecksCommands,
     ...secrecyCommands,
     ...logsCommands,
     ...feedbackCommands,

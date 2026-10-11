@@ -904,6 +904,12 @@ export {
     stepUpStatusSchema
 } from './domain/stepUp';
 export type { StepUpRequiredDetails, StepUpStatus } from './domain/stepUp';
+export {
+    loginChecksStatusSchema,
+    TRUSTED_BROWSER_DAYS,
+    trustedBrowserSchema
+} from './domain/loginChecks';
+export type { LoginChecksStatus, TrustedBrowser } from './domain/loginChecks';
 export type {
     BackupCodeRow,
     TwoFactorRow,
@@ -1103,6 +1109,13 @@ export {
 } from './features/notify';
 export { stepUpCommands, stepUpConfirm, stepUpSetInterval, stepUpStatus } from './features/stepUp';
 export {
+    loginChecksCommands,
+    loginChecksForgetBrowser,
+    loginChecksForgetBrowsers,
+    loginChecksSetEmail,
+    loginChecksStatus
+} from './features/loginChecks';
+export {
     twoFactorCommands,
     twoFactorDisable,
     twoFactorEnable,
@@ -1149,8 +1162,12 @@ export type { FeedbackFilter } from './features/feedback';
 export {
     changePasswordRequestSchema,
     changePasswordResponseSchema,
+    loginChallengeRequestSchema,
+    loginPendingSchema,
     loginRequestSchema,
     loginResponseSchema,
+    loginStepSchema,
+    loginVerifyRequestSchema,
     meResponseSchema,
     passwordSchema,
     refreshRequestSchema,
@@ -1165,14 +1182,17 @@ export {
     signupStatusSchema,
     signupVerifyRequestSchema,
     signupVerifyResponseSchema,
-    twoFactorChallengeRequestSchema,
     wsTicketResponseSchema
 } from './http/auth';
 export type {
     ChangePasswordRequest,
     ChangePasswordResponse,
+    LoginChallengeRequest,
+    LoginPending,
     LoginRequest,
     LoginResponse,
+    LoginStep,
+    LoginVerifyRequest,
     MeResponse,
     RefreshRequest,
     RefreshResponse,
@@ -1186,7 +1206,6 @@ export type {
     SignupStatus,
     SignupVerifyRequest,
     SignupVerifyResponse,
-    TwoFactorChallengeRequest,
     WsTicketResponse
 } from './http/auth';
 export {

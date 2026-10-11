@@ -66,10 +66,16 @@ export const minimalUserSchema = z.object({
 export type MinimalUser = z.infer<typeof minimalUserSchema>;
 
 /**
- * Account security posture, surfaced in the profile as "Sécurité → x / 3".
- * Each flag is one of the three main protections.
+ * Account security posture, surfaced in the profile as "Sécurité → x / y".
+ * Each flag is one of the main protections.
  */
 export const userSecuritySchema = z.object({
+    /**
+     * A browser the account does not know confirms a login with a mailed or
+     * texted code. `null` when this server sends neither: the protection does
+     * not exist here and is not counted.
+     */
+    loginConfirmation: z.boolean().nullable(),
     /** TOTP two-factor authentication is enabled. */
     twoFactor: z.boolean(),
     /** Password-based encryption (DEK wrapped by the user's password) is on. */
@@ -156,6 +162,8 @@ export interface UserRow {
     re_auth_interval: number | null;
     /** Seconds without driving a machine after which the authenticator code is asked again. */
     step_up_interval: number;
+    /** 1: a browser this account does not know confirms a login with a mailed code. */
+    login_email_check: number;
     /** Seconds. The last password sign-in; a session renews without one for weeks. */
     last_login: number;
     /** Seconds. The last time the account opened or used the app, to within a few minutes. */

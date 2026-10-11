@@ -621,7 +621,19 @@ export function createTestContext<Repo = undefined>(
             ticket: (payload) =>
                 Promise.resolve(
                     `ticket:${JSON.stringify({ userId: overrides.userId ?? 1, workspaceId, payload, unlocked: overrides.unlocked ?? true })}`
-                )
+                ),
+            // Only a ticket this caller minted, in this workspace, reads back.
+            redeem: (ticket) => {
+                if (!ticket.startsWith('ticket:')) return Promise.resolve(null);
+                const parsed = JSON.parse(ticket.slice('ticket:'.length)) as {
+                    userId: number;
+                    workspaceId: number;
+                    payload: unknown;
+                };
+                const mine =
+                    parsed.userId === (overrides.userId ?? 1) && parsed.workspaceId === workspaceId;
+                return Promise.resolve(mine ? { payload: parsed.payload } : null);
+            }
         },
         keys: {
             sealBytes: (plain) => `sealed:${Buffer.from(plain).toString('base64')}`,

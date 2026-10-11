@@ -993,6 +993,15 @@ export interface SdkSecrecy {
      * sees a session id nor a key. Default life: two minutes.
      */
     ticket(payload: unknown, opts?: { ttlSeconds?: number }): Promise<string>;
+    /**
+     * The payload of a ticket THIS session minted (same caller, session,
+     * workspace and module), `null` for any other: expired, forged, or minted
+     * elsewhere. For a gesture that must end where it began: an OAuth popup
+     * hands `code` and `state` back to the page that opened it, which sends
+     * them through a command, so a consent link mailed to someone else never
+     * lands anywhere.
+     */
+    redeem(ticket: string): Promise<{ payload: unknown } | null>;
 }
 
 /**

@@ -1483,6 +1483,17 @@ export interface FeatureService {
      */
     ownHosts?: readonly string[];
     /**
+     * A listener of your own, on this port, beside the app's and the public
+     * surface's: the host serves there your public routes and your
+     * `hostRequest`, for your `ownHosts` and your verified web domains, and
+     * nothing of anyone else. None of your routes is mounted on the other
+     * listeners, and the domain proxy sends your domains here: what you serve
+     * shares no port with the instance's own names. Read the port from your
+     * env; leave it out to stay on the public surface. Requires `ownHosts` and
+     * `hostRequest`; a port another listener holds is refused at boot.
+     */
+    ownListener?: { port: number };
+    /**
      * Every GET or HEAD that no route matched, root included, on one of your
      * `ownHosts` (`domain` is `null`) or on one of YOUR verified web domains
      * (`domain` is that domain): for names whose paths are yours to define

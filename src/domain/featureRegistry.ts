@@ -348,6 +348,20 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         hasItems: true,
         itemNoun: 'client',
         shareTier: 'never'
+    },
+    {
+        id: 'shortlinks',
+        label: 'Liens courts',
+        description:
+            'Lecture : les liens et leurs statistiques. Écriture : créer un lien, changer sa destination et ses réglages, le supprimer.',
+        icon: 'shortlinks',
+        notifies: true,
+        notifications: {
+            hint: 'Envoyées quand la destination d’un lien ne répond plus, quand elle répond de nouveau, et quand les visites du mois approchent ou atteignent la limite de votre offre.'
+        },
+        hasItems: true,
+        itemNoun: 'lien',
+        shareTier: 'open'
     }
 ];
 

@@ -810,6 +810,8 @@ export interface TestServiceOverrides<Repo> {
     origins?: SdkOrigins;
     /** Instants `telemetry.snapshot` answers (matched within a second). Default none. */
     snapshots?: readonly SdkTelemetrySnapshot[];
+    /** What `geo.country` answers, by client address. Default none: every address is unknown. */
+    countries?: Readonly<Record<string, string>>;
     /** The feature's domains, every workspace mixed. Default none. */
     domains?: readonly SdkDomain[];
     /** The named contracts the host holds (`deps.providers.get(key)`). */
@@ -899,6 +901,10 @@ export function createTestServiceDeps<Repo = undefined>(
             isOnline: devices.isOnline
         },
         telemetry: recordingTelemetry(recorded, overrides.snapshots ?? []),
+        geo: {
+            country: (ip) => overrides.countries?.[ip] ?? null,
+            attribution: { text: 'IP Geolocation by DB-IP', url: 'https://db-ip.com' }
+        },
         live: {
             changed(workspaceId, topics) {
                 recorded.liveChanges.push(workspaceId);

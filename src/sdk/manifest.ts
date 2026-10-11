@@ -168,7 +168,12 @@ export type NativeCapability =
      * behalf of its members, on the server's disk or on the S3 bucket the host
      * configured. Declared, because what lands there is billed to the host.
      */
-    | 'objects';
+    | 'objects'
+    /**
+     * The country of a client address (`deps.geo`), from a database the host
+     * downloads and refreshes only while an installed module declares this.
+     */
+    | 'geoip';
 
 /**
  * Settings tabs the shell can render for you.

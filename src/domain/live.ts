@@ -202,6 +202,7 @@ export const TOPIC_FEATURE: Record<NativeLiveTopic, WorkspaceFeatureId | null> =
     mailserver: 'mailserver',
     convert: 'convert',
     invoicing: 'invoicing',
+    shortlinks: 'shortlinks',
     workspace: null,
     home: null,
     account: null,

@@ -81,6 +81,14 @@ export {
     normaliseDomainHost,
     type SdkDnsRecord
 } from './domains';
+export {
+    looksLikeBot,
+    normalizeReferrer,
+    originHost,
+    parseUserAgent,
+    visitorRef,
+    type UserAgentInfo
+} from './visitors';
 
 /**
  * Server-side SDK surface: what a feature module's handlers and background
@@ -261,6 +269,24 @@ export interface SdkTelemetrySnapshot {
     ts: number;
     processes: ReportProcess[];
     activeConnections: number | null;
+}
+
+/**
+ * The country of a client address, from a database the host downloads and
+ * refreshes on its own (capability `'geoip'`). Answers from memory: cheap
+ * enough for a public route. Keep the country, never the address.
+ */
+export interface SdkGeo {
+    /**
+     * The ISO 3166-1 alpha-2 code (`FR`), or `null` for a private or unknown
+     * address, and while the database is not loaded yet.
+     */
+    country(ip: string): string | null;
+    /**
+     * The credit the database's licence requires next to whatever shows its
+     * results, with its link: show both wherever a country appears.
+     */
+    readonly attribution: { text: string; url: string };
 }
 
 /**
@@ -1302,6 +1328,8 @@ export interface SdkPublicRequest {
      */
     host?: string;
     ip: string;
+    /** The HTTP method as received: a GET route also answers HEAD, which wants no page and counts no visit. */
+    method?: string;
 }
 
 /** The reply of a public route, the minimal chainable surface the host maps onto its HTTP server. */
@@ -1309,6 +1337,16 @@ export interface SdkPublicReply {
     header(name: string, value: string): SdkPublicReply;
     code(status: number): SdkPublicReply;
     send(payload?: unknown): unknown;
+}
+
+/**
+ * A request that no route matched, handed whole to `FeatureService.hostRequest`:
+ * the host has no route to decode it, so the path comes as received.
+ */
+export interface SdkHostRequest extends SdkPublicRequest {
+    method: 'GET' | 'HEAD';
+    /** As received, still percent-encoded, without the query string: `/` at the root, `/promo` below it. */
+    path: string;
 }
 
 export interface SdkPublicRouteOptions {
@@ -1380,7 +1418,8 @@ export type SdkPublicStreamHandler = (
  * Paths are absolute (`/t.js`, `/api/t/b`); a path the host already serves
  * is refused at boot. Every route is registered on every public listener.
  * `/` belongs to the host: a page served at the root of a customer domain goes
- * through `FeatureService.domainRoot`.
+ * through `FeatureService.domainRoot`, and every other path of a name you
+ * serve whole through `FeatureService.hostRequest`.
  */
 export interface SdkPublicApp {
     get(path: string, opts: SdkPublicRouteOptions, handler: SdkPublicHandler): void;
@@ -1433,6 +1472,32 @@ export interface FeatureService {
      * `'routes.public'` and manifest `domains.web`.
      */
     domainRoot?(req: SdkPublicRequest, reply: SdkPublicReply, domain: SdkDomain): Promise<unknown>;
+    /**
+     * Names your feature serves WHOLE, outside any customer: a short domain of
+     * the instance, read from your env (`go.example.com`). Each must match
+     * `DOMAIN_HOST_PATTERN`, differ from the app's and the public surface's
+     * hosts, and be claimed by one feature only: the boot refuses otherwise.
+     * Reserved like the instance's own hosts: no workspace can declare them as
+     * a domain, and the domain proxy never routes them (route them yourself to
+     * the public listener). Requires `hostRequest`.
+     */
+    ownHosts?: readonly string[];
+    /**
+     * Every GET or HEAD that no route matched, root included, on one of your
+     * `ownHosts` (`domain` is `null`) or on one of YOUR verified web domains
+     * (`domain` is that domain): for names whose paths are yours to define
+     * (`go.example.com/promo`). Behind the maintenance gate, rate-limited by
+     * the host. Your routes from `publicRoutes` still win where they match.
+     * When several features verified the same name, the first installed that
+     * answers the path takes it (`domainRoot` for `/`, `hostRequest` for any).
+     * Exclusive with `domainRoot`. Requires capability `'routes.public'` and,
+     * when your manifest declares `domains`, `domains.web`.
+     */
+    hostRequest?(
+        req: SdkHostRequest,
+        reply: SdkPublicReply,
+        domain: SdkDomain | null
+    ): Promise<unknown>;
     /**
      * Your `stock` items that a plan just paused or resumed, once written: for
      * what you hold OPEN (a connection, a session, a timer). What you run on
@@ -1510,6 +1575,8 @@ export interface FeatureServiceDeps<Repo = unknown> {
     pauses: SdkPlanPauses;
     /** The devices' telemetry, sessionless (capability `'telemetry.read'`). */
     telemetry: SdkTelemetry;
+    /** Where a client address comes from (capability `'geoip'`). */
+    geo: SdkGeo;
     /** Live invalidation of your feature's resources, from a service. */
     live: SdkLive;
     /**
@@ -1693,11 +1760,16 @@ export interface SdkE2eContext<Repo = unknown> {
      * dispatcher. Rejects with a `FeatureError` carrying the server's code.
      */
     send<T = unknown>(command: string, input: unknown, opts?: { workspaceId?: number }): Promise<T>;
-    /** A sessionless request to this server's own listener: what a visitor's browser sends to a public route. */
+    /**
+     * A sessionless request to this server's own listener: what a visitor's
+     * browser sends to a public route. Redirects are not followed: a 302 comes
+     * back as is, its target in `headers.location`. Header names are lowercase,
+     * repeated ones joined by `, `.
+     */
     fetch(
         path: string,
         init?: { method?: 'GET' | 'POST'; headers?: Record<string, string>; body?: string }
-    ): Promise<{ status: number; body: string }>;
+    ): Promise<{ status: number; body: string; headers: Readonly<Record<string, string>> }>;
     /**
      * Polls until `probe` answers something other than `null`, `undefined` or
      * `false`, then resolves with it. Rejects after `timeoutMs` (default 10 s),

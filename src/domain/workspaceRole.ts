@@ -108,7 +108,12 @@ export const workspaceFeatureIdSchema = z.enum([
      * brouillon, enregistrer un règlement. Émettre un document et changer
      * l'identité de l'émetteur sont des permissions propres du module.
      */
-    'invoicing'
+    'invoicing',
+    /**
+     * Liens courts. `read` = voir les liens et leurs statistiques, `write` =
+     * créer un lien, changer sa destination et ses réglages, le supprimer.
+     */
+    'shortlinks'
 ]);
 
 export type WorkspaceFeatureId = z.infer<typeof workspaceFeatureIdSchema>;

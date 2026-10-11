@@ -40,7 +40,8 @@ export const nativeHomeFeatureIdSchema = z.enum([
     'cve',
     'mailserver',
     'convert',
-    'invoicing'
+    'invoicing',
+    'shortlinks'
 ]);
 export type NativeHomeFeatureId = z.infer<typeof nativeHomeFeatureIdSchema>;
 

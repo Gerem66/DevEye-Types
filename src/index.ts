@@ -1031,6 +1031,7 @@ export {
     workspaceCommands,
     workspaceDelete,
     workspaceLeave,
+    workspaceMemberShares,
     workspaceRemoveMember,
     workspaceInvite,
     workspaceInvitations,

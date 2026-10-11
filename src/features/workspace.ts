@@ -66,7 +66,20 @@ export const workspaceLeave = {
     output: z.object({ workspaceId: z.number().int().positive() })
 };
 
-/** Exclut un membre de l'espace actif. Réservé au propriétaire. */
+/**
+ * Ce qu'un départ emporte avec le membre : les projections qu'il avait réglées
+ * entre cet espace et d'autres, dans les deux sens, nommées pour la
+ * confirmation. Pour soi-même, ou pour un autre avec `workspace.members`.
+ */
+export const workspaceMemberShares = {
+    command: 'workspace.memberShares' as const,
+    input: z.object({ userId: z.number().int().positive() }),
+    output: z.object({
+        shares: z.array(z.object({ feature: z.string(), label: z.string() }))
+    })
+};
+
+/** Exclut un membre de l'espace actif, et retire ses projections avec lui. */
 export const workspaceRemoveMember = {
     command: 'workspace.removeMember' as const,
     input: z.object({ userId: z.number().int().positive() }),
@@ -195,6 +208,7 @@ export const workspaceCommands = [
     workspaceAssignRole,
     workspaceRename,
     workspaceLeave,
+    workspaceMemberShares,
     workspaceRemoveMember,
     workspaceInvite,
     workspaceInvitations,

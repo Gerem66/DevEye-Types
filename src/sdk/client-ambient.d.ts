@@ -581,11 +581,15 @@ declare module 'deveye-sdk-client' {
     export const ReadOnlyNotice: ComponentType<{ children: ReactNode }>;
     export interface ErrorNoteInput {
         message: string;
+        /** The failure's code, `null` when it carries none: it decides whether a report is offered. */
         code: string | null;
     }
     export interface ErrorNoteProps {
         note: ErrorNoteInput | null;
+        /** The caller's repair actions (retry, open settings), before the report button. */
         children?: ReactNode;
+        /** Makes the banner dismissible: the close button comes last, after the report button. */
+        onDismiss?: () => void;
     }
     /**
      * A refusal banner: the sentence, the caller's own repair actions as
@@ -651,10 +655,16 @@ declare module 'deveye-sdk-client' {
         done: Promise<void>;
         abort(): void;
     }
-    /** What `UploadHandle.done` rejects with: the server's message, or why the connection ended. */
+    /**
+     * What `UploadHandle.done` rejects with: the server's message (`{ message }`
+     * in your route's error body), or why the connection ended. `code` is the
+     * protocol code the HTTP status maps to (409 `conflict`, 413 `validation`,
+     * 5xx `internal`, a dropped connection `network`), `null` once aborted.
+     */
     export class UploadError extends Error {
+        readonly code: string | null;
         readonly aborted: boolean;
-        constructor(message: string, aborted?: boolean);
+        constructor(message: string, code: string | null, aborted?: boolean);
     }
     /**
      * POSTs the file as is (`application/octet-stream`) to a route of yours,
@@ -764,12 +774,18 @@ declare module 'deveye-sdk-client' {
         load: () => Promise<T>,
         fallback: string,
         deps?: readonly unknown[]
-    ): { data: T | null; error: string | null; loading: boolean; reload: () => void };
+    ): { data: T | null; error: ErrorNoteInput | null; loading: boolean; reload: () => void };
     export function invalidate(...keys: ExternalResourceKey[]): void;
     export function useResourceVersion(key: ExternalResourceKey): number;
     /** Imperative subscription to one resource key's invalidations. Returns the unsubscribe. */
     export function onResourceChange(key: ExternalResourceKey, cb: () => void): () => void;
     export function humanizeError(error: unknown, fallback: string): string;
+    /**
+     * A failure as `ErrorNote` shows it: the `humanizeError` sentence and the
+     * code, read off the error's shape. What every failure shown to the user
+     * goes through, so that one nobody can fix offers a report.
+     */
+    export function errorNote(error: unknown, fallback: string): ErrorNoteInput;
     /** The error a command rejects with: the server's code (or the socket's), its message, and the validation details when any. */
     export class WsError extends Error {
         constructor(code: string, message: string, details?: unknown);
@@ -845,9 +861,12 @@ declare module 'deveye-sdk-client' {
     /**
      * The rejection of `ensureSecrecyUnlocked` / `withSecrecy` when the user
      * dismisses the unlock prompt: a deliberate cancel, not a failure (close a
-     * view that has nothing to show, rather than reporting an error).
+     * view that has nothing to show, rather than reporting an error). Coded
+     * `locked`: `errorNote` reads it as a refusal, and offers no report.
      */
-    export class UnlockCancelledError extends Error {}
+    export class UnlockCancelledError extends Error {
+        readonly code: 'locked';
+    }
 
     // ── Live ───────────────────────────────────────────────────────────────
     export type LiveSegmentKind = 'view' | 'l1' | 'l2' | 'l3' | 'l4';
@@ -923,7 +942,7 @@ declare module 'deveye-sdk-client' {
         load: (() => Promise<readonly DeviceRelayOption[]>) | null
     ): {
         devices: readonly DeviceRelayOption[];
-        error: string | null;
+        error: ErrorNoteInput | null;
     };
     /** One rule of a `PathExclusionsEditor`. */
     export interface PathExclusionItem {
@@ -1105,7 +1124,7 @@ declare module 'deveye-sdk-client' {
     export function useDomains(feature: FeatureId): {
         domains: readonly FeatureDomain[];
         loading: boolean;
-        error: string | null;
+        error: ErrorNoteInput | null;
     };
     /**
      * A member's identity dot: their avatar, or the default picture until they
@@ -1142,7 +1161,11 @@ declare module 'deveye-sdk-client' {
     /** Image inputs accepted by `fileToSquareDataUrl`. */
     export const ACCEPTED_TYPES: readonly string[];
     export const MAX_INPUT_BYTES: number;
-    /** A picked image, resized to a square data URL under `maxLength` characters; throws a readable message. */
+    /**
+     * A picked image, resized to a square data URL under `maxLength`
+     * characters. A file it cannot use throws an error coded `validation`
+     * whose message is readable: `errorNote` shows it as is.
+     */
     export function fileToSquareDataUrl(
         file: File,
         opts: { size: number; maxLength: number }

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { loginChecksStatusSchema } from '../domain/loginChecks';
+import { loginChecksStatusSchema, loginEntrySchema } from '../domain/loginChecks';
 
 const output = z.object({ status: loginChecksStatusSchema });
 
@@ -68,6 +68,26 @@ export const loginChecksForgetBrowsers = {
     output
 };
 
+/**
+ * The account's successful logins over the last `LOGIN_HISTORY_WINDOW_DAYS`
+ * days, newest first, and how many older ones the history still holds.
+ */
+export const loginChecksHistory = {
+    command: 'loginChecks.history' as const,
+    input: z.object({}),
+    output: z.object({ entries: z.array(loginEntrySchema), older: z.number().int().nonnegative() })
+};
+
+/**
+ * Close every session of the account but the one asking: what to do after
+ * spotting a login that is not one's own. Answers how many sessions closed.
+ */
+export const loginChecksLogoutOthers = {
+    command: 'loginChecks.logoutOthers' as const,
+    input: z.object({}),
+    output: z.object({ closed: z.number().int().nonnegative() })
+};
+
 export const loginChecksCommands = [
     loginChecksStatus,
     loginChecksSetEmail,
@@ -76,5 +96,7 @@ export const loginChecksCommands = [
     loginChecksPhoneConfirm,
     loginChecksPhoneRemove,
     loginChecksForgetBrowser,
-    loginChecksForgetBrowsers
+    loginChecksForgetBrowsers,
+    loginChecksHistory,
+    loginChecksLogoutOthers
 ] as const;

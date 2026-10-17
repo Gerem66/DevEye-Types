@@ -911,12 +911,15 @@ export {
 } from './domain/stepUp';
 export type { StepUpRequiredDetails, StepUpStatus } from './domain/stepUp';
 export {
+    LOGIN_HISTORY_DAYS,
+    LOGIN_HISTORY_WINDOW_DAYS,
     loginChecksStatusSchema,
+    loginEntrySchema,
     TRUSTED_BROWSER_DAYS,
     TRUSTED_BROWSERS_MAX,
     trustedBrowserSchema
 } from './domain/loginChecks';
-export type { LoginChecksStatus, TrustedBrowser } from './domain/loginChecks';
+export type { LoginChecksStatus, LoginEntry, TrustedBrowser } from './domain/loginChecks';
 export type {
     BackupCodeRow,
     TwoFactorRow,
@@ -1125,6 +1128,8 @@ export {
     loginChecksCommands,
     loginChecksForgetBrowser,
     loginChecksForgetBrowsers,
+    loginChecksHistory,
+    loginChecksLogoutOthers,
     loginChecksPhoneConfirm,
     loginChecksPhoneRemove,
     loginChecksPhoneStart,

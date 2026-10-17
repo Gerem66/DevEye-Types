@@ -590,11 +590,18 @@ declare module 'deveye-sdk-client' {
         children?: ReactNode;
         /** Makes the banner dismissible: the close button comes last, after the report button. */
         onDismiss?: () => void;
+        /**
+         * Keeps the banner where it is written instead of the frame's slot: the
+         * failure of one row among others (a history entry, an upload).
+         */
+        inline?: boolean;
     }
     /**
      * A refusal banner: the sentence, the caller's own repair actions as
      * children, and a report button when the failure is not one the user can
-     * fix on their own.
+     * fix on their own. Wherever you write it, it shows at the top of its
+     * frame, full width: under your view's `StickyHeader`, under a dialog's
+     * title. Without either, it stays in place.
      */
     export const ErrorNote: ComponentType<ErrorNoteProps>;
     /** Open the report form, primed with what failed. */

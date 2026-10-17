@@ -905,6 +905,7 @@ export {
     STEP_UP_MINUTES_DEFAULT,
     STEP_UP_MINUTES_MAX,
     STEP_UP_MINUTES_MIN,
+    STEP_UP_STRICT_MINUTES,
     stepUpRequiredDetailsSchema,
     stepUpStatusSchema
 } from './domain/stepUp';
@@ -912,6 +913,7 @@ export type { StepUpRequiredDetails, StepUpStatus } from './domain/stepUp';
 export {
     loginChecksStatusSchema,
     TRUSTED_BROWSER_DAYS,
+    TRUSTED_BROWSERS_MAX,
     trustedBrowserSchema
 } from './domain/loginChecks';
 export type { LoginChecksStatus, TrustedBrowser } from './domain/loginChecks';

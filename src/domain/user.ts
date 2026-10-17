@@ -76,14 +76,23 @@ export const userSecuritySchema = z.object({
      * not exist here and is not counted.
      */
     loginConfirmation: z.boolean().nullable(),
+    /**
+     * Login confirmation is on and at most `TRUSTED_BROWSERS_MAX` browsers
+     * skip it. `null` with `loginConfirmation`.
+     */
+    trustedBrowsers: z.boolean().nullable(),
     /** TOTP two-factor authentication is enabled. */
     twoFactor: z.boolean(),
+    /**
+     * Two-factor is on and the code to drive a machine is asked again after
+     * `STEP_UP_STRICT_MINUTES` or less without driving.
+     */
+    stepUpValidation: z.boolean(),
     /** Password-based encryption (DEK wrapped by the user's password) is on. */
     passwordEncryption: z.boolean(),
     /**
-     * Password re-validation window is configured to a strict value: enabled and
-     * short enough (≤ 5 min) to count as a protection. Disabled (0) or a long
-     * window does not count.
+     * Password-based encryption is on and its re-validation window is short
+     * enough (5 min or less, 0 being the strongest) to count as a protection.
      */
     reAuthValidation: z.boolean()
 });

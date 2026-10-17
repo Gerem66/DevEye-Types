@@ -9,6 +9,8 @@ import { z } from 'zod';
 export const STEP_UP_MINUTES_MIN = 1;
 export const STEP_UP_MINUTES_MAX = 480;
 export const STEP_UP_MINUTES_DEFAULT = 15;
+/** Asked again after this many minutes or less: short enough to count as a protection. */
+export const STEP_UP_STRICT_MINUTES = 30;
 
 export const stepUpStatusSchema = z.object({
     /** The account has an authenticator app: without one, no machine can be driven. */

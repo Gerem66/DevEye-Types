@@ -3,6 +3,9 @@ import { z } from 'zod';
 /** How long a trusted browser stays trusted without a login, in days. */
 export const TRUSTED_BROWSER_DAYS = 90;
 
+/** More trusted browsers than this no longer counts as a protection of the account. */
+export const TRUSTED_BROWSERS_MAX = 3;
+
 /** A browser whose logins skip the mailed and texted codes. */
 export const trustedBrowserSchema = z.object({
     id: z.number().int().positive(),

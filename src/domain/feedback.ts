@@ -139,7 +139,13 @@ export const feedbackEntrySchema = z.object({
     snapshot: feedbackSnapshotSchema.nullable(),
     handledAt: z.number().int().nonnegative().nullable(),
     handledBy: z.number().int().positive().nullable(),
-    handledByName: z.string().nullable()
+    handledByName: z.string().nullable(),
+    /**
+     * When the report lost its author, message, address and the browser
+     * details that describe a person, keeping its technical part; null while
+     * intact.
+     */
+    anonymizedAt: z.number().int().nonnegative().nullable()
 });
 export type FeedbackEntry = z.infer<typeof feedbackEntrySchema>;
 
@@ -157,4 +163,5 @@ export interface FeedbackRow {
     created: number;
     handled_at: number | null;
     handled_by: number | null;
+    anonymized_at: number | null;
 }

@@ -173,7 +173,16 @@ export const agentTargetStatusSchema = z.object({
     /** Whether the binary is present on the server (greys it out in the UI). */
     available: z.boolean(),
     /** Size in bytes when available, else `null`. */
-    sizeBytes: z.number().int().nonnegative().nullable()
+    sizeBytes: z.number().int().nonnegative().nullable(),
+    /**
+     * SHA-256 of the served binary, from the release manifest: what a user
+     * compares before running a binary fetched by hand. `null` when the
+     * binary is absent or no manifest names it (a local build).
+     */
+    sha256: z
+        .string()
+        .regex(/^[a-f0-9]{64}$/)
+        .nullable()
 });
 
 export type AgentTargetStatus = z.infer<typeof agentTargetStatusSchema>;

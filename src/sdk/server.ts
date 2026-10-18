@@ -251,6 +251,17 @@ export interface SdkAlert {
     embeds?: readonly Record<string, unknown>[];
 }
 
+/** An alert for the instance's administrators, see `FeatureServiceDeps.alertInstance`. */
+export interface SdkInstanceAlert {
+    /** Groups repeats: one alert per key every ten minutes at most. */
+    key: string;
+    /** `resolved` announces a return to normal. */
+    level: 'info' | 'resolved' | 'error' | 'critical';
+    title: string;
+    /** Rendered as a code block: a message, a path, a date. */
+    detail?: string;
+}
+
 /** A routed channel that can carry a live message (see `notify.liveChannels`). */
 export interface SdkLiveChannel {
     id: number;
@@ -1716,6 +1727,14 @@ export interface FeatureServiceDeps<Repo = unknown> {
     domains: SdkFleetDomains;
     /** The named contracts the host holds, see `SdkProviders`. */
     providers: SdkProviders;
+    /**
+     * Alerts the instance's administrators on their `system` channels, for
+     * what the INSTANCE must fix (its configuration, a certificate it serves),
+     * never for one user's trouble: that goes to `deveyeFor(ws).notify`. The
+     * host prefixes `key` with your feature id; nothing leaves outside
+     * production. Log the cause as well: the alert is not a log.
+     */
+    alertInstance(alert: SdkInstanceAlert): void;
     /**
      * The app's standard loop: setInterval + reentrancy guard + unref, the
      * exact pattern of every native service. Use it instead of rolling your own.

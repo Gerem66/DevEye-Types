@@ -26,6 +26,7 @@ import {
     type SdkCipher,
     type SdkDevice,
     type SdkFeatureContext,
+    type SdkInstanceAlert,
     type SdkLogger,
     type SdkObjectStore,
     type SdkOrigins,
@@ -778,6 +779,8 @@ export interface RecordedServiceCalls extends RecordedCalls {
     liveTopicChanges: { workspaceId: number; topics: readonly string[] }[];
     /** Emails `accountMail.send` and `sendToModerators` accepted, with the address they went to. */
     mails: { userId: number; to: string; message: SdkAccountMailMessage }[];
+    /** What `alertInstance` raised, in order, keys as the module gave them. */
+    instanceAlerts: SdkInstanceAlert[];
 }
 
 export interface TestServiceDeps<Repo> extends FeatureServiceDeps<Repo> {
@@ -859,7 +862,8 @@ export function createTestServiceDeps<Repo = undefined>(
         tickers: [],
         liveChanges: [],
         liveTopicChanges: [],
-        mails: []
+        mails: [],
+        instanceAlerts: []
     };
     const stores = new Map<number, TestFeatureStore>();
     const sealedBytes = new Map<string, Uint8Array>();
@@ -1069,6 +1073,9 @@ export function createTestServiceDeps<Repo = undefined>(
                 )
         },
         providers: fakeProviders(overrides.providers ?? {}),
+        alertInstance(alert) {
+            recorded.instanceAlerts.push(alert);
+        },
         createTicker({ intervalMs, tick }) {
             recorded.tickers.push({ intervalMs, tick });
             return { start: () => undefined, stop: () => undefined };

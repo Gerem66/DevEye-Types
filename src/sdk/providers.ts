@@ -936,3 +936,79 @@ export interface AccountPlanProvider {
     /** `fresh`: never from a cache, the host is about to pause or resume on the answer. */
     planFor(userId: number, opts?: { fresh?: boolean }): Promise<AccountPlan>;
 }
+
+/**
+ * Key under `FeatureService.providers` of the automatic moderation: the
+ * instance's lists of banned content (file fingerprints and name patterns),
+ * kept by the moderation module and consulted by every feature that stores or
+ * publishes files (Hosting, CloudSync). Absent (module not installed), nothing
+ * is checked and the features behave as before: the caller degrades to
+ * "no hit".
+ */
+export const MODERATION_PROVIDER = 'moderation.check' as const;
+
+/** Why a content is banned, in the vocabulary of the public report forms. */
+export const MODERATION_REASONS = [
+    'illegal',
+    'copyright',
+    'malware',
+    'privacy',
+    'minors',
+    'other'
+] as const;
+export type ModerationReason = (typeof MODERATION_REASONS)[number];
+
+/**
+ * Where the content goes: `public` when anyone with an address can download it
+ * (a Hosting folder), `private` when it stays with its owner and their devices
+ * (a CloudSync share). A rule says which exposures it covers.
+ */
+export type ModerationExposure = 'public' | 'private';
+
+export interface ModerationSubject {
+    /** The lowercase hex SHA-256 of the plaintext; `null` when the host cannot compute it (end-to-end encrypted content). */
+    sha256: string | null;
+    /** The file name as the user named it, without its folders. */
+    name: string;
+    exposure: ModerationExposure;
+    /** For the moderators' journal: who sent what, and where. */
+    origin: {
+        /** The feature's id (`x-hosting`, `cloudsync`). */
+        feature: string;
+        workspaceId: number | null;
+        /** `null` for a transfer a device drives without a session. */
+        userId: number | null;
+        /** The item the file belongs to (a folder's name, a share's name), as the moderators read it. */
+        context: string;
+    };
+    size?: number;
+}
+
+export interface ModerationHit {
+    ruleId: number;
+    kind: 'fingerprint' | 'name';
+    reason: ModerationReason;
+    /** What the user is told, one sentence: "Logiciel malveillant connu". */
+    label: string;
+}
+
+export interface ModerationProvider {
+    /**
+     * `null` when nothing matches. A hit is recorded for the moderators
+     * (feature, context, name, account) before it is returned; the caller
+     * decides what becomes of the content: hold it, refuse it.
+     */
+    check(subject: ModerationSubject): Promise<ModerationHit | null>;
+    /**
+     * Bans these fingerprints from now on (after a takedown): the ones already
+     * banned are left as they are. Returns how many were added. Nothing already
+     * stored is re-examined.
+     */
+    ban(input: {
+        fingerprints: readonly string[];
+        reason: ModerationReason;
+        label: string;
+        /** The moderator's account, `null` for the instance. */
+        by: number | null;
+    }): Promise<number>;
+}

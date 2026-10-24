@@ -203,7 +203,14 @@ test('validateManifest checks quotas and the account entry', () => {
         { quotas: [{ key: 'monitors', label: 'm', stock: true, perOperation: true }] },
         'a per-operation limit is no stock'
     );
-    rejects({ accountOnly: true }, 'accountOnly requires accountEntry');
+    rejects({ accountOnly: true }, 'accountOnly requires accountEntry or adminTabs');
+    assert.doesNotThrow(() =>
+        validateManifest({
+            ...base,
+            accountOnly: true,
+            adminTabs: [{ id: 'rules', label: 'Rules', moderation: true }]
+        })
+    );
     rejects({ accountOnly: true, accountEntry: { label: 'S' }, tile: {} }, 'no tile');
     rejects({ accountEntry: { label: ' ' } }, 'requires a label');
 });

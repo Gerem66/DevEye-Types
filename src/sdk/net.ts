@@ -159,6 +159,8 @@ export interface SafeFetchOptions {
     contentType?: string;
     accept?: string;
     userAgent?: string;
+    /** Extra request headers (an API key the service expects); `accept` and `user-agent` above win. */
+    headers?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -183,6 +185,7 @@ export async function safeFetchText(raw: string, options: SafeFetchOptions): Pro
             redirect: 'manual',
             signal: AbortSignal.timeout(options.timeoutMs),
             headers: {
+                ...options.headers,
                 accept: options.accept ?? 'text/plain, */*',
                 'user-agent': options.userAgent ?? 'DevEye/1.0'
             }

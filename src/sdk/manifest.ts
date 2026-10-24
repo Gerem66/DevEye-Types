@@ -384,9 +384,11 @@ export interface FeatureManifest<Id extends FeatureId = FeatureId> {
      */
     adminTabs?: readonly AdminTabSpec[];
     /**
-     * The module lives in the user menu only: no card, no row in the roles
-     * screen, `Widget` and `Full` not required. Requires `accountEntry`, no
-     * items, and every command scoped to the account (`access.scope`).
+     * The module has no card and no row in the roles screen, and `Widget` and
+     * `Full` are not required: it lives in the user menu (`accountEntry`), or
+     * in the feature administration popup only (`adminTabs`, a module that
+     * serves the instance rather than its members). Requires one of the two,
+     * no items, and every command scoped to the account (`access.scope`).
      */
     accountOnly?: boolean;
 
@@ -551,7 +553,9 @@ export function validateManifest(m: FeatureManifest): void {
         if (!tab.label.trim()) fail(m.id, `admin tab « ${tab.id} »: empty label`);
     }
     if (m.accountOnly) {
-        if (!m.accountEntry) fail(m.id, 'accountOnly requires accountEntry');
+        if (!m.accountEntry && (m.adminTabs ?? []).length === 0) {
+            fail(m.id, 'accountOnly requires accountEntry or adminTabs');
+        }
         if (m.hasItems) fail(m.id, 'accountOnly modules own no items');
         if (m.tile || m.topbarWidget || m.settings) {
             fail(m.id, 'accountOnly modules have no tile, topbar widget or settings');

@@ -957,13 +957,20 @@ declare module 'deveye-sdk-client' {
         kind: PathExclusionKind;
         pattern: string;
     }
+    /** A name found in the walked folder, with what it weighs there, ready to show ("2,1 Go, 3 dossiers"). */
+    export interface PathExclusionFound {
+        name: string;
+        detail: string;
+    }
     /**
      * The exclusions of a walked folder (a CloudSync share, a backed-up
      * folder): exact path, component name or regex, relative to its root,
      * validated the way the agent will run them. `onAdd` gets a rule already
      * validated; `false` or a rejection keeps what was typed (say why where
      * you show your errors). `scope` ends the suggestions' tooltip ("le
-     * partage", "le dossier").
+     * partage", "le dossier"). `found` lists names found in the folder, first
+     * among the suggestions with their weight; `onAddFound` takes their click
+     * (by default `onAdd`, as a name rule).
      */
     export const PathExclusionsEditor: ComponentType<{
         items: readonly PathExclusionItem[];
@@ -972,6 +979,8 @@ declare module 'deveye-sdk-client' {
         canWrite: boolean;
         scope: string;
         disabled?: boolean;
+        found?: readonly PathExclusionFound[];
+        onAddFound?: (name: string) => boolean | Promise<boolean>;
     }>;
     /**
      * The workspace's enrolled devices, live: what the Devices module offers

@@ -172,7 +172,7 @@ declare module 'deveye-sdk-client' {
     export const LogOutput: ComponentType<LogOutputProps>;
     export const Checkbox: ComponentType<{
         checked: boolean;
-        /** Receives the state AFTER the click — no event to unwrap. */
+        /** Receives the state AFTER the click: no event to unwrap. */
         onChange: (checked: boolean) => void;
         children?: ReactNode;
         disabled?: boolean;
@@ -459,7 +459,7 @@ declare module 'deveye-sdk-client' {
         children: ReactNode;
         className?: string;
     }>;
-    /** One confirmation dialog for the whole app — see ConfirmDialog. */
+    /** One confirmation dialog for the whole app (see ConfirmDialog). */
     export interface ConfirmRequest {
         title: string;
         description?: ReactNode;
@@ -772,7 +772,7 @@ declare module 'deveye-sdk-client' {
     /**
      * A resource key an EXTERNAL module may own: `x-<slug>.<name>`, as listed
      * in its manifest `resources`. The app's bus is typed on the closed union
-     * of native keys plus this shape — an arbitrary string is refused there,
+     * of native keys plus this shape: an arbitrary string is refused there,
      * so it is refused here too.
      */
     export type ExternalResourceKey = `x-${string}.${string}`;

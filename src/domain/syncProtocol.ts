@@ -106,11 +106,13 @@ export const cloudSyncProgressSchema = z.object({
     bytesTotal: z.number().int().nonnegative(),
     filesDone: z.number().int().nonnegative(),
     bytesDone: z.number().int().nonnegative(),
-    /** Fichier en cours de transfert, pour la ligne discrète de l'UI. */
+    /** Fichier en cours de transfert, pour la ligne discrète de l'UI : le dernier commencé quand plusieurs passent à la fois. */
     currentPath: z.string().max(SYNC_REL_PATH_MAX).nullable(),
-    /** Avancement dans le fichier en cours, pour qu'un gros fichier ne fige pas la barre. */
+    /** Avancement dans ce fichier, pour qu'un gros fichier ne fige pas la barre. */
     currentBytes: z.number().int().nonnegative(),
     currentTotal: z.number().int().nonnegative(),
+    /** Fichiers en transfert en même temps, `currentPath` compris. */
+    inFlight: z.number().int().nonnegative(),
     direction: syncDirectionSchema.nullable(),
     error: z.string().max(500).nullable()
 });

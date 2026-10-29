@@ -105,6 +105,12 @@ declare module 'deveye-sdk-client' {
     }
     /** Copies `value` to the clipboard and confirms through its icon for two seconds; a refused clipboard stays silent. */
     export const CopyButton: ComponentType<CopyButtonProps>;
+    /**
+     * A block that only makes sense in one state (rows under the switch that
+     * commands them, an action bar while a selection exists): it unfolds when
+     * `open` turns true and folds back when it turns false, instead of popping.
+     */
+    export const Reveal: ComponentType<{ open: boolean; children: ReactNode }>;
     export interface LoadingVeilProps {
         /** Read by screen readers, and shown under the spinner when given. */
         label?: string;

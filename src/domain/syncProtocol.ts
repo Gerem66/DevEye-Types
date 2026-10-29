@@ -32,11 +32,15 @@ export const SYNC_RESUME_NONCES_MAX = Math.ceil((SYNC_RESUME_MAX_BLOCKS * 12) / 
 export const SYNC_FINGERPRINT_SEP = '\u0001';
 /**
  * Mode de scan demandé à l'agent.
- *  - `auto` → l'agent a le droit de répondre « rien n'a bougé » sans parcourir
- *    le disque, en se contentant d'annoncer l'empreinte de ce qu'il détient ;
+ *  - `delta` → l'agent a le droit de répondre « rien n'a bougé » sans parcourir
+ *    le disque, en se contentant d'annoncer l'empreinte de ce qu'il détient,
+ *    ou de ne parcourir que ce que son watcher a vu bouger et de n'envoyer que
+ *    ces entrées (`delta: true` sur `sync.index`) ;
  *  - `full` → parcours complet obligatoire (filet de sécurité horaire).
+ * Un agent qui ignore `delta` parcourt tout : la dissymétrie de version
+ * dégrade vers « on parcourt », jamais vers « on saute ».
  */
-export const syncScanModeSchema = z.enum(['auto', 'full']);
+export const syncScanModeSchema = z.enum(['delta', 'full']);
 export type SyncScanMode = z.infer<typeof syncScanModeSchema>;
 /**
  * Empreinte d'un index : `{nombre}.{octets}.{sha256hex}`. Le pli est un XOR des

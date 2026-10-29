@@ -241,6 +241,7 @@ export {
     syncIndexEntrySchema,
     syncIndexLineSchema,
     syncIndexSkippedEntrySchema,
+    syncIndexGoneEntrySchema,
     syncShareAssignmentSchema
 } from './protocol/agent';
 export type {
@@ -328,6 +329,7 @@ export type {
     SyncIndexEntry,
     SyncIndexLine,
     SyncIndexSkippedEntry,
+    SyncIndexGoneEntry,
     SyncShareAssignment
 } from './protocol/agent';
 

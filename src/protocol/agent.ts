@@ -438,10 +438,18 @@ export const syncIndexSkippedEntrySchema = z.object({
 });
 export type SyncIndexSkippedEntry = z.infer<typeof syncIndexSkippedEntrySchema>;
 
-/** One line of a `sync.index` batch: an indexed entry, or a skipped path. */
+/** A path the agent no longer holds, in a `delta: true` reply only. */
+export const syncIndexGoneEntrySchema = z.object({
+    relPath: syncRelPath,
+    kind: z.literal('gone')
+});
+export type SyncIndexGoneEntry = z.infer<typeof syncIndexGoneEntrySchema>;
+
+/** One line of a `sync.index` batch: an indexed entry, a skipped path, or a path gone since the last scan. */
 export const syncIndexLineSchema = z.discriminatedUnion('kind', [
     syncIndexEntrySchema,
-    syncIndexSkippedEntrySchema
+    syncIndexSkippedEntrySchema,
+    syncIndexGoneEntrySchema
 ]);
 export type SyncIndexLine = z.infer<typeof syncIndexLineSchema>;
 
@@ -454,14 +462,25 @@ export const agentSyncIndexPayloadSchema = z.object({
     entries: z.array(syncIndexLineSchema).max(SYNC_INDEX_BATCH_MAX),
     done: z.boolean(),
     /**
-     * L'agent a-t-il réellement parcouru le disque ? `false` répond à un
-     * `sync.scan` en mode `auto` sur un partage que le watcher sait intact :
-     * aucune entrée, seule `fingerprint` est renseignée, et le serveur VÉRIFIE
-     * qu'elle correspond à sa baseline (une vérification fausse coûte un scan
-     * complet, jamais une divergence). Le défaut `true` rend un vieil agent
-     * inoffensif.
+     * L'agent a-t-il parcouru le disque en entier ? `false` sans `delta`
+     * répond à un `sync.scan` en mode `delta` sur un partage que le watcher
+     * sait intact : aucune entrée, seule `fingerprint` est renseignée, et le
+     * serveur VÉRIFIE qu'elle correspond à sa baseline (une vérification
+     * fausse coûte un scan complet, jamais une divergence). `false` avec
+     * `delta` : seuls les dossiers touchés ont été relus, les chemins écartés
+     * ne sont pas tous là. Le défaut `true` rend un vieil agent inoffensif.
      */
     scanned: z.boolean().default(true),
+    /**
+     * Les entrées ne sont que ce qui a changé depuis le dernier scan (celles
+     * `gone` ont disparu) : l'index de l'appareil est la baseline du serveur
+     * corrigée de ces lignes, et `fingerprint` décrit cet index entier. Le
+     * serveur VÉRIFIE l'empreinte avant d'y croire, comme pour une réponse
+     * rapide. Jamais envoyé sans un `sync.scan` en mode `delta`, ou avec une
+     * empreinte `expected` que le parcours complet a retrouvée (`scanned`
+     * reste alors `true`).
+     */
+    delta: z.boolean().default(false),
     /** Empreinte de l'index détenu par l'agent, quand il sait la calculer. */
     fingerprint: syncIndexFingerprintSchema.nullable().default(null),
     /**
@@ -1095,7 +1114,13 @@ export const agentSyncScanPayloadSchema = z.object({
      * dissymétrie de version dégradent vers « scan complet », jamais vers
      * « saut ».
      */
-    mode: syncScanModeSchema.default('full')
+    mode: syncScanModeSchema.default('full'),
+    /**
+     * L'empreinte de la baseline que le serveur tient pour cet appareil. Un
+     * parcours complet qui la retrouve répond sans ses entrées (`delta: true`,
+     * rien de changé) : le serveur n'a alors rien à recharger.
+     */
+    expected: syncIndexFingerprintSchema.optional()
 });
 export type AgentSyncScanPayload = z.infer<typeof agentSyncScanPayloadSchema>;
 

@@ -96,6 +96,13 @@ export interface FeatureClient {
      */
     settingsPanels?: Readonly<Record<string, ComponentType<SettingsPanelProps>>>;
     /**
+     * Whether a custom tab applies to this scope, for a tab that only means
+     * something to some items (Mail's Access tab, for a mailbox the Mail
+     * server hosts). Asked when the settings open, the tab hidden until the
+     * answer. Omitted, every declared tab shows.
+     */
+    settingsTabApplies?(tabId: string, scope: SdkSettingsScope): Promise<boolean>;
+    /**
      * The compact topbar widget declared by `manifest.topbarWidget`. Rendered
      * with NO props: everything it shows must come through YOUR feature's
      * commands, which the server authorizes against the caller's grants. The
@@ -520,4 +527,16 @@ export interface MailClientProvider {
         onSaved: () => void;
         prefill?: MailAccountPrefill;
     }>;
+}
+
+/**
+ * What the Mail server module offers under `MAILSERVER_CLIENT_PROVIDER`: Mail
+ * shows, on an account whose address the server hosts, the mailbox's own
+ * Access tab (its application passwords) and the way to its sheet.
+ */
+export interface MailserverClientProvider {
+    /** The hosted mailbox holding this address among those the caller can read, or null. */
+    findByAddress(address: string): Promise<{ id: number } | null>;
+    /** The mailbox's Access settings panel, to mount under a scope naming that mailbox. */
+    AccessPanel: ComponentType<SettingsPanelProps>;
 }

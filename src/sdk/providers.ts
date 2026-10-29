@@ -289,6 +289,13 @@ export interface MailTransportMessage {
 export const MAIL_CLIENT_PROVIDER = 'mail.client' as const;
 
 /**
+ * Key under `FeatureClient.providers` for what the Mail server offers Mail's
+ * screens: whether an address is hosted there, and the Access tab of its
+ * mailbox. The contract type lives in `@deveye/types/sdk/client`.
+ */
+export const MAILSERVER_CLIENT_PROVIDER = 'mailserver.client' as const;
+
+/**
  * Key under `FeatureService.providers` for the Audience sites the app's
  * Projects feature links to: same shape and same reason as
  * `UPTIME_ITEMS_PROVIDER` (`project_audience_links` is Projects' table).

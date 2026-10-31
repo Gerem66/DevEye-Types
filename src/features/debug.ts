@@ -2,11 +2,13 @@ import { z } from 'zod';
 
 /**
  * La page « Tests et débogage », réservée à l'administrateur du site : essais
- * de bout en bout, mesures, testeur de mails et suivi d'usage de DevEye.
+ * de bout en bout, mesures, montée en charge, testeur de mails et suivi
+ * d'usage de DevEye.
  *
  * Toutes ces commandes déclarent `admin: true` côté serveur. Un essai dure
- * plus longtemps qu'une commande : `debug.e2eStart` et `debug.benchStart`
- * rendent aussitôt un identifiant, que la page suit par `debug.runGet`.
+ * plus longtemps qu'une commande : `debug.e2eStart`, `debug.benchStart` et
+ * `debug.loadStart` rendent aussitôt un identifiant, que la page suit par
+ * `debug.runGet`.
  */
 
 const authorSchema = z.object({ id: z.number().int().positive(), username: z.string() });
@@ -20,7 +22,7 @@ export const debugInstanceSchema = z.object({
     startedAt: z.number().int().nonnegative()
 });
 
-export const debugRunKindSchema = z.enum(['e2e', 'bench']);
+export const debugRunKindSchema = z.enum(['e2e', 'bench', 'load']);
 export const debugRunStatusSchema = z.enum(['running', 'passed', 'failed', 'aborted']);
 
 /** L'état d'une étape ou d'un scénario ; `pending` tant que son tour n'est pas venu. */
@@ -90,6 +92,81 @@ export const debugBenchReportSchema = z.object({
     context: debugBenchContextSchema.nullable()
 });
 
+export const debugLoadPhaseSchema = z.enum(['prepare', 'ramp', 'hold', 'cleanup', 'done']);
+
+/** Le temps passé par une fonctionnalité : commandes et tâches de fond, attente de la base comprise. */
+const featureTimeSchema = z.object({
+    calls: z.number().int().nonnegative(),
+    /** Millisecondes écoulées, pas du CPU. */
+    ms: z.number().nonnegative()
+});
+
+/** Un seau de temps de la montée en charge. Durées en millisecondes. */
+export const debugLoadSampleSchema = z.object({
+    /** Secondes depuis le début de la montée, à la fin du seau. */
+    t: z.number().nonnegative(),
+    /** Utilisateurs simulés connectés à la fin du seau. */
+    users: z.number().int().nonnegative(),
+    /** Toutes les sockets du serveur, vrais navigateurs compris. */
+    sockets: z.number().int().nonnegative(),
+    commands: z.number().int().nonnegative(),
+    /** Refus du serveur (droit, quota, validation) : il a répondu. */
+    refused: z.number().int().nonnegative(),
+    /** Échecs internes, délais dépassés, sockets perdues. */
+    errors: z.number().int().nonnegative(),
+    p50: z.number().nonnegative().nullable(),
+    p95: z.number().nonnegative().nullable(),
+    max: z.number().nonnegative().nullable(),
+    /** Utilisateurs arrivés pendant le seau. */
+    arrivals: z.number().int().nonnegative(),
+    cpuPct: z.number(),
+    loopP99: z.number(),
+    rssMb: z.number(),
+    /** Par clé de fonctionnalité (voir `features` du rapport), toutes sources confondues. */
+    features: z.record(z.string(), featureTimeSchema)
+});
+
+export const debugLoadFeatureSchema = featureTimeSchema.extend({
+    key: z.string(),
+    label: z.string()
+});
+
+/** Le moment d'un seuil : secondes depuis le début, et utilisateurs connectés alors. */
+const loadMarkSchema = z.object({
+    t: z.number().nonnegative(),
+    users: z.number().int().nonnegative()
+});
+
+export const debugLoadReportSchema = z.object({
+    kind: z.literal('load'),
+    settings: z.object({
+        users: z.number().int().positive(),
+        durationMin: z.number().int().positive()
+    }),
+    phase: debugLoadPhaseSchema,
+    bucketS: z.number().int().positive(),
+    /** Les utilisateurs écrivent aussi (des notes) ; `false` sans le module Notes. */
+    writes: z.boolean(),
+    samples: z.array(debugLoadSampleSchema),
+    /** Les totaux de l'essai, du plus occupé au moins occupé. */
+    features: z.array(debugLoadFeatureSchema),
+    /** L'arrivée d'un utilisateur : connexion, session, socket et accueil. */
+    arrivals: z.object({
+        n: z.number().int().nonnegative(),
+        failed: z.number().int().nonnegative(),
+        p50: z.number().nonnegative().nullable(),
+        p95: z.number().nonnegative().nullable()
+    }),
+    /** Le p95 des premiers seaux, à peu d'utilisateurs : la référence des seuils. */
+    baselineP95: z.number().nonnegative().nullable(),
+    /** Le p95 a nettement dépassé la référence, deux seaux de suite. */
+    degradedAt: loadMarkSchema.nullable(),
+    /** Le garde-fou a arrêté la montée : le serveur ne suivait plus. */
+    saturatedAt: loadMarkSchema.extend({ reason: z.string() }).nullable(),
+    /** Comptes de test encore présents après le ménage final ; `null` tant qu'il n'a pas eu lieu. */
+    residueAfter: z.number().int().nonnegative().nullable()
+});
+
 export const debugRunSchema = z.object({
     id: z.number().int().positive(),
     status: debugRunStatusSchema,
@@ -97,7 +174,11 @@ export const debugRunSchema = z.object({
     startedAt: z.number().int().nonnegative(),
     finishedAt: z.number().int().nonnegative().nullable(),
     launchedBy: authorSchema.nullable(),
-    report: z.discriminatedUnion('kind', [debugE2eReportSchema, debugBenchReportSchema])
+    report: z.discriminatedUnion('kind', [
+        debugE2eReportSchema,
+        debugBenchReportSchema,
+        debugLoadReportSchema
+    ])
 });
 
 export type DebugE2eStep = z.infer<typeof debugE2eStepSchema>;
@@ -106,6 +187,10 @@ export type DebugE2eReport = z.infer<typeof debugE2eReportSchema>;
 export type DebugProbeResult = z.infer<typeof debugProbeResultSchema>;
 export type DebugBenchContext = z.infer<typeof debugBenchContextSchema>;
 export type DebugBenchReport = z.infer<typeof debugBenchReportSchema>;
+export type DebugLoadSample = z.infer<typeof debugLoadSampleSchema>;
+export type DebugLoadFeature = z.infer<typeof debugLoadFeatureSchema>;
+export type DebugLoadReport = z.infer<typeof debugLoadReportSchema>;
+export type DebugLoadPhase = z.infer<typeof debugLoadPhaseSchema>;
 export type DebugRun = z.infer<typeof debugRunSchema>;
 export type DebugRunKind = z.infer<typeof debugRunKindSchema>;
 export type DebugBenchProfile = z.infer<typeof debugBenchProfileSchema>;
@@ -211,6 +296,19 @@ export const debugPing = {
     command: 'debug.ping' as const,
     input: z.object({}),
     output: z.object({ at: z.number().int().nonnegative() })
+};
+
+/**
+ * Ajoute des utilisateurs simulés, un compte jetable chacun, jusqu'à `users`
+ * sur `durationMin` minutes, puis les supprime avec tout ce qu'ils ont créé.
+ */
+export const debugLoadStart = {
+    command: 'debug.loadStart' as const,
+    input: z.object({
+        users: z.number().int().min(10).max(500),
+        durationMin: z.number().int().min(1).max(30)
+    }),
+    output: z.object({ runId: z.number().int().positive() })
 };
 
 export const debugMailSenderKindSchema = z.enum(['server', 'workspace']);
@@ -391,6 +489,7 @@ export const debugCommands = [
     debugBenchCatalog,
     debugBenchStart,
     debugPing,
+    debugLoadStart,
     debugMailCatalog,
     debugMailPreview,
     debugMailSend,

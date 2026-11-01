@@ -454,6 +454,7 @@ export {
     SYNC_RESUME_MAX_BLOCKS,
     SYNC_RESUME_NONCES_MAX,
     SYNC_REL_PATH_MAX,
+    SYNC_SCAN_PATHS_MAX,
     SYNC_STORAGE_PATH_MAX,
     syncDirectionSchema,
     syncEntryKindSchema,

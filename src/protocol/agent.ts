@@ -7,6 +7,7 @@ import {
     SYNC_RESUME_NONCES_MAX,
     SYNC_INDEX_BATCH_MAX,
     SYNC_REL_PATH_MAX,
+    SYNC_SCAN_PATHS_MAX,
     SYNC_STORAGE_PATH_MAX,
     syncEntryKindSchema,
     syncSkipReasonSchema,
@@ -1116,11 +1117,20 @@ export const agentSyncScanPayloadSchema = z.object({
      */
     mode: syncScanModeSchema.default('full'),
     /**
-     * L'empreinte de la baseline que le serveur tient pour cet appareil. Un
-     * parcours complet qui la retrouve répond sans ses entrées (`delta: true`,
-     * rien de changé) : le serveur n'a alors rien à recharger.
+     * The fingerprint of the baseline the server holds for this device. A full
+     * walk that finds it again replies without its entries (`delta: true`,
+     * nothing changed): the server then has nothing to reload. With `paths`,
+     * it leaves their lines out, and the walk compares it to the fingerprint
+     * of its index outside those paths.
      */
-    expected: syncIndexFingerprintSchema.optional()
+    expected: syncIndexFingerprintSchema.optional(),
+    /**
+     * Paths whose present state the reply must give even when unchanged for
+     * the agent: an entry, `gone`, or a `skipped` line. The server sends the
+     * ones it holds in error, where its baseline may not describe the device.
+     * No fast reply while the list is not empty.
+     */
+    paths: z.array(syncRelPath).max(SYNC_SCAN_PATHS_MAX).optional()
 });
 export type AgentSyncScanPayload = z.infer<typeof agentSyncScanPayloadSchema>;
 

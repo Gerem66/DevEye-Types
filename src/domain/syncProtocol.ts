@@ -16,6 +16,12 @@ export const SYNC_CHUNK_MAX = 1_400_000;
 /** Nombre max d'entrées d'index par frame `sync.index`. */
 export const SYNC_INDEX_BATCH_MAX = 500;
 /**
+ * Paths a `sync.scan` may ask the agent to restate (`paths`): the ones the
+ * server holds in error. Past this, it asks for none, and the fingerprint that
+ * follows forces the full walk.
+ */
+export const SYNC_SCAN_PATHS_MAX = 2_000;
+/**
  * Blocks of an encrypted partial a resumed push can build on (1 MiB each). The
  * server keeps no more: their nonces must fit in one `sync.push` frame, and
  * past 32 GiB a broken upload restarts from there rather than from zero.
@@ -124,6 +130,12 @@ export const cloudSyncShareStateSchema = z.object({
     /** Précision facultative (ex. nom de l'appareil hors ligne ou en erreur). */
     detail: z.string().max(200).nullable(),
     /** Volumétrie fraîche : l'en-tête de l'UI se met à jour sans re-fetch. */
-    stats: cloudSyncShareStatsSchema
+    stats: cloudSyncShareStatsSchema,
+    /**
+     * The open problems already seen before the session in progress (all of
+     * them outside one): what the card shows during a synchronization, which
+     * hides only what the current pass may still settle.
+     */
+    settledProblems: z.number().int().nonnegative()
 });
 export type CloudSyncShareState = z.infer<typeof cloudSyncShareStateSchema>;

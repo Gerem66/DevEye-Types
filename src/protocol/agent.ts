@@ -1103,7 +1103,15 @@ export const syncShareAssignmentSchema = z.object({
     encryption: z
         .object({ wrappedKey: z.string().max(256).nullable() })
         .nullable()
-        .default(null)
+        .default(null),
+    /**
+     * The server may write into the share's sensitive folders: `.ssh`, the
+     * login and service startup folders, a shell startup file in a home
+     * folder. Off, the agent refuses every such write (what the share holds
+     * there still goes up). On, a machine whose local policy refuses the
+     * terminal still refuses them: such a write would give one.
+     */
+    sensitiveWrites: z.boolean().default(false)
 });
 export type SyncShareAssignment = z.infer<typeof syncShareAssignmentSchema>;
 

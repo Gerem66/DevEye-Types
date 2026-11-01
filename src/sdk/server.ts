@@ -32,6 +32,7 @@ import type {
     AgentSyncDeletePayload,
     AgentSyncIndexPayload,
     AgentSyncMovePayload,
+    AgentSyncRenamePayload,
     AgentSyncOpResultPayload,
     AgentSyncPushPayload,
     AgentSyncPushAckPayload,
@@ -728,6 +729,7 @@ export interface AgentsFacade {
     requestSyncApplyLocal(deviceId: string, payload: AgentSyncApplyLocalPayload): boolean;
     requestSyncMove(deviceId: string, payload: AgentSyncMovePayload): boolean;
     requestSyncDelete(deviceId: string, payload: AgentSyncDeletePayload): boolean;
+    requestSyncRename(deviceId: string, payload: AgentSyncRenamePayload): boolean;
     /** Fan-out to the browsers subscribed to the payload's share. */
     publishSyncProgress(payload: CloudSyncProgressPush): void;
     publishSyncState(payload: CloudSyncStatePush): void;

@@ -552,13 +552,22 @@ export type AgentSyncBusyPayload = z.infer<typeof agentSyncBusyPayloadSchema>;
  * Issue d'une op locale : install atomique (`apply`), création de dossier vide
  * (`applyDir`), copie locale d'un contenu déjà présent (`applyLocal`), amorce
  * de download avec offset de reprise (`applyReady`), corbeille (`delete`),
- * upload (`push`).
+ * upload (`push`), renommage d'un nom non portable (`rename`).
  */
 export const AGENT_SYNC_OP_RESULT = 'sync.opResult' as const;
 export const agentSyncOpResultPayloadSchema = z.object({
     deviceId: z.uuid(),
     opId: syncOpId,
-    op: z.enum(['apply', 'applyDir', 'applyLocal', 'applyReady', 'delete', 'move', 'push']),
+    op: z.enum([
+        'apply',
+        'applyDir',
+        'applyLocal',
+        'applyReady',
+        'delete',
+        'move',
+        'push',
+        'rename'
+    ]),
     ok: z.boolean(),
     /** `applyReady` seulement : octets de clair déjà détenus pour ce hash. */
     resumeFrom: z.number().int().nonnegative().optional(),
@@ -1315,6 +1324,22 @@ export const agentSyncDeletePayloadSchema = z.object({
 });
 export type AgentSyncDeletePayload = z.infer<typeof agentSyncDeletePayloadSchema>;
 
+/**
+ * Renames, on the device, a path whose name keeps it out of the share (one
+ * Windows cannot hold): the agent renames it in place, in the same folder,
+ * and replies `sync.opResult` (`op: 'rename'`); the next scan sees it under
+ * its new name. `fromRelPath` is, by definition, not portable: the agent only
+ * requires it to stay inside the share. `relPath` must be portable.
+ */
+export const AGENT_SYNC_RENAME = 'sync.rename' as const;
+export const agentSyncRenamePayloadSchema = z.object({
+    opId: syncOpId,
+    shareId: z.number().int().positive(),
+    fromRelPath: syncRelPath,
+    relPath: syncRelPath
+});
+export type AgentSyncRenamePayload = z.infer<typeof agentSyncRenamePayloadSchema>;
+
 /** Collection config the server pushes to an agent (on connect + on change). */
 export const agentConfigPayloadSchema = z.object({
     /**
@@ -1548,6 +1573,7 @@ export const SIGNED_AGENT_COMMANDS: ReadonlySet<string> = new Set([
     AGENT_SYNC_APPLY_LOCAL,
     AGENT_SYNC_MOVE,
     AGENT_SYNC_DELETE,
+    AGENT_SYNC_RENAME,
     AGENT_SERVICE,
     AGENT_POWER,
     AGENT_DESTROY,

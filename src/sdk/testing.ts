@@ -318,6 +318,7 @@ function recordingAgents(recorded: RecordedCalls, docker: TestAgents = {}): DevE
         requestSyncApplyLocal: req('requestSyncApplyLocal'),
         requestSyncMove: req('requestSyncMove'),
         requestSyncDelete: req('requestSyncDelete'),
+        requestSyncRename: req('requestSyncRename'),
         publishSyncProgress: () => undefined,
         publishSyncState: () => undefined,
         requestDestroy: req('requestDestroy'),

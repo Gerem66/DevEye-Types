@@ -13,6 +13,7 @@ export const packageManagerIdSchema = z.enum([
     'flatpak',
     'snap',
     'zypper',
+    'rpm-ostree',
     'brew',
     'softwareupdate',
     'winget',
@@ -24,10 +25,9 @@ export type PackageManagerId = z.infer<typeof packageManagerIdSchema>;
 /**
  * Update tooling the agent recognises on a machine but DevEye does not drive:
  * listed without a count, never upgraded, so a device's table says what else
- * keeps it up to date (an atomic image's rpm-ostree, firmware through fwupd…).
+ * keeps it up to date (a bootc image, firmware through fwupd…).
  */
 export const unmanagedUpdaterIdSchema = z.enum([
-    'rpm-ostree',
     'bootc',
     'fwupd',
     'nix',

@@ -846,6 +846,16 @@ declare module 'deveye-sdk-client' {
             input: z.input<Extract<M['commands'][number], { command: N }>['input'] & ZodType>,
             opts?: SendOptions
         ): Promise<z.output<Extract<M['commands'][number], { command: N }>['output'] & ZodType>>;
+        /**
+         * Fire and forget: no reply, no timeout, no trace entry. For what is
+         * re-sent several times a second (a pointer position); silently dropped
+         * while the socket is closed or backed up. The server still validates
+         * and checks access as for `send`.
+         */
+        post<N extends M['commands'][number]['command']>(
+            name: N,
+            input: z.input<Extract<M['commands'][number], { command: N }>['input'] & ZodType>
+        ): void;
     };
 
     // ── Password-based encryption (secrecy) ────────────────────────────────
@@ -1206,6 +1216,14 @@ declare module 'deveye-sdk-client' {
      * (a table explorer in expanded mode).
      */
     export function useRequestPopupWidth(px: number | null): void;
+    /**
+     * Turns DevEye's live cursors off while the view is mounted and `active`
+     * is true: yours stops being sent, the peers' stop being drawn, and the
+     * cursor bubble goes with them. For a pannable, zoomable canvas where a
+     * point relative to the popup means nothing and that draws its own
+     * pointers. The roster, outlines and typing indicator stay.
+     */
+    export function useSuppressLiveCursors(active?: boolean): void;
 
     // Change events re-exported for convenience in handlers.
     export type InputChange = ChangeEvent<HTMLInputElement>;

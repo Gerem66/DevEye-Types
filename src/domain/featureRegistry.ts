@@ -362,6 +362,17 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         hasItems: true,
         itemNoun: 'lien',
         shareTier: 'open'
+    },
+    {
+        id: 'whiteboard',
+        label: 'Tableau blanc',
+        description:
+            'Lecture : les tableaux, et suivre en direct qui y dessine. Écriture : créer un tableau, dessiner, y coller des images, le renommer, le supprimer.',
+        icon: 'whiteboard',
+        notifies: false,
+        hasItems: true,
+        itemNoun: 'tableau',
+        shareTier: 'open'
     }
 ];
 

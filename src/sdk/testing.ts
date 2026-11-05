@@ -139,8 +139,13 @@ export interface RecordedCalls {
     }[];
     /** Instants pinned through `telemetry.pinInstant`. */
     pinnedInstants: { deviceId: string; ts: number }[];
-    /** Frames pushed through `live.publish`, in order. */
-    livePublishes: { workspaceId: number; event: string; payload: unknown }[];
+    /** Frames pushed through `live.publish` and `live.publishTo` (with its `userIds`), in order. */
+    livePublishes: {
+        workspaceId: number;
+        event: string;
+        payload: unknown;
+        userIds?: readonly number[];
+    }[];
     /** Accounts beaten through `live.accountChanged`, in order. */
     accountChanges: number[];
     /** How many times `live.pendingChanged` was called. */
@@ -938,6 +943,9 @@ export function createTestServiceDeps<Repo = undefined>(
             },
             publish(workspaceId, event, payload) {
                 recorded.livePublishes.push({ workspaceId, event, payload });
+            },
+            publishTo(workspaceId, userIds, event, payload) {
+                recorded.livePublishes.push({ workspaceId, event, payload, userIds: [...userIds] });
             },
             accountChanged(userId) {
                 recorded.accountChanges.push(userId);

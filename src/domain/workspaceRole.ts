@@ -113,7 +113,13 @@ export const workspaceFeatureIdSchema = z.enum([
      * Liens courts. `read` = voir les liens et leurs statistiques, `write` =
      * créer un lien, changer sa destination et ses réglages, le supprimer.
      */
-    'shortlinks'
+    'shortlinks',
+    /**
+     * Tableau blanc. `read` = voir les tableaux et suivre en direct qui y
+     * dessine, `write` = créer un tableau, dessiner, y coller des images, le
+     * renommer, le supprimer.
+     */
+    'whiteboard'
 ]);
 
 export type WorkspaceFeatureId = z.infer<typeof workspaceFeatureIdSchema>;

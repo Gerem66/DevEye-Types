@@ -1119,6 +1119,18 @@ export interface SdkLive {
      * is never attached, so it can never be mistaken for a reply.
      */
     publish(workspaceId: number, event: string, payload: unknown): void;
+    /**
+     * {@link SdkLive.publish}, narrowed to the connections of these accounts:
+     * the participants of something open, when the rest of the room may not
+     * see it (an item its role hides from a member). An empty list sends
+     * nothing.
+     */
+    publishTo(
+        workspaceId: number,
+        userIds: readonly number[],
+        event: string,
+        payload: unknown
+    ): void;
     /** {@link SdkContextLive.accountChanged}, from a service (a webhook, a ticker). */
     accountChanged(userId: number): void;
     /** {@link SdkContextLive.pendingChanged}, from a service or a public route (a report just filed). */

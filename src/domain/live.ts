@@ -76,21 +76,34 @@ export const liveCursorKindSchema = z.enum([
 export type LiveCursorKind = z.infer<typeof liveCursorKindSchema>;
 
 /**
- * Position du curseur dans la surface de la vue. Unités mixtes à dessein :
+ * Position du curseur dans la surface de la vue. Celle de la popup, par défaut,
+ * a des unités mixtes à dessein :
  *  - `x` est relatif (0..1) à la largeur de la surface, bornée à 1240 px : seule
  *    une fraction reste juste quand les deux fenêtres divergent ;
  *  - `y` est en pixels absolus du contenu, défilement compris : le contenu est
  *    le même des deux côtés, alors qu'une fraction de la hauteur se décalerait
  *    dès qu'une liste est chargée plus loin d'un côté.
- * Les bornes de `x` dépassent [0, 1] : le pointeur vit aussi dans les marges,
- * et l'écrêter ferait disparaître le curseur d'un pair sur la même page.
+ * Une vue qui déclare sa propre surface (un canevas qu'on déplace et qu'on
+ * zoome) donne les deux dans ses unités à elle. Les bornes n'écartent que
+ * l'absurde : un pointeur vit aussi dans les marges, et l'écrêter ferait
+ * disparaître le curseur d'un pair sur la même page.
  */
 export const liveCursorSchema = z.object({
-    x: z.number().min(-10).max(10),
-    y: z.number().min(-100_000).max(100_000),
+    x: z.number().min(-1_000_000).max(1_000_000),
+    y: z.number().min(-1_000_000).max(1_000_000),
     kind: liveCursorKindSchema
 });
 export type LiveCursor = z.infer<typeof liveCursorSchema>;
+
+/**
+ * Un canal de curseurs, `feature:clé` : ceux qui partagent la surface d'une vue
+ * plutôt que celle de la popup, d'où que vienne leur connexion. Seul le serveur
+ * d'un module y assied une connexion (`ctx.live.joinCursors`).
+ */
+export const liveCursorChannelSchema = z
+    .string()
+    .max(96)
+    .regex(/^[a-z][a-z0-9-]*:[A-Za-z0-9_.-]{1,64}$/, 'Canal attendu sous la forme feature:clé');
 
 /**
  * Un pair tel qu'il est diffusé. Ni pseudo ni avatar : `users.avatar` est une

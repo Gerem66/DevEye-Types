@@ -28,6 +28,7 @@ declare module 'deveye-sdk-client' {
         FeatureAccess,
         FeatureDomain,
         FeatureId,
+        LiveCursor,
         MinimalUser,
         PathExclusionKind,
         RequestProgress,
@@ -1217,13 +1218,38 @@ declare module 'deveye-sdk-client' {
      */
     export function useRequestPopupWidth(px: number | null): void;
     /**
-     * Turns DevEye's live cursors off while the view is mounted and `active`
-     * is true: yours stops being sent, the peers' stop being drawn, and the
-     * cursor bubble goes with them. For a pannable, zoomable canvas where a
-     * point relative to the popup means nothing and that draws its own
-     * pointers. The roster, outlines and typing indicator stay.
+     * A view's own cursor surface: where DevEye's live cursors are placed,
+     * instead of the popup. For a canvas each viewer pans and zooms, where a
+     * point relative to the popup designates nothing. Your coordinates are
+     * yours (a scene's), within a million either way.
      */
-    export function useSuppressLiveCursors(active?: boolean): void;
+    export interface LiveCursorSurface {
+        /** The cursor channel your server seated this connection in (`ctx.live.joinCursors`). */
+        channel: string;
+        /** A screen point (client pixels) in your coordinates; `null` off the surface. */
+        fromScreen(clientX: number, clientY: number): { x: number; y: number } | null;
+        /** Back to client pixels; `null` where the surface does not show it. */
+        toScreen(x: number, y: number): { x: number; y: number } | null;
+        /** Calls `onChange` whenever `toScreen` would answer differently (a pan, a zoom). */
+        subscribe(onChange: () => void): () => void;
+    }
+    /**
+     * Places DevEye's live cursors on `surface` while the calling view is the
+     * one open: the same cursors, cadence, glide, bubble and account switch as
+     * anywhere else, between the connections seated in `surface.channel`
+     * rather than the peers at the same path. `null` gives the popup back. Pass
+     * a stable object: a new one re-declares the surface.
+     */
+    export function useLiveCursorSurface(surface: LiveCursorSurface | null): void;
+    /**
+     * The peers' raw positions in `channel`, as they arrive (about twenty times
+     * a second), for what your view draws with them (a laser trail). DevEye
+     * draws the cursors themselves.
+     */
+    export function onLiveCursors(
+        channel: string,
+        cb: (cursors: readonly { connId: string; userId: number; cursor: LiveCursor }[]) => void
+    ): () => void;
 
     // Change events re-exported for convenience in handlers.
     export type InputChange = ChangeEvent<HTMLInputElement>;

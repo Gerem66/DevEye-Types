@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { liveCursorSchema, livePathSchema, livePeerSchema, liveTopicSchema } from '../domain/live';
+import {
+    liveCursorChannelSchema,
+    liveCursorSchema,
+    livePathSchema,
+    livePeerSchema,
+    liveTopicSchema
+} from '../domain/live';
+import { userColorSchema } from '../domain/user';
 
 /**
  * Déclare où je suis, et récupère l'état de la salle. L'espace n'est pas dans
@@ -25,11 +32,16 @@ export const liveCommands = [liveHere] as const;
 export const LIVE_CURSOR_COMMAND = 'live.cursor' as const;
 
 /**
- * Ce que porte une trame de curseur : des coordonnées, rien d'autre. Ni chemin
- * ni espace : la voie rapide court-circuite l'autorisation, le lieu vient du
- * dernier `live.here`. `cursor: null` = le pointeur a quitté la surface.
+ * Ce que porte une trame de curseur : des coordonnées et leur surface, rien
+ * d'autre. Ni chemin ni espace : la voie rapide court-circuite l'autorisation,
+ * le lieu vient du dernier `live.here`. `cursor: null` = le pointeur a quitté la
+ * surface. `channel` nomme la surface d'une vue, `null` celle de la popup : une
+ * trame qui nomme un canal où la connexion n'est pas assise est ignorée.
  */
-export const liveCursorFrameSchema = z.object({ cursor: liveCursorSchema.nullable() });
+export const liveCursorFrameSchema = z.object({
+    cursor: liveCursorSchema.nullable(),
+    channel: liveCursorChannelSchema.nullable()
+});
 export type LiveCursorFrame = z.infer<typeof liveCursorFrameSchema>;
 
 /**
@@ -111,14 +123,25 @@ export const livePeersPushSchema = z.object({
 });
 export type LivePeersPush = z.infer<typeof livePeersPushSchema>;
 
-/** Curseurs des pairs situés au **même chemin exactement** que le destinataire. */
+/**
+ * Curseurs des pairs qui partagent la surface du destinataire : ceux du **même
+ * chemin exactement**, ou ceux du même canal, d'où qu'ils viennent.
+ */
 export const LIVE_CURSORS_EVENT = 'live.cursors' as const;
 export const liveCursorsPushSchema = z.object({
     workspaceId: z.number().int().positive(),
+    /** La surface de ces positions : le canal, `null` pour la popup. */
+    channel: liveCursorChannelSchema.nullable(),
     cursors: z.array(
         z.object({
             connId: z.string().min(1),
             userId: z.number().int().positive(),
+            color: userColorSchema,
+            /**
+             * Le pseudo d'un pair de canal, qui peut venir d'un autre espace ;
+             * `null` sur la popup, où il se lit dans les membres de l'espace.
+             */
+            name: z.string().nullable(),
             cursor: liveCursorSchema
         })
     )

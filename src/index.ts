@@ -573,6 +573,7 @@ export type {
     ShortcutTemplate
 } from './domain/home';
 export {
+    liveCursorChannelSchema,
     liveCursorKindSchema,
     liveCursorSchema,
     livePathGate,

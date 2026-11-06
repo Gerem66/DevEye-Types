@@ -1146,6 +1146,24 @@ export interface SdkContextLive {
     /** {@link SdkLive.publish}, in the workspace of the call. */
     publish(event: string, payload: unknown): void;
     /**
+     * Seats the caller's connection in YOUR cursor channel `key` (capability
+     * `'live.publish'`): for a view with its own cursor surface (a canvas
+     * each viewer pans and zooms), whose participants may sit in different
+     * workspaces (a projected item). While the client declares that surface
+     * (`useLiveCursorSurface`), DevEye's cursors and bubble go between the
+     * connections seated there, and only them. Check first that the caller
+     * may see the item: the host checks nothing more. The seat lasts until
+     * {@link SdkContextLive.leaveCursors}, a switch to another workspace, the
+     * loss of `read` on your feature or the socket closing.
+     *
+     * Resolves with the channel to hand the client and the caller's
+     * connection id, the one its cursor carries to the others; `null` outside
+     * a browser socket (a test), where there is nothing to seat.
+     */
+    joinCursors(key: string): Promise<{ channel: string; connId: string } | null>;
+    /** Gets the caller's connection out of the cursor channel `key`, if it sits there. */
+    leaveCursors(key: string): void;
+    /**
      * Something of this ACCOUNT changed (its plan, its subscription): its open
      * clients, in whatever workspace they sit, re-fetch the account plan and
      * your declared resources, and the host re-applies its `stock` limits

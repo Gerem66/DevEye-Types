@@ -651,6 +651,9 @@ export function createTestContext<Repo = undefined>(
             publish(event, payload) {
                 recorded.livePublishes.push({ workspaceId, event, payload });
             },
+            // No browser socket here, as in a test of the real host: nobody to seat.
+            joinCursors: () => Promise.resolve(null),
+            leaveCursors: () => undefined,
             accountChanged(userId) {
                 recorded.accountChanges.push(userId);
             },

@@ -507,7 +507,8 @@ export const PROJECT_LINKED_FEATURES: readonly FeatureId[] = [
     'audience',
     'deploy',
     'uptime',
-    'x-hosting'
+    'x-hosting',
+    'whiteboard'
 ];
 
 /** Les fonctionnalités qui savent prévenir, dans l'ordre du registre. */

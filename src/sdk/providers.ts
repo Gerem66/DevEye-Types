@@ -639,6 +639,32 @@ export interface HostingItemsProvider {
 export const HOSTING_CLIENT_PROVIDER = 'hosting.client' as const;
 
 /**
+ * Key under `FeatureService.providers` for the whiteboards the app's Projects
+ * feature links to: same shape and same reason as `UPTIME_ITEMS_PROVIDER`
+ * (`ft_projects_whiteboard_links` is Projects' table).
+ */
+export const WHITEBOARD_ITEMS_PROVIDER = 'whiteboard.items' as const;
+
+export interface WhiteboardItemsProvider {
+    /** Is this board visible from this workspace: its home, or one it is projected into? */
+    exists(boardId: number, workspaceId: number): Promise<boolean>;
+    /**
+     * The item's display name as seen from `workspaceId` (its home, or a
+     * workspace it is projected into): the provider resolves the home and its
+     * OPEN cipher itself. `null` when it is gone or unreadable.
+     */
+    labelOf(boardId: number, workspaceId: number): Promise<string | null>;
+}
+
+/**
+ * Key under `FeatureClient.providers` for the Whiteboard pieces the app's
+ * Projects screens compose: the list of the workspace's boards, a linked
+ * board shown inside a project's tab, and the feature's own board dialog.
+ * The contract types live in `@deveye/types/sdk/client`.
+ */
+export const WHITEBOARD_CLIENT_PROVIDER = 'whiteboard.client' as const;
+
+/**
  * Key of what Projects knows about the items of OTHER features: the projects
  * of the workspace that link them (a module's list shows how many projects use
  * each item, its detail lists them by title), without reading Projects'

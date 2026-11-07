@@ -477,6 +477,43 @@ export interface HostingClientProvider {
     }>;
 }
 
+/** A board of the workspace, as the Whiteboard client provider lists it for a project's picker. */
+export interface WhiteboardLinkedCandidate {
+    id: number;
+    name: string;
+    /** Projected here from another workspace. */
+    foreign?: boolean;
+}
+
+/**
+ * What the Whiteboard module offers the host's screens under
+ * `WHITEBOARD_CLIENT_PROVIDER`: the workspace's boards, a linked board shown
+ * inside a project's tab, and the feature's own board dialog.
+ */
+export interface WhiteboardClientProvider {
+    /** The workspace's boards, in the module's own order. */
+    listBoards(): Promise<readonly WhiteboardLinkedCandidate[]>;
+    /**
+     * The given boards, summarised for a project's dashboard tile, in ONE
+     * round trip. An id the caller cannot read, or that is gone, comes back
+     * `unavailable`, never as a throw.
+     */
+    summarize(boardIds: readonly number[]): Promise<readonly SdkTileSummary[]>;
+    /**
+     * A board linked to a project: its title, its preview, when it last
+     * changed, and the way into the editor. Loads itself, follows the
+     * feature's invalidations, and renders the host's "unlink" as its
+     * trailing action.
+     */
+    LinkedBoard: ComponentType<{ boardId: number; canWrite: boolean; onUnlink: () => void }>;
+    /** The feature's board form, to create a board from a project. */
+    BoardDialog: ComponentType<{
+        open: boolean;
+        onClose: () => void;
+        onSaved: (boardId: number) => void;
+    }>;
+}
+
 /**
  * What the Invoicing module offers other screens under
  * `INVOICING_CLIENT_PROVIDER`. It sends Invoicing's own command under the

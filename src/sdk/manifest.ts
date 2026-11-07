@@ -258,7 +258,7 @@ export interface FeatureLink {
 }
 
 /** Hard cap on `links`: the "About" card stays a card. */
-export const MAX_FEATURE_LINKS = 6;
+export const MAX_FEATURE_LINKS = 7;
 
 export interface FeatureManifest<Id extends FeatureId = FeatureId> {
     /** External modules: `x-<slug>`. Native features keep their enum id. */

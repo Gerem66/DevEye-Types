@@ -93,6 +93,11 @@ export interface FeatureClient {
      * Panels for the manifest's settings tabs that need one: `'general'`,
      * `'sources'`, `'encryption'`, and any custom tab id. Generic tabs
      * (`'notifications'`, `'permissions'`) need no panel.
+     *
+     * `'sharing'` is not a tab of yours: the shell draws its own sharing tab
+     * for an item, and a panel under this id is appended below it, for a
+     * gesture that extends sharing (Devices: enrolling the machine on a
+     * remote instance too).
      */
     settingsPanels?: Readonly<Record<string, ComponentType<SettingsPanelProps>>>;
     /**

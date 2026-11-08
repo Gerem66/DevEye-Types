@@ -848,6 +848,20 @@ declare module 'deveye-sdk-client' {
             opts?: SendOptions
         ): Promise<z.output<Extract<M['commands'][number], { command: N }>['output'] & ZodType>>;
         /**
+         * The same command, to a given workspace of one of the account's
+         * instances: `instanceId: null` for this one, else a remote instance
+         * the account is signed in to (`useRemoteTargets`). The targeted
+         * server judges the rights, and the application-code prompt, when it
+         * asks for one, is that account's. Rejects with `closed` when no
+         * session is open there.
+         */
+        sendTo<N extends M['commands'][number]['command']>(
+            target: { instanceId: number | null; workspaceId: number },
+            name: N,
+            input: z.input<Extract<M['commands'][number], { command: N }>['input'] & ZodType>,
+            opts?: Omit<SendOptions, 'workspaceId'>
+        ): Promise<z.output<Extract<M['commands'][number], { command: N }>['output'] & ZodType>>;
+        /**
          * Fire and forget: no reply, no timeout, no trace entry. For what is
          * re-sent several times a second (a pointer position); silently dropped
          * while the socket is closed or backed up. The server still validates
@@ -1148,6 +1162,38 @@ declare module 'deveye-sdk-client' {
         name: string;
         features: readonly string[];
     }>;
+    /** A remote instance of the account (another DevEye server it signs in to). */
+    export interface RemoteInstanceSummary {
+        id: number;
+        label: string;
+        origin: string;
+        /** Why nothing can be sent there right now; `null` when it can. */
+        unavailable: string | null;
+    }
+    /** A workspace of a remote instance: the `{ instanceId, workspaceId }` target of `sendTo`. */
+    export interface RemoteWorkspaceTarget {
+        /** Unique across the workspaces of every instance. */
+        key: string;
+        instanceId: number;
+        instanceLabel: string;
+        instanceOrigin: string;
+        workspaceId: number;
+        workspaceName: string;
+        /** Its instance's. */
+        unavailable: string | null;
+    }
+    export interface RemoteTargets {
+        instances: readonly RemoteInstanceSummary[];
+        workspaces: readonly RemoteWorkspaceTarget[];
+    }
+    /**
+     * The account's remote instances and their workspaces, probed while the
+     * component is mounted. The two servers never talk to each other: this
+     * browser carries a `sendTo` command to the instance chosen, on the
+     * socket it holds there. Signed out of one, its workspaces are those last
+     * seen, named but not targetable.
+     */
+    export function useRemoteTargets(): RemoteTargets;
     /**
      * The domains of a feature whose manifest declares `domains`, in the
      * active workspace, kept live. For a form that designates one (filter on

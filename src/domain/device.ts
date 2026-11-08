@@ -96,7 +96,22 @@ export const deviceSchema = z.object({
      * during deletion, so the UI can surface it and the deletion is aborted.
      * Null when there's no pending error.
      */
-    deleteError: z.string().nullable().default(null)
+    deleteError: z.string().nullable().default(null),
+    /**
+     * The agent was paused (from the app, `deveye-agent pause` or the tray
+     * icon): it monitors nothing and takes no order until resumed. `until` is
+     * the unix second it resumes on its own, null for a pause that waits to be
+     * resumed; `reachable` says its control session is connected, so a resume
+     * ordered now reaches it. Null when the agent is not paused.
+     */
+    pause: z
+        .object({
+            since: z.number().int().nonnegative(),
+            until: z.number().int().nonnegative().nullable(),
+            reachable: z.boolean()
+        })
+        .nullable()
+        .default(null)
 });
 
 export type Device = z.infer<typeof deviceSchema>;
@@ -148,6 +163,10 @@ export interface DeviceRow {
     status_before_delete: string | null;
     /** Last self-destruct failure message (deletion aborted); null otherwise. */
     delete_error: string | null;
+    /** Unix second the agent reported itself paused; null when it is not. */
+    paused_at: number | null;
+    /** Unix second the pause ends on its own; null while paused without a deadline. */
+    paused_until: number | null;
     /** Rang chez lui ; celui des espaces qui ne font que le voir vit dans `item_shares`. */
     sort_order: number;
 }

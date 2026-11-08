@@ -230,7 +230,8 @@ function recordingDevices(
                 : Promise.resolve(devices.find((d) => d.id === id) ?? testDevice({ id })),
         assertControl: () => Promise.resolve(),
         list: () => Promise.resolve([...devices]),
-        isOnline: (id) => devices.find((d) => d.id === id)?.online ?? true
+        isOnline: (id) => devices.find((d) => d.id === id)?.online ?? true,
+        isPaused: () => false
     };
 }
 
@@ -300,6 +301,7 @@ function recordingAgents(recorded: RecordedCalls, docker: TestAgents = {}): DevE
     };
     return {
         isOnline: () => true,
+        isPaused: () => false,
         requestScan: req('requestScan'),
         pushConfig: (deviceId) => Promise.resolve(req('pushConfig')(deviceId)),
         // The app's rule with the harness's plan: paid unless `paid: false`.
@@ -925,14 +927,19 @@ export function createTestServiceDeps<Repo = undefined>(
                 });
             }
         },
-        devicesFor: () => ({ list: devices.list, isOnline: devices.isOnline }),
+        devicesFor: () => ({
+            list: devices.list,
+            isOnline: devices.isOnline,
+            isPaused: devices.isPaused
+        }),
         membersFor: (workspaceId) => ({
             list: () => Promise.resolve(overrides.members?.[workspaceId] ?? [])
         }),
         devices: {
             find: (id) =>
                 Promise.resolve((overrides.devices ?? []).find((d) => d.id === id) ?? null),
-            isOnline: devices.isOnline
+            isOnline: devices.isOnline,
+            isPaused: devices.isPaused
         },
         telemetry: recordingTelemetry(recorded, overrides.snapshots ?? []),
         geo: {

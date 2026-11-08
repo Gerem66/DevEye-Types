@@ -419,6 +419,8 @@ export interface DevEyeFacade {
          */
         list(): Promise<readonly SdkDevice[]>;
         isOnline(deviceId: string): boolean;
+        /** The agent is paused and its control session is connected: offline for every purpose but a resume. */
+        isPaused(deviceId: string): boolean;
     };
     /** Requires capability `'telemetry.read'` (native-id modules only). */
     telemetry: SdkTelemetry;
@@ -679,6 +681,8 @@ export interface SdkWorkspaceSummary {
  */
 export interface AgentsFacade {
     isOnline(deviceId: string): boolean;
+    /** The agent is paused and its control session is connected (never online at the same time). */
+    isPaused(deviceId: string): boolean;
     /**
      * The two orders a device's lifecycle gives the hub. `requestDestroy`
      * asks the agent to uninstall itself (deletion path); `disconnectAgent`
@@ -1183,6 +1187,8 @@ export interface SdkFleetDevices {
     /** One device by id, whatever its workspace, or null. */
     find(deviceId: string): Promise<SdkDevice | null>;
     isOnline(deviceId: string): boolean;
+    /** The agent is paused and its control session is connected: offline for every purpose but a resume. */
+    isPaused(deviceId: string): boolean;
 }
 
 /**

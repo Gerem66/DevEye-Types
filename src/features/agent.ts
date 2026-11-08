@@ -62,11 +62,11 @@ export const agentPower = {
 };
 
 /**
- * Stop or cleanly restart the agent process on the device (not the machine).
- * `stop`: a supervised agent is relaunched by its manager, a standalone one
- * stays offline until relaunched on the machine. `restart`: exit-and-relaunch.
- * Needs `devices: write`; the agent must be online. Fire-and-forget: the outcome
- * is observed through presence.
+ * Act on the agent process of a device (not the machine): `restart`
+ * (exit-and-relaunch), `pause` (monitor nothing and take no order until
+ * resumed), `resume`. Needs `devices: write`; the agent must be online, or
+ * paused and reachable for `resume`. Fire-and-forget: the outcome is observed
+ * through presence and the device's `pause` field.
  */
 export const agentLifecycle = {
     command: 'agent.lifecycle' as const,

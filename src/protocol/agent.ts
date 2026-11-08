@@ -818,6 +818,16 @@ export type AgentTokenRotatePayload = z.infer<typeof agentTokenRotatePayloadSche
  * `CLOSE_PENDING_APPROVAL` in the agent's `runner.rs`.
  */
 export const AGENT_CLOSE_PENDING_APPROVAL = 4001;
+/**
+ * Request headers of an agent connecting *paused* (`agent.lifecycle pause`,
+ * `deveye-agent pause`, or the tray icon): `x-deveye-paused: 1`, and the unix
+ * second the pause ends in `x-deveye-paused-until` when it has one. Such a
+ * session is control only: the server keeps it out of the online fleet, pushes
+ * it no work, and only `resume`, `restart`, a token rotation or a destroy
+ * reach it.
+ */
+export const AGENT_PAUSED_HEADER = 'x-deveye-paused';
+export const AGENT_PAUSED_UNTIL_HEADER = 'x-deveye-paused-until';
 /** Tell the agent to self-destruct (wipe its local config + binary) and exit. */
 export const AGENT_DESTROY = 'agent.destroy' as const;
 /** Tell the agent to download, verify and swap in a newer signed binary. */
@@ -840,17 +850,19 @@ export const agentUpdatePayloadSchema = z.object({
 export type AgentUpdatePayload = z.infer<typeof agentUpdatePayloadSchema>;
 
 /**
- * Ask the agent to stop or cleanly restart its own *process* (not the machine):
- * - `stop`    exit now. Supervised (autostart service) → the manager relaunches
- *   it; standalone → the device stays offline until a manual relaunch.
+ * Act on the agent's own *process* (not the machine):
  * - `restart` exit and come back: the manager relaunches a supervised agent, a
  *   standalone one respawns itself first.
- * Fire-and-forget: no reply frame (the process exits) — the outcome is observed
- * through presence (offline, then online again for a restart).
+ * - `pause`   stop monitoring and obeying until resumed: the agent closes its
+ *   working session and reconnects paused (see `AGENT_PAUSED_HEADER`). The
+ *   pause survives a restart of the agent and of the machine.
+ * - `resume`  end the pause; only a paused agent takes it.
+ * Fire-and-forget: no reply frame. The outcome is observed through presence
+ * (`restart`) or the device's `pause` field.
  */
 export const AGENT_LIFECYCLE = 'agent.lifecycle' as const;
 
-export const agentLifecycleActionSchema = z.enum(['stop', 'restart']);
+export const agentLifecycleActionSchema = z.enum(['restart', 'pause', 'resume']);
 export type AgentLifecycleAction = z.infer<typeof agentLifecycleActionSchema>;
 
 export const agentLifecyclePayloadSchema = z.object({ action: agentLifecycleActionSchema });

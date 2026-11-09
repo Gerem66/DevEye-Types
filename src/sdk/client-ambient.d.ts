@@ -300,6 +300,8 @@ declare module 'deveye-sdk-client' {
         step?: number;
         label: string;
         valueLabel?: string;
+        /** A number field in place of `valueLabel`: the exact value is typed, within the same bounds and step. */
+        editable?: boolean;
         marks?: readonly string[];
         indicator?: number;
         hint?: string;

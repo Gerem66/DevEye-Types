@@ -220,6 +220,7 @@ export const TOPIC_FEATURE: Record<NativeLiveTopic, WorkspaceFeatureId | null> =
     cve: 'cve',
     mailserver: 'mailserver',
     convert: 'convert',
+    pdf: 'pdf',
     invoicing: 'invoicing',
     shortlinks: 'shortlinks',
     whiteboard: 'whiteboard',

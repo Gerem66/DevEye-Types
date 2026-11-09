@@ -331,6 +331,16 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         shareTier: 'never'
     },
     {
+        id: 'pdf',
+        label: 'PDF',
+        description:
+            'Fusionner, trier, signer, annoter, remplir et protéger des PDF dans le navigateur, et les signatures gardées sur le compte. Rien ne passe par le serveur.',
+        icon: 'pdf',
+        notifies: false,
+        hasItems: false,
+        shareTier: 'never'
+    },
+    {
         id: 'invoicing',
         label: 'Facturation',
         description:

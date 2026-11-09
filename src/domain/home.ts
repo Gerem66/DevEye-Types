@@ -40,6 +40,7 @@ export const nativeHomeFeatureIdSchema = z.enum([
     'cve',
     'mailserver',
     'convert',
+    'pdf',
     'invoicing',
     'shortlinks',
     'whiteboard'

@@ -103,6 +103,12 @@ export const workspaceFeatureIdSchema = z.enum([
      */
     'convert',
     /**
+     * PDF. `read` = l'atelier, qui travaille dans le navigateur, et ses
+     * signatures gardées sur le compte. Rien ne passe par le serveur, il n'y a
+     * rien à écrire.
+     */
+    'pdf',
+    /**
      * Facturation. `read` = consulter les clients, les devis, les factures et
      * les règlements. `write` = tenir le carnet, rédiger et corriger un
      * brouillon, enregistrer un règlement. Émettre un document et changer

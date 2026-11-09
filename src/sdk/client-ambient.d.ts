@@ -1259,6 +1259,19 @@ declare module 'deveye-sdk-client' {
      * is the host's; a missing item is ignored after a short grace.
      */
     export function openFeature(feature: string, itemId?: number | string): void;
+    /** A file one feature hands to another, with what the recipient should do with it, in its own terms. */
+    export interface HandedFile {
+        file: File;
+        purpose: string | null;
+    }
+    /**
+     * Hands a file to another feature and opens it: the recipient picks it up
+     * through `useHandedFile`. The parcel waits in memory, is taken once, and
+     * never outlives the page.
+     */
+    export function handFileTo(feature: string, file: File, purpose?: string | null): void;
+    /** Picks up the file handed to `feature`: the one waiting at mount, and those arriving while the view is open. */
+    export function useHandedFile(feature: string, onFile: (parcel: HandedFile) => void): void;
     /**
      * Ask the feature popup for a wider frame (px) while the calling
      * component is mounted, `null` to ask for nothing. Several requests

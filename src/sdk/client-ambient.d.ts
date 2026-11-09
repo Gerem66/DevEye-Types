@@ -300,7 +300,11 @@ declare module 'deveye-sdk-client' {
         step?: number;
         label: string;
         valueLabel?: string;
-        /** A number field in place of `valueLabel`: the exact value is typed, within the same bounds and step. */
+        /**
+         * A number field in place of `valueLabel`: the exact value is typed, at
+         * the same step. The slider's bounds are advice only: the field goes
+         * from 0 to far beyond.
+         */
         editable?: boolean;
         marks?: readonly string[];
         indicator?: number;

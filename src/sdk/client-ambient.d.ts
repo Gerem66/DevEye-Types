@@ -690,8 +690,11 @@ declare module 'deveye-sdk-client' {
         file: File,
         onProgress: (ratio: number) => void
     ): UploadHandle;
-    /** Downloads a URL served as an attachment, without leaving the page. */
-    export function saveFrom(url: string): void;
+    /**
+     * Downloads a URL served as an attachment, without leaving the page.
+     * `name` names the file: a `blob:` URL made in the page has none.
+     */
+    export function saveFrom(url: string, name?: string): void;
     /** Opens the system picker; `folder` takes a whole folder, relative paths included. Cancelled: empty. */
     export function pickFiles(opts?: {
         multiple?: boolean;

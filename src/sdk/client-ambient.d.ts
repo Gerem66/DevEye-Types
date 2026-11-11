@@ -1171,19 +1171,24 @@ declare module 'deveye-sdk-client' {
         name: string;
         features: readonly string[];
     }>;
-    /** A remote instance of the account (another DevEye server it signs in to). */
+    /**
+     * An instance of the account other than the active workspace's: a remote
+     * one (another DevEye server it signs in to), or this one when the active
+     * workspace is remote (`id` null).
+     */
     export interface RemoteInstanceSummary {
-        id: number;
+        id: number | null;
         label: string;
         origin: string;
         /** Why nothing can be sent there right now; `null` when it can. */
         unavailable: string | null;
     }
-    /** A workspace of a remote instance: the `{ instanceId, workspaceId }` target of `sendTo`. */
+    /** A workspace of another instance: the `{ instanceId, workspaceId }` target of `sendTo`. */
     export interface RemoteWorkspaceTarget {
         /** Unique across the workspaces of every instance. */
         key: string;
-        instanceId: number;
+        /** Null for a workspace of this instance. */
+        instanceId: number | null;
         instanceLabel: string;
         instanceOrigin: string;
         workspaceId: number;
@@ -1196,11 +1201,13 @@ declare module 'deveye-sdk-client' {
         workspaces: readonly RemoteWorkspaceTarget[];
     }
     /**
-     * The account's remote instances and their workspaces, probed while the
-     * component is mounted. The two servers never talk to each other: this
-     * browser carries a `sendTo` command to the instance chosen, on the
-     * socket it holds there. Signed out of one, its workspaces are those last
-     * seen, named but not targetable.
+     * The account's other instances and their workspaces: the remote ones
+     * from a local workspace; from a remote workspace, this instance too and
+     * not that one. Remote instances are probed while the component is
+     * mounted. The servers never talk to each other: this browser carries a
+     * `sendTo` command to the instance chosen, on the socket it holds there.
+     * Signed out of a remote one, its workspaces are those last seen, named
+     * but not targetable.
      */
     export function useRemoteTargets(): RemoteTargets;
     /**

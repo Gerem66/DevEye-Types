@@ -137,22 +137,107 @@ declare module 'deveye-sdk-client' {
         className?: string;
     }
     export const ProgressBar: ComponentType<ProgressBarProps>;
-    export interface ProgressDialogProps {
-        open: boolean;
+
+    // ── Long operations ────────────────────────────────────────────────────
+    /** A running operation, as a screen reads it. */
+    export interface Task {
+        id: string;
+        feature: string;
+        itemId?: string;
+        key?: string;
         title: string;
-        /** What is being done, and why it is worth the wait. */
-        description?: string;
-        /** See {@link ProgressBarProps.value}. */
+        subject?: string;
+        /** From 0 to 1 when the progress is measured. */
         value?: number;
-        /** The current step, under the bar. */
         step?: string;
+        startedAt: number;
+    }
+    export interface TaskOptions<T = unknown> {
+        /** Your feature id (`manifest.id`): the icon, the name and the "Ouvrir" of its row. */
+        feature: string;
+        /** What is being done, as a noun phrase: "Suppression du point de restauration". */
+        title: string;
+        /** The fallback sentence of a failure, or the function that returns the whole note. */
+        failed: string | ((error: unknown) => ErrorNoteInput);
+        /** The item it targets: "Ouvrir" leads there, `useTasks` filters on it. */
+        itemId?: string | number;
+        /**
+         * The kind of operation. Two operations with the same feature,
+         * workspace, item and key never run together: the second one rejects
+         * with `TaskError` `conflict`, `run` is not called.
+         */
+        key?: string;
+        /** What it acts on (a name), to tell two rows with the same title apart. */
+        subject?: string;
+        /** Why it is worth the wait: shown in the dialog only. */
+        description?: string;
+        /** The success sentence of the operations panel; "Terminé." without it. */
+        done?: string | ((result: T) => string);
+        /** `false`: no dialog, the operation goes straight to the panel and your screen draws the progress. Default true. */
+        dialog?: boolean;
+        /** `false`: the dialog cannot be minimized, for a step whose follow-up needs the person (a question, a navigation). Default true. */
+        minimizable?: boolean;
+        /** The work runs in this tab, not on the server: closing the tab asks first. Default false. */
+        local?: boolean;
+        /** Offers "Annuler"; the operation leaves when `run` then rejects. */
+        cancel?: () => void;
+        /** Called once, the first time the dialog is minimized: close the sheet of an item that is going away. */
+        onDetach?: () => void;
+    }
+    export interface TaskContext {
+        /**
+         * For THE command that does the work: the tolerated silence, the
+         * progress wired to the operation, the workspace it started in.
+         */
+        sendOptions: SendOptions;
+        /** The progress of work done in the tab; `null` clears the value. */
+        report(update: { value?: number | null; step?: string | null }): void;
+        /** Brings the dialog back to the front, before a prompt that needs the person. */
+        raise(): void;
+        /** Where the operation started: `instanceId` is `null` for this instance. */
+        origin: { instanceId: number | null; workspaceId: number | null };
     }
     /**
-     * A long operation under way: a dialog nothing closes while it lasts, and
-     * a bar. Its owner closes it (`open: false`) when the operation ends or
-     * gives up.
+     * Runs a long operation behind a dialog the person can minimize; it then
+     * lives in the operations area of the top bar, with its progress and its
+     * outcome. The promise resolves and rejects like `run`, so a screen that
+     * is still mounted keeps its own logic; one that is gone leaves the
+     * outcome to the panel. A dropped socket or a silent command rejects with
+     * a {@link TaskError} whose message already says what to do.
+     *
+     * One command per operation: pass `task.sendOptions` to it. A sequence of
+     * commands driven by the browser is a `local` operation that reports
+     * through `task.report`.
      */
-    export const ProgressDialog: ComponentType<ProgressDialogProps>;
+    export function runTask<T>(
+        options: TaskOptions<T>,
+        run: (task: TaskContext) => Promise<T>
+    ): Promise<T>;
+    /**
+     * The running operations of a feature in the active workspace, whichever
+     * screen started them: disable the conflicting actions, draw the progress
+     * in place, even after a remount.
+     */
+    export function useTasks(filter: {
+        feature: string;
+        itemId?: string | number;
+        key?: string;
+    }): readonly Task[];
+    /** The rejection an operation writes itself: `errorNote` keeps its message. */
+    export class TaskError extends Error {
+        constructor(code: 'closed' | 'timeout' | 'conflict' | 'cancelled', message: string);
+        readonly code: 'closed' | 'timeout' | 'conflict' | 'cancelled';
+    }
+    export interface TaskProgressProps {
+        task: Task;
+        className?: string;
+    }
+    /**
+     * The progress of an operation drawn in the screen that started it: title,
+     * bar, step, and "Afficher" to bring its dialog back. The top bar sits
+     * under the veil of any open dialog, so a screen living in one shows this.
+     */
+    export const TaskProgress: ComponentType<TaskProgressProps>;
     export interface LogOutputProps {
         /** The raw log, ANSI sequences included: the component cleans it. */
         text: string;
@@ -409,8 +494,14 @@ declare module 'deveye-sdk-client' {
         /** The height follows the content up to the viewport, then the body scrolls. */
         fill?: boolean;
         holdSecrecy?: boolean;
-        /** Without the close button (a progress dialog). Default true. */
+        /** Without the close button: the dialog only leaves through its own actions. Default true. */
         closeButton?: boolean;
+        /**
+         * The box and its veil only appear after this delay, so shorter work
+         * never flickers. The layer is there from the opening: the screen
+         * underneath takes no click meanwhile.
+         */
+        appearDelayMs?: number;
     }>;
     /** The "Annuler" button of a Dialog footer: closes through the guarded close. */
     export const DialogCancelButton: ComponentType<

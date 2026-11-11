@@ -12,6 +12,7 @@ import { sharingCommands } from './sharing';
 import { secrecyCommands } from './secrecy';
 import { loginChecksCommands } from './loginChecks';
 import { stepUpCommands } from './stepUp';
+import { taskCommands } from './task';
 import { twoFactorCommands } from './twoFactor';
 import { userCommands } from './user';
 import { adminCommands } from './admin';
@@ -33,6 +34,7 @@ export const featureCommands = [
     ...agentCommands,
     ...twoFactorCommands,
     ...stepUpCommands,
+    ...taskCommands,
     ...loginChecksCommands,
     ...secrecyCommands,
     ...logsCommands,

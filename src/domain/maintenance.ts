@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { taskRosterSchema } from './task';
+
 /**
  * Maintenance, site-wide or per feature, set by the global admin (or by the
  * database and the `MAINTENANCE` variable when the interface is out of reach).
@@ -50,12 +52,15 @@ export const MAINTENANCE_MESSAGE_MAX = 1000;
 /**
  * The `session` frame that opens every socket. `version` is the server's app
  * version, which a client compares with its own bundle to reload after an
- * update. `version` and `maintenance` are optional: a remote instance on an
- * older version does not send them.
+ * update. `tasks` is what the operations area of the account shows, so a page
+ * that reloads finds its long operations again. `version`, `maintenance` and
+ * `tasks` are optional: a remote instance on an older version does not send
+ * them.
  */
 export const sessionFrameSchema = z.object({
     userId: z.number().int().positive(),
     version: z.string().optional(),
-    maintenance: maintenanceStateSchema.optional()
+    maintenance: maintenanceStateSchema.optional(),
+    tasks: taskRosterSchema.optional()
 });
 export type SessionFrame = z.infer<typeof sessionFrameSchema>;

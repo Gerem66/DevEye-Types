@@ -263,6 +263,21 @@ export const debugE2eSweep = {
     output: z.object({ accounts: z.number().int().nonnegative() })
 };
 
+/**
+ * A slow command that reports its progress, then succeeds or fails on demand:
+ * what the gallery runs to show a long operation the server follows. `quiet`
+ * keeps it silent until the end, like a handler that reports nothing.
+ */
+export const debugTaskSample = {
+    command: 'debug.taskSample' as const,
+    input: z.object({
+        seconds: z.number().int().min(1).max(120),
+        fail: z.boolean().optional(),
+        quiet: z.boolean().optional()
+    }),
+    output: z.object({ steps: z.number().int().nonnegative() })
+};
+
 export const debugProbeSchema = z.object({
     id: z.string(),
     label: z.string(),
@@ -486,6 +501,7 @@ export const debugCommands = [
     debugE2eCatalog,
     debugE2eStart,
     debugE2eSweep,
+    debugTaskSample,
     debugBenchCatalog,
     debugBenchStart,
     debugPing,

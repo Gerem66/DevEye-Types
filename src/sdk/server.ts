@@ -1327,7 +1327,9 @@ export interface SdkFeatureContext<Repo = unknown> {
      * Report how far this command has got, to its caller only. Best effort, at
      * most 4 frames a second (the last one always goes out); each frame re-arms
      * the caller's timeout, so a long command that keeps reporting never times
-     * out. Steps are user-facing sentences.
+     * out. Steps are user-facing sentences: when the caller runs the command
+     * as a long operation (`runTask`), they also show in the operations area of
+     * the account, in every tab.
      */
     progress(update: CommandProgress): void;
     /** The server key derivations, the same `keys` a service gets. */

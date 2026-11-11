@@ -1,15 +1,29 @@
 export {
     clientMessageSchema,
+    commandTaskSchema,
     REQUEST_PROGRESS_EVENT,
     requestProgressSchema,
-    serverMessageSchema
+    serverMessageSchema,
+    TASK_TEXT_MAX,
+    TASK_TITLE_MAX,
+    taskIdSchema
 } from './protocol/envelope';
 export type {
     ClientMessage,
+    CommandTask,
     ConnectionState,
     RequestProgress,
     ServerMessage
 } from './protocol/envelope';
+export {
+    TASK_REMOVED_EVENT,
+    TASK_UPDATE_EVENT,
+    taskRemovedSchema,
+    taskRosterSchema,
+    taskSchema,
+    taskStateSchema
+} from './domain/task';
+export type { TaskRemoved, TaskRoster, TaskSnapshot, TaskState } from './domain/task';
 export { ErrorCodeSchema, ProtocolErrorSchema } from './protocol/error';
 export type { ErrorCode, ProtocolError } from './protocol/error';
 export { err, ok, resultSchema } from './protocol/result';
@@ -1015,6 +1029,7 @@ export {
     debugRunList,
     debugRunSchema,
     debugRunStatusSchema,
+    debugTaskSample,
     debugStepStatusSchema,
     debugTrackingClear,
     debugTrackingCompanionSchema,
@@ -1142,6 +1157,7 @@ export {
     notifyRouteTest
 } from './features/notify';
 export { stepUpCommands, stepUpConfirm, stepUpSetInterval, stepUpStatus } from './features/stepUp';
+export { taskAttach, taskCommands, taskDismiss } from './features/task';
 export {
     loginChecksCommands,
     loginChecksForgetBrowser,

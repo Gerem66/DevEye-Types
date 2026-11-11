@@ -25,6 +25,7 @@ declare module 'deveye-sdk-client' {
         PointerEvent as ReactPointerEvent
     } from 'react';
     import type {
+        CommandTask,
         FeatureAccess,
         FeatureDomain,
         FeatureId,
@@ -186,8 +187,9 @@ declare module 'deveye-sdk-client' {
     }
     export interface TaskContext {
         /**
-         * For THE command that does the work: the tolerated silence, the
-         * progress wired to the operation, the workspace it started in.
+         * For THE command that does the work: the server follows it, its
+         * progress feeds the operation, and it runs in the workspace the
+         * operation started in.
          */
         sendOptions: SendOptions;
         /** The progress of work done in the tab; `null` clears the value. */
@@ -202,12 +204,16 @@ declare module 'deveye-sdk-client' {
      * lives in the operations area of the top bar, with its progress and its
      * outcome. The promise resolves and rejects like `run`, so a screen that
      * is still mounted keeps its own logic; one that is gone leaves the
-     * outcome to the panel. A dropped socket or a silent command rejects with
-     * a {@link TaskError} whose message already says what to do.
+     * outcome to the panel.
      *
-     * One command per operation: pass `task.sendOptions` to it. A sequence of
-     * commands driven by the browser is a `local` operation that reports
-     * through `task.report`.
+     * One command per operation: pass `task.sendOptions` to it. The server
+     * follows that command: a dropped socket or a reload does not lose it,
+     * and the account's other tabs show it in their own area. When the
+     * command could not leave, or when the server no longer knows the
+     * operation (it restarted), the promise rejects with a {@link TaskError}
+     * whose message already says what to do. A sequence of commands driven by
+     * the browser is a `local` operation that reports through `task.report`,
+     * and dies with its tab.
      */
     export function runTask<T>(
         options: TaskOptions<T>,
@@ -215,8 +221,9 @@ declare module 'deveye-sdk-client' {
     ): Promise<T>;
     /**
      * The running operations of a feature in the active workspace, whichever
-     * screen started them: disable the conflicting actions, draw the progress
-     * in place, even after a remount.
+     * screen started them, in this tab or in another one of the account:
+     * disable the conflicting actions, draw the progress in place, even after
+     * a remount or a reload.
      */
     export function useTasks(filter: {
         feature: string;
@@ -225,8 +232,11 @@ declare module 'deveye-sdk-client' {
     }): readonly Task[];
     /** The rejection an operation writes itself: `errorNote` keeps its message. */
     export class TaskError extends Error {
-        constructor(code: 'closed' | 'timeout' | 'conflict' | 'cancelled', message: string);
-        readonly code: 'closed' | 'timeout' | 'conflict' | 'cancelled';
+        constructor(
+            code: 'closed' | 'timeout' | 'lost' | 'conflict' | 'cancelled',
+            message: string
+        );
+        readonly code: 'closed' | 'timeout' | 'lost' | 'conflict' | 'cancelled';
     }
     export interface TaskProgressProps {
         task: Task;
@@ -234,8 +244,9 @@ declare module 'deveye-sdk-client' {
     }
     /**
      * The progress of an operation drawn in the screen that started it: title,
-     * bar, step, and "Afficher" to bring its dialog back. The top bar sits
-     * under the veil of any open dialog, so a screen living in one shows this.
+     * bar, step, and "Afficher" to bring its dialog back when this page holds
+     * it. The top bar sits under the veil of any open dialog, so a screen
+     * living in one shows this.
      */
     export const TaskProgress: ComponentType<TaskProgressProps>;
     export interface LogOutputProps {
@@ -910,7 +921,8 @@ declare module 'deveye-sdk-client' {
         /**
          * How long the command may stay silent, 15 s by default: stretch it for
          * a command that queries a slow third party. With `onProgress`, each
-         * update restarts the count.
+         * update restarts the count. A command with `task` never times out
+         * once sent.
          */
         timeoutMs?: number;
         /** The updates the handler reports through `ctx.progress`, as they arrive. */
@@ -921,6 +933,12 @@ declare module 'deveye-sdk-client' {
          * across. The server checks membership and rights there as usual.
          */
         workspaceId?: number;
+        /**
+         * Marks the command as the one of a long operation, which the server
+         * then follows: it survives a reload or a dropped socket. Set by
+         * `runTask` in `task.sendOptions`; never build it yourself.
+         */
+        task?: CommandTask;
     }
     /**
      * The typed sender of any list of contracts (`featureApi` is it on a

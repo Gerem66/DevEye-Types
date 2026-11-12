@@ -186,6 +186,8 @@ declare module 'deveye-sdk-client' {
         onDetach?: () => void;
     }
     export interface TaskContext {
+        /** The id of the operation, the one `useTasks` returns. */
+        id: string;
         /**
          * For THE command that does the work: the server follows it, its
          * progress feeds the operation, and it runs in the workspace the
@@ -219,6 +221,17 @@ declare module 'deveye-sdk-client' {
         options: TaskOptions<T>,
         run: (task: TaskContext) => Promise<T>
     ): Promise<T>;
+    /**
+     * `runTask` for a wait your screen draws itself (a busy button, a bar in
+     * place): no dialog, and nothing in the operations area while the screen
+     * is there. If it unmounts before the end, the operation moves to the
+     * area, which then carries the outcome in its place. Options `dialog` and
+     * `minimizable` do not apply.
+     */
+    export function useTaskRunner(): <T>(
+        options: TaskOptions<T>,
+        run: (task: TaskContext) => Promise<T>
+    ) => Promise<T>;
     /**
      * The running operations of a feature in the active workspace, whichever
      * screen started them, in this tab or in another one of the account:

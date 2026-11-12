@@ -1157,7 +1157,7 @@ export {
     notifyRouteTest
 } from './features/notify';
 export { stepUpCommands, stepUpConfirm, stepUpSetInterval, stepUpStatus } from './features/stepUp';
-export { taskAttach, taskCommands, taskDismiss } from './features/task';
+export { taskAttach, taskCancel, taskCommands, taskDismiss } from './features/task';
 export {
     loginChecksCommands,
     loginChecksForgetBrowser,

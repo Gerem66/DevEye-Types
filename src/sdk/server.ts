@@ -1096,6 +1096,63 @@ export interface SdkSharing {
     setOrder(itemId: string, order: number): Promise<void>;
 }
 
+/** What a service says of a long operation when it opens it. */
+export interface SdkTaskOpening {
+    /** The account the operation runs for: the member who asked for it. Only that account sees it. */
+    userId: number;
+    workspaceId: number;
+    /** What is being done, as a noun phrase: "Sauvegarde", "Conversion". */
+    title: string;
+    /** What it acts on (a name), to tell two operations with the same title apart. */
+    subject?: string;
+    /** The item it targets: "Ouvrir" leads there, and the screens of your feature filter on it. */
+    itemId?: string | number;
+    /**
+     * The kind of operation. With a `key`, opening the same
+     * `(workspaceId, itemId, key)` again for the same account returns the
+     * operation already running instead of a second one: call `open` each
+     * time you find the work again (a queue you poll, a restart).
+     */
+    key?: string;
+    /**
+     * Offers "Annuler" in the account's area. Called once, when the person
+     * asks; stop the work, then call `cancelled()`.
+     */
+    cancel?: () => void | Promise<void>;
+}
+
+/** A long operation a service runs, see {@link SdkTasks}. Every call after the first ending is ignored. */
+export interface SdkTask {
+    readonly id: string;
+    /** How far it is: at most four updates a second leave, the last one always. */
+    progress(update: CommandProgress): void;
+    /** It succeeded; `note` is the sentence of the outcome ("Terminé." without it). */
+    done(note?: string): void;
+    /**
+     * It failed; `message` is the sentence to show. `code` decides whether the
+     * person is offered to report it: `internal` (the default) for what the
+     * instance must fix, `conflict` for what their side explains.
+     */
+    fail(message: string, code?: ErrorCode): void;
+    /** It stopped because the person asked: it leaves the area without an outcome. */
+    cancelled(): void;
+}
+
+/**
+ * The operations area of an account, from a service: the work a member
+ * launched and that goes on without their command (a backup, a deployment, a
+ * conversion). The host stamps your feature and shows the operation to that
+ * account only, in every tab, once it has checked the account still reads
+ * your feature in that workspace; a restart of the server forgets it, so open
+ * it again when your service resumes the work.
+ *
+ * Not for what runs on its own (a schedule, a reconciliation): nobody asked
+ * for it, so it belongs to your screens, not to someone's area.
+ */
+export interface SdkTasks {
+    open(opening: SdkTaskOpening): SdkTask;
+}
+
 /** Live invalidation from a background service, which writes without a command. */
 export interface SdkLive {
     /**
@@ -1715,6 +1772,8 @@ export interface FeatureServiceDeps<Repo = unknown> {
     geo: SdkGeo;
     /** Live invalidation of your feature's resources, from a service. */
     live: SdkLive;
+    /** The long operations a member launched and your service runs. */
+    tasks: SdkTasks;
     /**
      * Audit line recorded as the SYSTEM (no session). `userId` attributes the
      * line to a user when the work concerns their data.

@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import type { ZodType } from 'zod';
+import type { ErrorCode } from '../protocol/error';
 import { DEFAULT_METRIC_INTERVAL_SECONDS } from '../domain/device';
 import type { ItemAccess } from '../domain/sharing';
 import type { PathExclusion } from '../domain/pathExclusions';
@@ -33,6 +34,7 @@ import {
     type SdkPlanPauses,
     type SdkProviders,
     type SdkQuota,
+    type SdkTaskOpening,
     type SdkTelemetry,
     type SdkTelemetrySnapshot,
     type StorageEncryption,
@@ -792,6 +794,21 @@ export interface RecordedServiceCalls extends RecordedCalls {
     mails: { userId: number; to: string; message: SdkAccountMailMessage }[];
     /** What `alertInstance` raised, in order, keys as the module gave them. */
     instanceAlerts: SdkInstanceAlert[];
+    /** The operations opened through `tasks.open`, in order, each with what the service then said of it. */
+    tasks: RecordedTask[];
+}
+
+/** One operation a service opened, as a test reads it. `cancel` is the callback it gave: call it to play "Annuler". */
+export interface RecordedTask extends Omit<SdkTaskOpening, 'cancel'> {
+    id: string;
+    cancel?: () => void | Promise<void>;
+    updates: CommandProgress[];
+    /** `null` while it runs. */
+    outcome:
+        | { state: 'done'; note?: string }
+        | { state: 'failed'; message: string; code: ErrorCode }
+        | { state: 'cancelled' }
+        | null;
 }
 
 export interface TestServiceDeps<Repo> extends FeatureServiceDeps<Repo> {
@@ -874,7 +891,8 @@ export function createTestServiceDeps<Repo = undefined>(
         liveChanges: [],
         liveTopicChanges: [],
         mails: [],
-        instanceAlerts: []
+        instanceAlerts: [],
+        tasks: []
     };
     const stores = new Map<number, TestFeatureStore>();
     const sealedBytes = new Map<string, Uint8Array>();
@@ -945,6 +963,44 @@ export function createTestServiceDeps<Repo = undefined>(
         geo: {
             country: (ip) => overrides.countries?.[ip] ?? null,
             attribution: { text: 'IP Geolocation by DB-IP', url: 'https://db-ip.com' }
+        },
+        tasks: {
+            open(opening) {
+                // The host's rule: the same keyed work, found again while it runs, is the same operation.
+                const running =
+                    opening.key === undefined
+                        ? undefined
+                        : recorded.tasks.find(
+                              (t) =>
+                                  t.outcome === null &&
+                                  t.userId === opening.userId &&
+                                  t.workspaceId === opening.workspaceId &&
+                                  t.key === opening.key &&
+                                  String(t.itemId ?? '') === String(opening.itemId ?? '')
+                          );
+                const task: RecordedTask = running ?? {
+                    ...opening,
+                    id: `task-${recorded.tasks.length + 1}`,
+                    updates: [],
+                    outcome: null
+                };
+                if (running) running.cancel = opening.cancel;
+                else recorded.tasks.push(task);
+                const settle = (outcome: NonNullable<RecordedTask['outcome']>): void => {
+                    task.outcome ??= outcome;
+                };
+                return {
+                    id: task.id,
+                    progress: (update) => {
+                        if (task.outcome === null) task.updates.push(update);
+                    },
+                    done: (note) =>
+                        settle(note === undefined ? { state: 'done' } : { state: 'done', note }),
+                    fail: (message, code = 'internal') =>
+                        settle({ state: 'failed', message, code }),
+                    cancelled: () => settle({ state: 'cancelled' })
+                };
+            }
         },
         live: {
             changed(workspaceId, topics) {

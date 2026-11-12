@@ -10,8 +10,9 @@ import { ErrorCodeSchema } from '../protocol/error';
 
 /**
  * A long operation, as the server follows it and as the operations area of the
- * top bar shows it. It belongs to the account that started it and is never
- * shown to the other members of the workspace.
+ * top bar shows it: a command a client tagged, or the work a service runs for
+ * an account. It belongs to the account that started it and is never shown to
+ * the other members of the workspace.
  *
  * The server keeps it in memory only: a restart forgets every operation, and
  * the `epoch` of the roster tells a client that it happened.
@@ -33,6 +34,8 @@ export const taskSchema = z.object({
     startedAt: z.number().int(),
     endedAt: z.number().int().nullable(),
     progress: requestProgressSchema.omit({ requestId: true }).nullable(),
+    /** The account may ask it to stop (`task.cancel`): an operation a service runs and knows how to stop. */
+    cancellable: z.boolean(),
     /** The caller's sentences, for a tab that did not start the operation. */
     done: z.string().max(TASK_TEXT_MAX).nullable(),
     failed: z.string().max(TASK_TEXT_MAX).nullable(),

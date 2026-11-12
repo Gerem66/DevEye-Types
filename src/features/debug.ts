@@ -267,13 +267,16 @@ export const debugE2eSweep = {
  * A slow command that reports its progress, then succeeds or fails on demand:
  * what the gallery runs to show a long operation the server follows. `quiet`
  * keeps it silent until the end, like a handler that reports nothing.
+ * `background` answers at once and lets the work go on as an operation a
+ * service runs, which the area can cancel.
  */
 export const debugTaskSample = {
     command: 'debug.taskSample' as const,
     input: z.object({
         seconds: z.number().int().min(1).max(120),
         fail: z.boolean().optional(),
-        quiet: z.boolean().optional()
+        quiet: z.boolean().optional(),
+        background: z.boolean().optional()
     }),
     output: z.object({ steps: z.number().int().nonnegative() })
 };

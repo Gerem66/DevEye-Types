@@ -29,4 +29,16 @@ export const taskDismiss = {
     output: z.object({ ids: z.array(taskIdSchema) })
 };
 
-export const taskCommands = [taskAttach, taskDismiss] as const;
+/**
+ * Asks a running operation to stop: one a service runs and declared it can
+ * stop. `accepted` is false when it cannot (not cancellable, already ended,
+ * the account lost the feature); the operation leaves the area when the
+ * service has actually stopped.
+ */
+export const taskCancel = {
+    command: 'task.cancel' as const,
+    input: z.object({ id: taskIdSchema }),
+    output: z.object({ accepted: z.boolean() })
+};
+
+export const taskCommands = [taskAttach, taskDismiss, taskCancel] as const;

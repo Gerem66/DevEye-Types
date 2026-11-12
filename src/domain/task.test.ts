@@ -18,6 +18,7 @@ const running = {
     startedAt: 1_794_000_000_000,
     endedAt: null,
     progress: { done: 2, total: 8, step: 'Libération' },
+    cancellable: false,
     done: 'Point de restauration supprimé.',
     failed: 'Suppression impossible.',
     error: null

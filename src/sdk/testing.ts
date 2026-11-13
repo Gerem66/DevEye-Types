@@ -8,7 +8,7 @@ import { DEFAULT_METRIC_INTERVAL_SECONDS } from '../domain/device';
 import type { ItemAccess } from '../domain/sharing';
 import type { PathExclusion } from '../domain/pathExclusions';
 import { normaliseDomainHost } from './domains';
-import { resolveExtras, type FeatureManifest } from './manifest';
+import { resolveExtras, type FeatureManifest, type NativeCapability } from './manifest';
 import {
     FeatureError,
     type AgentFolderArchive,
@@ -164,12 +164,26 @@ function recordingNotify(
     recorded: RecordedCalls,
     hasRoute: boolean,
     accepted: boolean,
-    liveChannels: readonly number[]
+    liveChannels: readonly number[],
+    capabilities: readonly NativeCapability[] | undefined
 ): DevEyeFacade['notify'] {
     let posted = 0;
+    // The host refuses every notify call of a module that did not declare the
+    // capability: a test that hands its manifest gets the same refusal.
+    const refused = (): Promise<never> | null =>
+        capabilities && !capabilities.includes('notify')
+            ? Promise.reject(
+                  new FeatureError(
+                      'forbidden',
+                      "Declare 'notify' in the manifest's nativeCapabilities"
+                  )
+              )
+            : null;
     return {
-        hasRoute: () => Promise.resolve(hasRoute),
+        hasRoute: () => refused() ?? Promise.resolve(hasRoute),
         send(alert, opts) {
+            const refusal = refused();
+            if (refusal) return refusal;
             recorded.notifications.push({
                 subject: alert.subject,
                 body: alert.body,
@@ -184,8 +198,10 @@ function recordingNotify(
             // answers false, so a test sees what the module does with it.
             return Promise.resolve(accepted);
         },
-        liveChannels: () => Promise.resolve(liveChannels.map((id) => ({ id }))),
+        liveChannels: () => refused() ?? Promise.resolve(liveChannels.map((id) => ({ id }))),
         postLive(channelId, message, messageId) {
+            const refusal = refused();
+            if (refusal) return refusal;
             recorded.liveMessages.push({
                 channelId,
                 messageId: messageId ?? null,
@@ -486,10 +502,12 @@ export interface TestContextOverrides<Repo> {
     extras?: Record<string, boolean | string>;
     /**
      * Your manifest: `canExtra` / `extraValue` then follow the exact runtime
-     * rules ({@link resolveExtras}). Without it no extra is declared, so
-     * every key answers `false` / `''`, owner or not.
+     * rules ({@link resolveExtras}), and `deveye.notify` refuses, as the host
+     * does, a module that did not declare `'notify'`. Without it no extra is
+     * declared, so every key answers `false` / `''`, owner or not, and no
+     * capability is checked.
      */
-    manifest?: Pick<FeatureManifest, 'extraPermissions'>;
+    manifest?: Pick<FeatureManifest, 'extraPermissions' | 'nativeCapabilities'>;
     /** What `deveye.notify.hasRoute` answers. Default true. */
     hasRoute?: boolean;
     /** What `deveye.notify.send` resolves (no usable channel: false). Default true; recorded either way. */
@@ -567,7 +585,8 @@ export function createTestContext<Repo = undefined>(
             recorded,
             overrides.hasRoute ?? true,
             overrides.notifyAccepted ?? true,
-            overrides.liveChannels ?? []
+            overrides.liveChannels ?? [],
+            overrides.manifest?.nativeCapabilities
         ),
         mail: { listAccounts: () => Promise.resolve([]) },
         members: {
@@ -819,6 +838,8 @@ export interface TestServiceDeps<Repo> extends FeatureServiceDeps<Repo> {
 
 export interface TestServiceOverrides<Repo> {
     repo?: Repo;
+    /** Your manifest: `deveyeFor(...).notify` then refuses, as the host does, a module that did not declare `'notify'`. */
+    manifest?: Pick<FeatureManifest, 'nativeCapabilities'>;
     /** What `listWorkspaceIds` answers. Default `[1]`. */
     workspaceIds?: readonly number[];
     /** Devices every workspace reveals. Default none. */
@@ -900,7 +921,8 @@ export function createTestServiceDeps<Repo = undefined>(
         recorded,
         overrides.hasRoute ?? true,
         overrides.notifyAccepted ?? true,
-        overrides.liveChannels ?? []
+        overrides.liveChannels ?? [],
+        overrides.manifest?.nativeCapabilities
     );
     const devices = recordingDevices(overrides.devices ?? []);
     const pauses = memoryPauses(overrides.pausedItems);

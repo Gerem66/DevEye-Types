@@ -39,6 +39,24 @@ test('createTestContext follows the manifest for extras, and records what handle
     assert.equal(member.store.rows.get('k')?.mode, 'private');
 });
 
+test('notify refuses, as the host does, a manifest without the capability', async () => {
+    const manifest = { nativeCapabilities: ['members.read' as const] };
+    const ctx = createTestContext({ manifest });
+    await assert.rejects(ctx.deveye.notify.send({ subject: 's', body: 'b' }), {
+        code: 'forbidden'
+    });
+    await assert.rejects(ctx.deveye.notify.hasRoute(), { code: 'forbidden' });
+    assert.deepEqual(ctx.recorded.notifications, []);
+
+    const deps = createTestServiceDeps({ manifest });
+    await assert.rejects(deps.deveyeFor(1).notify.send({ subject: 's', body: 'b' }), {
+        code: 'forbidden'
+    });
+
+    const declared = createTestContext({ manifest: { nativeCapabilities: ['notify' as const] } });
+    assert.equal(await declared.deveye.notify.send({ subject: 's', body: 'b' }), true);
+});
+
 test('createTestServiceDeps: one store per workspace, hand-driven tickers, a wrapper that round-trips', async () => {
     const deps = createTestServiceDeps({
         workspaceIds: [1, 2],

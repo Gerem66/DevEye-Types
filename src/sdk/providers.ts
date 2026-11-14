@@ -422,7 +422,47 @@ export interface GitHomeRepo {
     headSha: string | null;
     /** When that head was read at the forge (epoch seconds): a consumer that cloned later knows better. */
     headSeenAt: number | null;
+    /** Held over the plan's limit: Git does not sync it, and a consumer leaves it alone too. */
+    paused: boolean;
 }
+
+/** What `GitItemsProvider.readFiles` reads, and how much of it. */
+export interface GitFilesRequest {
+    /** The commit, branch or tag to read; `null` reads whatever the forge's HEAD points to. */
+    ref: string | null;
+    /** The tree the caller read last time: when the ref still points to it, no file is fetched. */
+    knownTree: string | null;
+    /** Which files to read, by their full path in the tree. */
+    wants(path: string): boolean;
+    /** At most this many files; the rest is reported through `truncated`. */
+    maxFiles: number;
+    /** A file above this size is not fetched, and is reported through `skipped`. */
+    maxFileBytes: number;
+}
+
+export interface GitRepoFile {
+    path: string;
+    text: string;
+}
+
+export type GitFilesResult =
+    | { status: 'unchanged'; tree: string }
+    | {
+          status: 'ok';
+          /** The tree that was read: hand it back as `knownTree` next time. */
+          tree: string;
+          files: readonly GitRepoFile[];
+          /** The forge cut the tree short, or `maxFiles` was reached: some wanted files were never seen. */
+          truncated: boolean;
+          /** Wanted files left out for their size. */
+          skipped: readonly string[];
+      }
+    | {
+          status: 'error';
+          error: string;
+          /** The failure comes from the repository's side (its token, its rights, its quota), not from the instance. */
+          userSide: boolean;
+      };
 
 /** A repository as read from its home: its name, where it lives, its default branch. */
 export interface GitRepoDescription {
@@ -479,58 +519,70 @@ export interface GitItemsProvider {
      * the right to read them answers through `error`, never by throwing.
      */
     activity(repoId: number, workspaceId: number, since: number): Promise<DeployActivity>;
+    /**
+     * Selected files of the repository, read at the forge without a clone
+     * (one request for the tree, one per file kept), with the repository's
+     * token when it has one. Sessionless; `null` when the repository is gone
+     * from that workspace. A refusal answers through `status: 'error'`,
+     * never by throwing.
+     */
+    readFiles(
+        repoId: number,
+        workspaceId: number,
+        request: GitFilesRequest
+    ): Promise<GitFilesResult | null>;
 }
 
 /**
- * Key under `FeatureService.providers` for the CVE catalogue: the CVEs that
- * affect a given product at a given version, read from the catalogue the CVE
- * feature keeps for the whole server. A lookup never calls the NVD itself:
- * the catalogue is the shared cache, filled by one ingestion queue that keeps
- * to the NVD's quota.
+ * Key under `FeatureService.providers` for what the CVE feature's watch finds
+ * in one item of another feature: the vulnerable packages and tools of a Git
+ * repository, read from the watch's own inventory. Nothing is fetched on the
+ * spot: the watch reads the item on its own cadence, and answers from there.
  */
-export const CVE_LOOKUP_PROVIDER = 'cve.lookup' as const;
+export const CVE_EXPOSURE_PROVIDER = 'cve.exposure' as const;
 
-/** A product as the NVD's CPE names it: `f5` / `nginx`, `nodejs` / `node.js`. */
-export interface CveProductRef {
-    vendor: string;
-    product: string;
-}
-
-export interface CveLookupItem extends CveProductRef {
-    /** An exact version (`1.25.3`). A floating one (`1.25`) compares to nothing. */
-    version: string;
-}
-
-export interface CveLookupHit {
-    cveId: string;
+/** One finding of the watch on an item, with what in the item it touches. */
+export interface CveItemFinding {
+    /** The finding's id in the CVE feature. */
+    id: number;
+    kind: 'vuln' | 'eol' | 'deprecated' | 'outdated';
+    /** `ignored`: a member of the workspace decided it does not apply. */
+    state: 'open' | 'ignored';
+    /** The public id: the CVE when there is one, the advisory otherwise. */
+    advisoryId: string | null;
     severity: 'none' | 'low' | 'medium' | 'high' | 'critical';
     score: number | null;
+    title: string;
     summary: string;
-    /** Epoch seconds. */
-    published: number;
-    /** The first version out of the affected range, when the NVD gives one. */
-    fixedIn: string | null;
+    component: { kind: 'package' | 'product'; ecosystem: string; name: string; version: string };
+    path: string | null;
+    line: number | null;
+    /** The versions that fix it, when the advisory names some. */
+    fixed: readonly string[];
+    reference: string | null;
 }
 
-export interface CveLookupResult {
-    /**
-     * `stale`: the catalogue cannot vouch for these products yet (their past
-     * CVEs are still being fetched, or the NVD has not answered for a day):
-     * `hits` is what is known, `reason` says why it may be incomplete.
-     */
-    status: 'ok' | 'stale';
-    reason: string | null;
-    hits: readonly { item: CveLookupItem; cves: readonly CveLookupHit[] }[];
+export interface CveItemExposure {
+    /** `pending`: not read yet. `error`: the last read failed, `findings` is what the read before it found. */
+    status: 'pending' | 'ok' | 'error' | 'excluded';
+    /** The last full read of the item, epoch seconds. */
+    scannedAt: number | null;
+    /** What the item's source announced at that read (a repository's head commit). */
+    revision: string | null;
+    error: string | null;
+    findings: readonly CveItemFinding[];
 }
 
-export interface CveLookupProvider {
+export interface CveExposureProvider {
     /**
-     * Products to keep in the catalogue for good: their whole CVE history is
-     * fetched once, then follows the ordinary feed, and the catalogue's
-     * retention spares them. Idempotent; cheap to call on every analysis.
+     * What the watch holds for this item, `null` when it does not follow it.
+     * Sessionless and unfiltered: the caller has checked that its member may
+     * see the item.
      */
-    watch(products: readonly CveProductRef[]): Promise<void>;
-    affecting(items: readonly CveLookupItem[]): Promise<CveLookupResult>;
+    ofItem(
+        workspaceId: number,
+        item: { feature: 'git'; itemId: number }
+    ): Promise<CveItemExposure | null>;
 }
 
 /**

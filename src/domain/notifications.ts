@@ -45,7 +45,8 @@ export const nativeNotificationFeatureSchema = z.enum([
     'convert',
     'invoicing',
     'finance',
-    'shortlinks'
+    'shortlinks',
+    'cve'
 ]);
 export type NativeNotificationFeature = z.infer<typeof nativeNotificationFeatureSchema>;
 

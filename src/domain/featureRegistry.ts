@@ -296,9 +296,12 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         id: 'cve',
         label: 'Veille CVE',
         description:
-            'Lecture : le fil des vulnérabilités et la recherche. Écriture : épingler, et poser la clé du NVD.',
+            'Lecture : ce qui touche l’espace, l’inventaire, le fil des vulnérabilités et la recherche. Écriture : ignorer un constat, relire ou sortir un élément de la veille, régler la détection, épingler, et poser la clé du NVD.',
         icon: 'bug',
-        notifies: false,
+        notifies: true,
+        notifications: {
+            hint: 'Envoyées quand une faille publiée touche ce que l’espace fait tourner : un dépôt, et ce qu’il emploie. Une alerte par faille, qui nomme les éléments touchés ; chaque genre d’alerte se coupe dans l’onglet Détection.'
+        },
         hasItems: false,
         shareTier: 'never',
         sources: {

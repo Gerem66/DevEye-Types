@@ -216,6 +216,21 @@ export interface DatabaseMeasureProvider {
 
 export const DATABASE_ITEMS_PROVIDER = 'database.items' as const;
 
+/** A database at home in one of the workspaces asked for, as `listHome` lists it. */
+export interface DatabaseHomeItem {
+    id: number;
+    workspaceId: number;
+    /** The label the workspace gave it. */
+    name: string;
+    engine: 'mysql' | 'postgres';
+    /** What the server answered to `SELECT VERSION()` at the last check, raw; `null` before any. */
+    serverVersion: string | null;
+    /** When that check ran, epoch seconds. */
+    checkedAt: number | null;
+    /** Held over the plan's limit: the feature does not check it, and a consumer leaves it alone too. */
+    paused: boolean;
+}
+
 export interface DatabaseItemsProvider {
     /** Is this database visible from this workspace: its home, or one it is projected into? */
     exists(databaseId: number, workspaceId: number): Promise<boolean>;
@@ -227,6 +242,10 @@ export interface DatabaseItemsProvider {
      * an id.
      */
     labelOf(databaseId: number, workspaceId: number): Promise<string | null>;
+    /** Every database whose HOME is one of `workspaceIds`, with what its last check saw of the server. */
+    listHome(workspaceIds: readonly number[]): Promise<readonly DatabaseHomeItem[]>;
+    /** May this member read the database? The rule of the feature's screens, the item's override included. */
+    authorize(databaseId: number, workspaceId: number, userId: number): Promise<SdkAccessVerdict>;
 }
 
 /**
@@ -600,6 +619,27 @@ export const GIT_CLIENT_PROVIDER = 'git.client' as const;
  */
 export const DEPLOY_ITEMS_PROVIDER = 'deploy.items' as const;
 
+/** A deploy target at home in one of the workspaces asked for, as `listHome` lists it. */
+export interface DeployHomeTarget {
+    id: number;
+    workspaceId: number;
+    name: string;
+    provider: 'dokploy' | 'github' | 'agent';
+    /** Held over the plan's limit: the feature does not sync it, and a consumer leaves it alone too. */
+    paused: boolean;
+}
+
+/**
+ * What a target runs, as its provider describes it: the image it pulls, the
+ * compose file it starts. Only what names software, nothing of the
+ * provider's own settings (credentials, environment).
+ */
+export interface DeployInventory {
+    /** `repository:tag` references. */
+    images: readonly string[];
+    composeFiles: readonly { path: string; text: string }[];
+}
+
 export interface DeployItemsProvider {
     /** Is this target visible from this workspace: its home, or one it is projected into? */
     exists(targetId: number, workspaceId: number): Promise<boolean>;
@@ -621,6 +661,18 @@ export interface DeployItemsProvider {
      * provider first, so a deployment that just ended is not missed.
      */
     activity(targetId: number, workspaceId: number, since: number): Promise<DeployActivity>;
+    /** Every target whose HOME is one of `workspaceIds`. */
+    listHome(workspaceIds: readonly number[]): Promise<readonly DeployHomeTarget[]>;
+    /**
+     * What the target runs, asked of its provider on the spot. `null` for a
+     * target the provider cannot describe that way (a workflow, a machine's
+     * service: the repository and the device say it already), or one gone.
+     * A refusal answers through `error`, never by throwing.
+     */
+    inventoryOf(
+        targetId: number,
+        workspaceId: number
+    ): Promise<{ inventory: DeployInventory | null; error: string | null } | null>;
 }
 
 /** An item of another feature, as a picker lists it. */

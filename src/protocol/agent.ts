@@ -122,6 +122,33 @@ export const agentPkgListResultPayloadSchema = z.object({
  * count. A tool whose probe fails still gets its frame (`null`), so the
  * screen never waits for a count that will not come.
  */
+/**
+ * Reply to `pkg.inventory`: the packages installed on the host, for the CVE
+ * watch. `source` is the source package a Debian advisory names; `manager`
+ * is `null` when no supported database was found (`error` says why).
+ */
+export const AGENT_PKG_INVENTORY_RESULT = 'pkg.inventoryResult' as const;
+export const installedPackageSchema = z.object({
+    name: z.string().min(1).max(200),
+    version: z.string().min(1).max(200),
+    arch: z.string().max(40),
+    source: z.string().max(200).optional()
+});
+export type InstalledPackage = z.infer<typeof installedPackageSchema>;
+export const packageInventorySchema = z.object({
+    /** `ID` and `VERSION_ID` of os-release. */
+    distroId: z.string().max(64).nullable(),
+    distroVersion: z.string().max(64).nullable(),
+    manager: z.enum(['dpkg', 'rpm', 'apk']).nullable(),
+    packages: z.array(installedPackageSchema).max(20_000),
+    error: z.string().max(500).nullable()
+});
+export type PackageInventory = z.infer<typeof packageInventorySchema>;
+export const agentPkgInventoryResultPayloadSchema = z.object({
+    deviceId: z.uuid(),
+    inventory: packageInventorySchema
+});
+
 export const AGENT_PKG_COUNT = 'pkg.count' as const;
 
 export const agentPkgCountPayloadSchema = z.object({
@@ -690,6 +717,10 @@ export const agentClientMessageSchema = z.discriminatedUnion('command', [
         payload: agentDockerInventoryResultPayloadSchema
     }),
     z.object({
+        command: z.literal(AGENT_PKG_INVENTORY_RESULT),
+        payload: agentPkgInventoryResultPayloadSchema
+    }),
+    z.object({
         command: z.literal(AGENT_DOCKER_STATS_RESULT),
         payload: agentDockerStatsResultPayloadSchema
     }),
@@ -885,6 +916,10 @@ export type AgentPkgUpgradePayload = z.infer<typeof agentPkgUpgradePayloadSchema
 
 /** Ask the agent for its container inventory (`docker.inventoryResult`). */
 export const AGENT_DOCKER_INVENTORY = 'docker.inventory' as const;
+/** List the installed system packages (replies `pkg.inventoryResult`). Read-only, unsigned. */
+export const AGENT_PKG_INVENTORY = 'pkg.inventory' as const;
+/** What an agent that knows `pkg.inventory` declares in `report.agent.probes`. */
+export const AGENT_PKG_INVENTORY_PROBE = 'pkgInventory';
 
 /** Ask the agent for a one-shot resource sample of the running containers. */
 export const AGENT_DOCKER_STATS = 'docker.stats' as const;
@@ -1431,6 +1466,10 @@ export const agentServerMessageSchema = z.discriminatedUnion('command', [
     }),
     z.object({
         command: z.literal(AGENT_DOCKER_INVENTORY),
+        payload: z.object({})
+    }),
+    z.object({
+        command: z.literal(AGENT_PKG_INVENTORY),
         payload: z.object({})
     }),
     z.object({

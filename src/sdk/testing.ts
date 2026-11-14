@@ -277,6 +277,7 @@ export interface TestFolderArchive {
 interface TestAgents {
     dockerRun?: DevEyeFacade['agents']['dockerRun'];
     dockerInventory?: DevEyeFacade['agents']['dockerInventory'];
+    packageInventory?: DevEyeFacade['agents']['packageInventory'];
     /** By device id. A device without an entry answers nothing: its stream throws. */
     archives?: Readonly<Record<string, TestFolderArchive | Error>>;
     openTcp?: DevEyeFacade['agents']['openTcp'];
@@ -369,6 +370,10 @@ function recordingAgents(recorded: RecordedCalls, docker: TestAgents = {}): DevE
         dockerInventory: (deviceId, timeoutMs) =>
             docker.dockerInventory
                 ? docker.dockerInventory(deviceId, timeoutMs)
+                : Promise.resolve(null),
+        packageInventory: (deviceId, timeoutMs) =>
+            docker.packageInventory
+                ? docker.packageInventory(deviceId, timeoutMs)
                 : Promise.resolve(null),
         archiveFolder(deviceId, request) {
             recorded.agentRequests.push({ method: 'archiveFolder', deviceId });
@@ -527,6 +532,8 @@ export interface TestContextOverrides<Repo> {
     dockerRun?: DevEyeFacade['agents']['dockerRun'];
     /** What `deveye.agents.dockerInventory` resolves. Default null (no answer). */
     dockerInventory?: DevEyeFacade['agents']['dockerInventory'];
+    /** What `deveye.agents.packageInventory` resolves. Default null (no answer). */
+    packageInventory?: DevEyeFacade['agents']['packageInventory'];
     /** What `deveye.agents.archiveFolder` streams, by device id. Default none: the stream throws. */
     archives?: Readonly<Record<string, TestFolderArchive | Error>>;
     /** What `deveye.agents.openTcp` resolves. Default a rejection, as for an offline device. */
@@ -850,6 +857,8 @@ export interface TestServiceOverrides<Repo> {
     dockerRun?: DevEyeFacade['agents']['dockerRun'];
     /** What `deps.agents.dockerInventory` resolves. Default null (no answer). */
     dockerInventory?: DevEyeFacade['agents']['dockerInventory'];
+    /** What `deps.agents.packageInventory` resolves. Default null (no answer). */
+    packageInventory?: DevEyeFacade['agents']['packageInventory'];
     /** What `deps.agents.archiveFolder` streams, by device id. Default none: the stream throws. */
     archives?: Readonly<Record<string, TestFolderArchive | Error>>;
     /** What `deps.agents.openTcp` resolves. Default a rejection, as for an offline device. */

@@ -9,6 +9,7 @@ import type { LogLevelName } from '../domain/logs';
 import type { ItemAccess } from '../domain/sharing';
 import type { AuthWindow, DeviceReport, IntegrityReport, ReportProcess } from '../domain/report';
 import type { ContainerEngine, DockerAction, DockerInventory } from '../domain/deviceDocker';
+import type { PackageInventory } from '../protocol/agent';
 import type { PathExclusion } from '../domain/pathExclusions';
 import type { AgentManifest } from '../http/device';
 import type { MetricSnapshot } from '../domain/metrics';
@@ -769,6 +770,11 @@ export interface AgentsFacade {
     ): Promise<{ ok: boolean; error?: string }>;
     /** The device's containers, images and volumes; `null` when its agent does not answer in time. */
     dockerInventory(deviceId: string, timeoutMs?: number): Promise<DockerInventory | null>;
+    /**
+     * The system packages installed on the device; `null` when its agent does
+     * not answer in time, or is older than `AGENT_PKG_INVENTORY_PROBE`.
+     */
+    packageInventory(deviceId: string, timeoutMs?: number): Promise<PackageInventory | null>;
     /**
      * The `.tar.gz` of one of the device's folders, built by its agent and
      * pulled at the consumer's pace: the agent sends no more than the

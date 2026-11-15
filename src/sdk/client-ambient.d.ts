@@ -707,6 +707,19 @@ declare module 'deveye-sdk-client' {
      * cannot be projected) keeps its own wording.
      */
     export const ReadOnlyNotice: ComponentType<{ children: ReactNode }>;
+    /**
+     * The notice above a feature's list, or atop an item's sheet, when nothing
+     * would be sent: no channel declared for the feature, none checked for the
+     * item (or, for a feature that notifies in its own name, none checked for
+     * it). Its button opens the Notifications tab at that scale. Renders
+     * nothing while loading, for a reader who could not fix it, and when the
+     * scope has no Notifications tab.
+     */
+    export const NotificationsNotice: ComponentType<{
+        scope:
+            | { kind: 'feature'; feature: FeatureId }
+            | { kind: 'item'; feature: FeatureId; itemId: string; itemLabel: string };
+    }>;
     export interface ErrorNoteInput {
         message: string;
         /** The failure's code, `null` when it carries none: it decides whether a report is offered. */

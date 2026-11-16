@@ -43,7 +43,8 @@ export const nativeHomeFeatureIdSchema = z.enum([
     'pdf',
     'invoicing',
     'shortlinks',
-    'whiteboard'
+    'whiteboard',
+    'appstores'
 ]);
 export type NativeHomeFeatureId = z.infer<typeof nativeHomeFeatureIdSchema>;
 

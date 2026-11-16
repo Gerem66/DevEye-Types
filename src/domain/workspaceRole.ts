@@ -125,7 +125,13 @@ export const workspaceFeatureIdSchema = z.enum([
      * dessine, `write` = créer un tableau, dessiner, y coller des images, le
      * renommer, le supprimer.
      */
-    'whiteboard'
+    'whiteboard',
+    /**
+     * Stores. `read` = consulter les chiffres, les notes et les avis des apps,
+     * `write` = suivre une app, relier un compte de store et sa clé, répondre
+     * aux avis. Les revenus sont une permission propre du module.
+     */
+    'appstores'
 ]);
 
 export type WorkspaceFeatureId = z.infer<typeof workspaceFeatureIdSchema>;

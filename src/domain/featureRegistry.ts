@@ -386,6 +386,24 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         hasItems: true,
         itemNoun: 'tableau',
         shareTier: 'open'
+    },
+    {
+        id: 'appstores',
+        label: 'Stores',
+        description:
+            'Lecture : les téléchargements, les notes et les avis des apps. Écriture : suivre une app, relier un compte de store, répondre aux avis. Les revenus demandent leur propre permission.',
+        icon: 'appstores',
+        notifies: true,
+        notifications: {
+            hint: 'Envoyées à l’arrivée de nouveaux avis, quand Apple change l’état d’une version, quand le taux de plantage d’une app franchit le seuil de Google Play, et quand un compte de store refuse sa clé puis l’accepte de nouveau.'
+        },
+        hasItems: true,
+        itemNoun: 'app',
+        itemNounGender: 'f',
+        sources: {
+            hint: 'Les comptes App Store Connect et Google Play de l’espace, chacun avec sa clé. Chaque app choisit le sien pour chaque store ; ses chiffres et ses avis arrivent alors seuls.'
+        },
+        shareTier: 'open'
     }
 ];
 
@@ -521,7 +539,8 @@ export const PROJECT_LINKED_FEATURES: readonly FeatureId[] = [
     'deploy',
     'uptime',
     'x-hosting',
-    'whiteboard'
+    'whiteboard',
+    'appstores'
 ];
 
 /** Les fonctionnalités qui savent prévenir, dans l'ordre du registre. */

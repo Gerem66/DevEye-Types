@@ -519,6 +519,43 @@ export interface WhiteboardClientProvider {
     }>;
 }
 
+/** An app of the workspace, as the Stores client provider lists it for a project's picker. */
+export interface AppStoresLinkedCandidate {
+    id: number;
+    name: string;
+    /** Projected here from another workspace. */
+    foreign?: boolean;
+}
+
+/**
+ * What the Stores module offers the host's screens under
+ * `APPSTORES_CLIENT_PROVIDER`: the workspace's apps, a linked app shown inside
+ * a project's tab, and the feature's own app dialog.
+ */
+export interface AppStoresClientProvider {
+    /** The workspace's apps, in the module's own order. */
+    listApps(): Promise<readonly AppStoresLinkedCandidate[]>;
+    /**
+     * The given apps, summarised for a project's dashboard tile, in ONE round
+     * trip. An id the caller cannot read, or that is gone, comes back
+     * `unavailable`, never as a throw. Never carries an amount of money: the
+     * module's revenue has a permission of its own.
+     */
+    summarize(appIds: readonly number[]): Promise<readonly SdkTileSummary[]>;
+    /**
+     * An app linked to a project: its stores, its downloads and ratings over
+     * the last days. Loads itself, follows the feature's invalidations, and
+     * renders the host's "unlink" as its trailing action.
+     */
+    LinkedApp: ComponentType<{ appId: number; canWrite: boolean; onUnlink: () => void }>;
+    /** The feature's app form, to follow a new app from a project. */
+    AppDialog: ComponentType<{
+        open: boolean;
+        onClose: () => void;
+        onSaved: (appId: number) => void;
+    }>;
+}
+
 /**
  * What the Invoicing module offers other screens under
  * `INVOICING_CLIENT_PROVIDER`. It sends Invoicing's own command under the

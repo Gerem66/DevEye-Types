@@ -1160,6 +1160,10 @@ export {
     notifyChannelUpdate,
     notifyChannelUsage,
     notifyCommands,
+    notifyNoticeCount,
+    notifyNoticeGet,
+    notifyNoticeHide,
+    notifyNoticeReset,
     notifyRouteGet,
     notifyRouteSet,
     notifyRouteTest

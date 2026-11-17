@@ -713,7 +713,9 @@ declare module 'deveye-sdk-client' {
      * item (or, for a feature that notifies in its own name, none checked for
      * it). Its button opens the Notifications tab at that scale. Renders
      * nothing while loading, for a reader who could not fix it, and when the
-     * scope has no Notifications tab.
+     * scope has no Notifications tab. Its close button hides it for that
+     * reader on that page only (this list in this workspace, or this item's
+     * sheet), until they bring it back from their Profile.
      */
     export const NotificationsNotice: ComponentType<{
         scope:

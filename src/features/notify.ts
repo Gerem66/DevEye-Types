@@ -112,6 +112,38 @@ export const notifyRouteTest = {
     output: notificationTestSchema
 };
 
+/**
+ * The "nothing would be sent" notice of one page, as the caller left it: a
+ * feature's list in the envelope's workspace (no `itemId`), or an item's
+ * sheet. Hidden for that account only, until it brings them all back.
+ */
+export const notifyNoticeGet = {
+    command: 'notify.noticeGet' as const,
+    input: notificationRouteTargetSchema,
+    output: z.object({ hidden: z.boolean() })
+};
+
+/** Hides that notice for the caller, on that page only. */
+export const notifyNoticeHide = {
+    command: 'notify.noticeHide' as const,
+    input: notificationRouteTargetSchema,
+    output: z.object({})
+};
+
+/** How many pages the account hid the notice on, every workspace included. */
+export const notifyNoticeCount = {
+    command: 'notify.noticeCount' as const,
+    input: z.object({}),
+    output: z.object({ count: z.number().int().nonnegative() })
+};
+
+/** Brings the notice back on every page the account hid it on. */
+export const notifyNoticeReset = {
+    command: 'notify.noticeReset' as const,
+    input: z.object({}),
+    output: z.object({})
+};
+
 export const notifyCommands = [
     notifyChannelList,
     notifyChannelAdd,
@@ -122,5 +154,9 @@ export const notifyCommands = [
     notifyChannelTest,
     notifyRouteGet,
     notifyRouteSet,
-    notifyRouteTest
+    notifyRouteTest,
+    notifyNoticeGet,
+    notifyNoticeHide,
+    notifyNoticeCount,
+    notifyNoticeReset
 ] as const;

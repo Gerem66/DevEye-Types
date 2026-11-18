@@ -368,6 +368,11 @@ declare module 'deveye-sdk-client' {
         searchable?: boolean | 'auto';
         /** Chips under the search, AND-combined, reset when the panel closes. */
         filters?: readonly SearchSelectFilter<T>[];
+        /**
+         * For a long list with long labels: the panel opens larger, grows by
+         * its corner, and the browser keeps the dragged size under this key.
+         */
+        resizeKey?: string;
         /** The trigger's id, for a label's `htmlFor`. */
         id?: string;
         /** The field the opening Dialog focuses first (`data-autofocus`). */

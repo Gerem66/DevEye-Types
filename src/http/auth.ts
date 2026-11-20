@@ -234,3 +234,47 @@ export const signupCompleteResponseSchema = sessionBundleSchema.extend({
 });
 
 export type SignupCompleteResponse = z.infer<typeof signupCompleteResponseSchema>;
+
+/**
+ * Forgotten password, in three steps: ask with the account's email
+ * (`/password-reset`), open the mailed link (`/password-reset/verify`), choose
+ * a new password (`/password-reset/complete`). The first step answers the same
+ * whether the address has an account or not. No session is opened at the end:
+ * the person signs in again, second factors included.
+ */
+export const passwordResetStartRequestSchema = z.object({ email: z.string().email().max(320) });
+
+export type PasswordResetStartRequest = z.infer<typeof passwordResetStartRequestSchema>;
+
+export const passwordResetVerifyRequestSchema = z.object({ token: z.string().min(1).max(128) });
+
+export type PasswordResetVerifyRequest = z.infer<typeof passwordResetVerifyRequestSchema>;
+
+export const passwordResetVerifyResponseSchema = z.object({
+    username: z.string(),
+    /**
+     * The account's data is encrypted under its password: the recovery code
+     * chosen at activation must come with the new password, or that data
+     * would be lost.
+     */
+    recoveryRequired: z.boolean()
+});
+
+export type PasswordResetVerifyResponse = z.infer<typeof passwordResetVerifyResponseSchema>;
+
+export const passwordResetCompleteRequestSchema = z.object({
+    token: z.string().min(1).max(128),
+    password: passwordSchema,
+    /** Required when `recoveryRequired`, ignored otherwise. */
+    recoveryCode: z.string().max(64).optional()
+});
+
+export type PasswordResetCompleteRequest = z.infer<typeof passwordResetCompleteRequestSchema>;
+
+export const passwordResetCompleteResponseSchema = z.object({
+    username: z.string(),
+    /** The recovery code that replaces the one just used, shown once. `null` when none was needed. */
+    recoveryCode: z.string().nullable()
+});
+
+export type PasswordResetCompleteResponse = z.infer<typeof passwordResetCompleteResponseSchema>;

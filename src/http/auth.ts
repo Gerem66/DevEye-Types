@@ -45,7 +45,8 @@ export const sessionBundleSchema = z.object({
 export type SessionBundle = z.infer<typeof sessionBundleSchema>;
 
 export const loginRequestSchema = z.object({
-    username: z.string().min(1).max(120),
+    /** The account name, or its email address (a name never holds an "@"). */
+    username: z.string().min(1).max(320),
     password: z.string().min(1).max(512),
     /** A federated page's trusted-browser token for this account; a same-origin page holds a cookie instead. */
     trustToken: z.string().max(256).optional()

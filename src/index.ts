@@ -1085,6 +1085,7 @@ export {
     workspaceAcceptInvite,
     workspaceDeclineInvite,
     workspaceAssignRole,
+    workspaceFeatureAccessSet,
     workspaceRename,
     workspaceRoleCreate,
     workspaceRoleDelete,

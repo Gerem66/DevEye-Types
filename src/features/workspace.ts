@@ -3,6 +3,8 @@ import { homeLayoutSchema } from '../domain/home';
 import { workspaceSchema } from '../domain/workspace';
 import {
     WORKSPACE_ROLE_NAME_MAX,
+    featureAccessSchema,
+    featureIdSchema,
     workspaceCapabilitySchema,
     workspaceFeatureGrantSchema,
     workspacePermissionsSchema,
@@ -140,7 +142,8 @@ const roleDraftSchema = z.object({
     name: z.string().min(1).max(WORKSPACE_ROLE_NAME_MAX),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
     capabilities: z.array(workspaceCapabilitySchema),
-    features: z.array(workspaceFeatureGrantSchema)
+    features: z.array(workspaceFeatureGrantSchema),
+    allFeatures: z.boolean()
 });
 
 export const workspaceRoleList = {
@@ -186,6 +189,28 @@ export const workspaceRoleSetDefault = {
     output: z.object({ roleId: z.number().int().positive() })
 };
 
+/**
+ * Ouvre une fonctionnalité à des rôles, en un geste : l'étape d'accès qui suit
+ * l'ajout de sa tuile. Un grant neuf ne porte que le niveau ; un grant existant
+ * garde ses réglages et ne fait que monter. Un rôle `allFeatures` est ignoré.
+ */
+export const workspaceFeatureAccessSet = {
+    command: 'workspace.featureAccessSet' as const,
+    input: z.object({
+        feature: featureIdSchema,
+        grants: z
+            .array(
+                z.object({
+                    roleId: z.number().int().positive(),
+                    access: featureAccessSchema
+                })
+            )
+            .min(1)
+            .max(100)
+    }),
+    output: z.object({ roleIds: z.array(z.number().int().positive()) })
+};
+
 /** Attribue un rôle à un membre. `null` le laisse sans aucun droit. */
 export const workspaceAssignRole = {
     command: 'workspace.assignRole' as const,
@@ -205,6 +230,7 @@ export const workspaceCommands = [
     workspaceRoleUpdate,
     workspaceRoleDelete,
     workspaceRoleSetDefault,
+    workspaceFeatureAccessSet,
     workspaceAssignRole,
     workspaceRename,
     workspaceLeave,

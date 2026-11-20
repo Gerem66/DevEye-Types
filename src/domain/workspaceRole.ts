@@ -224,6 +224,12 @@ export const workspaceRoleSchema = z.object({
     position: z.number().int().nonnegative(),
     capabilities: z.array(workspaceCapabilitySchema),
     features: z.array(workspaceFeatureGrantSchema),
+    /**
+     * Écriture et tous les réglages sur chaque fonctionnalité, celles installées
+     * plus tard comprises : `features` est alors ignoré. Les capacités restent
+     * celles du rôle.
+     */
+    allFeatures: z.boolean(),
     /** Attribué d'office à qui rejoint l'espace. */
     isDefault: z.boolean(),
     memberCount: z.number().int().nonnegative()
@@ -242,6 +248,7 @@ export interface WorkspaceRoleRow {
     capabilities: string;
     /** Tableau JSON de `WorkspaceFeatureGrant`. */
     features: string;
+    all_features: number;
     is_default: number;
     created: number;
 }

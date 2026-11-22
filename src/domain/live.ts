@@ -216,7 +216,6 @@ export const TOPIC_FEATURE: Record<NativeLiveTopic, WorkspaceFeatureId | null> =
     backup: 'backup',
     finance: 'finance',
     audience: 'audience',
-    osint: 'osint',
     cve: 'cve',
     mailserver: 'mailserver',
     convert: 'convert',

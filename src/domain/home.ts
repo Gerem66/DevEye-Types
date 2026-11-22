@@ -36,7 +36,6 @@ export const nativeHomeFeatureIdSchema = z.enum([
     'backup',
     'finance',
     'audience',
-    'osint',
     'cve',
     'mailserver',
     'convert',

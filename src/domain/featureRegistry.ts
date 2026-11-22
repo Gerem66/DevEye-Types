@@ -283,16 +283,6 @@ export const FEATURE_REGISTRY: readonly (FeatureDescriptor & { id: WorkspaceFeat
         shareTier: 'open'
     },
     {
-        id: 'osint',
-        label: 'OSINT',
-        description:
-            'Lecture : recherches et historique. Écriture : purge et clés d’API des fournisseurs.',
-        icon: 'search',
-        notifies: false,
-        hasItems: false,
-        shareTier: 'never'
-    },
-    {
         id: 'cve',
         label: 'Veille CVE',
         description:

@@ -29,6 +29,7 @@ import {
     type SdkFeatureContext,
     type SdkInstanceAlert,
     type SdkLogger,
+    type SdkNet,
     type SdkObjectStore,
     type SdkOrigins,
     type SdkPlanPauses,
@@ -519,6 +520,8 @@ export interface TestContextOverrides<Repo> {
     notifyAccepted?: boolean;
     /** What `ctx.origins` answers. Default `https://deveye.test` / `https://public.deveye.test` / `https://site.deveye.test`. */
     origins?: SdkOrigins;
+    /** What `ctx.net` answers. Default: every fetch rejects, a test never reaches the network by accident. */
+    net?: SdkNet;
     /** The channel ids `deveye.notify.liveChannels` lists. Default none. */
     liveChannels?: readonly number[];
     /** Devices `deveye.devices` reveals. Default none listed, any id authorized. */
@@ -805,6 +808,12 @@ export function createTestContext<Repo = undefined>(
             app: 'https://deveye.test',
             public: 'https://public.deveye.test',
             site: 'https://site.deveye.test'
+        },
+        net: overrides.net ?? {
+            fetch: (input) =>
+                Promise.reject(
+                    new Error(`ctx.net.fetch(${String(input)}): pass a fake network to the harness`)
+                )
         }
     };
 }

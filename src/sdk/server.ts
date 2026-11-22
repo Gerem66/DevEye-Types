@@ -1305,6 +1305,30 @@ export interface SdkOrigins {
     site: string | null;
 }
 
+/** What {@link SdkNet.fetch} accepts: the part of a `RequestInit` the guard carries across redirects. */
+export interface SdkNetRequest {
+    method?: string;
+    headers?: Readonly<Record<string, string>>;
+    body?: string;
+    signal?: AbortSignal;
+    /** `'follow'` by default; `'manual'` hands a 3xx back as is. */
+    redirect?: 'follow' | 'manual';
+}
+
+/**
+ * The host's outbound guard, for a URL a member could have chosen. Three
+ * checks, because one is not enough: the URL (scheme, name, literal IP), each
+ * redirect hop again, and the address actually connected to, so a public name
+ * that resolves or rebinds to the internal network is refused at connection
+ * time. A hop to another host drops the credential headers (`authorization`,
+ * `cookie`, `x-api-key`). A refused target rejects with a {@link NetRefused};
+ * any HTTP status comes back as is. The instance may open its private network
+ * (`OUTBOUND_ALLOW_PRIVATE`), never link-local.
+ */
+export interface SdkNet {
+    fetch(input: string | URL, init?: SdkNetRequest): Promise<Response>;
+}
+
 /** What the domain hooks receive. Sessionless: they also run from the background pass. */
 export interface FeatureDomainsContext<Repo = unknown> {
     repo: Repo;
@@ -1411,6 +1435,8 @@ export interface SdkFeatureContext<Repo = unknown> {
      * callback URL): never derive it from the browser's location.
      */
     origins: SdkOrigins;
+    /** HTTP toward the outside world, through the host's guard: see {@link SdkNet}. */
+    net: SdkNet;
 }
 
 /**

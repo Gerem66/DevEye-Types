@@ -569,7 +569,7 @@ declare module 'deveye-sdk-client' {
     }): Promise<unknown>;
     /** The technical terms the app's glossary defines. */
     export type GlossaryTermId =
-        'zeroKnowledge' | 'encryption' | 'twoFactor' | 'webhook' | 'imap' | 'smtp' | 'proxy';
+        'passwordEncryption' | 'encryption' | 'twoFactor' | 'webhook' | 'imap' | 'smtp' | 'proxy';
     /**
      * A technical term inside a sentence: reads like the surrounding text and
      * opens its plain-language definition on click. `children` is the term as
@@ -712,6 +712,14 @@ declare module 'deveye-sdk-client' {
      * cannot be projected) keeps its own wording.
      */
     export const ReadOnlyNotice: ComponentType<{ children: ReactNode }>;
+    /**
+     * The sentence that goes in the hint of a field holding a credential the
+     * server reads on its own (a background job uses it without a session):
+     * it says so, in the same words everywhere. Text only, it takes the look
+     * of the hint it sits in. `purpose` is what the server does with it, as a
+     * French infinitive ("relever la base").
+     */
+    export const ServerHeldNote: ComponentType<{ purpose: string }>;
     /**
      * The notice above a feature's list, or atop an item's sheet, when nothing
      * would be sent: no channel declared for the feature, none checked for the

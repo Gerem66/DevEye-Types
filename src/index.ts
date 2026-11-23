@@ -752,6 +752,7 @@ export type { PackageManager, PackageManagerId, UnmanagedUpdaterId } from './dom
 export {
     agentInfoSchema,
     agentPolicySchema,
+    AGENT_LINK_ALLOW_PROBE,
     agentServiceScopeSchema,
     AUTH_LOGIN_LIMIT,
     AUTH_SOURCE_LIMIT,

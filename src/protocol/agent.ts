@@ -1156,7 +1156,8 @@ export const syncShareAssignmentSchema = z.object({
      * login and service startup folders, a shell startup file in a home
      * folder. Off, the agent refuses every such write (what the share holds
      * there still goes up). On, a machine whose local policy refuses the
-     * terminal still refuses them: such a write would give one.
+     * terminal (the root one, for a privileged agent) still refuses them:
+     * such a write would give one.
      */
     sensitiveWrites: z.boolean().default(false)
 });

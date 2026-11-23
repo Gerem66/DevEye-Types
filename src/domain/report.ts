@@ -212,7 +212,14 @@ export type AgentServiceScope = z.infer<typeof agentServiceScopeSchema>;
  */
 export const agentPolicySchema = z.object({
     terminal: z.boolean(),
-    /** Browsing, searching and downloading files. Defaulted, like the switches below: an agent older than them reports without them, and does not refuse. */
+    /**
+     * A root shell (an elevated one on Windows): what a privileged agent opens
+     * for a session that names no other account. On top of `terminal`.
+     * Defaulted, like `filesRead` and the switches after it: an agent older
+     * than them reports without them, and does not refuse.
+     */
+    terminalRoot: z.boolean().default(true),
+    /** Browsing, searching and downloading files. */
     filesRead: z.boolean().default(true),
     filesWrite: z.boolean(),
     power: z.boolean(),
@@ -229,6 +236,12 @@ export const agentPolicySchema = z.object({
     tunnel: z.boolean().default(true)
 });
 export type AgentPolicy = z.infer<typeof agentPolicySchema>;
+
+/**
+ * What an agent declares in `report.agent.probes` when its `link` takes
+ * `--allow` and allows nothing without it. An older one refuses the option.
+ */
+export const AGENT_LINK_ALLOW_PROBE = 'linkAllow';
 
 export const agentInfoSchema = z.object({
     /** Running as root (Unix euid 0) / elevated (Windows). */
@@ -258,6 +271,7 @@ export const agentInfoSchema = z.object({
     probes: z.array(z.string().max(32)).max(16).default([]),
     policy: agentPolicySchema.default({
         terminal: true,
+        terminalRoot: true,
         filesRead: true,
         filesWrite: true,
         power: true,

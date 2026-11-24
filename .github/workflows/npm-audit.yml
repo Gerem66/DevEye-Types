@@ -1,0 +1,26 @@
+# An advisory against a dependency of the published package does not wait for a
+# release: whoever installs `@deveye/types` installs it too.
+name: npm audit
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      # The lockfile alone: nothing is installed. Development tools are left
+      # out, they are not part of the package.
+      - name: Audit
+        run: npm audit --omit=dev --audit-level=high

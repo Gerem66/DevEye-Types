@@ -2066,6 +2066,19 @@ export interface SdkE2eScenario<Repo = unknown> {
     label: string;
     /** Why it cannot run here right now, or `null`. Asked before every run. */
     skip?(ctx: { origins: SdkOrigins }): string | null | Promise<string | null>;
+    /**
+     * The third party it cannot pass without (`'GitHub'`, `'Stripe'`): one
+     * that must answer, or call this server back. The administrator still
+     * runs it from the page, which names it; the unattended run of the CI
+     * leaves it out.
+     */
+    external?: string;
+    /**
+     * Opens the throwaway account as an instance moderator: what it takes to
+     * send a command declared `moderation: true`. Still a throwaway account,
+     * deleted with all it owns.
+     */
+    moderator?: boolean;
     steps: readonly SdkE2eStep<Repo>[];
 }
 

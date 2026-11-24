@@ -538,6 +538,19 @@ describe('condensés d’un arbre', () => {
         assert.equal(tables.sites.rows[0].name_ref, 'name/9/vitrine');
         // Les condensés liés à l'élément ne bougent pas avec lui.
         assert.equal(tables.pages.rows[0].path_ref, 'path/1//accueil');
+
+        // Un déplacement ne relit pas ce qui ne dépend que de l'élément.
+        tables.pages.rows[0].path_ref = 'ancien-10';
+        const moved = await rekeyItemDigests(
+            q,
+            SITES,
+            1,
+            { ...target, workspaceId: 10 },
+            { within: 'workspace' }
+        );
+        assert.deepEqual(moved, { rewritten: 1, unreadable: 0 });
+        assert.equal(tables.sites.rows[0].name_ref, 'name/10/vitrine');
+        assert.equal(tables.pages.rows[0].path_ref, 'ancien-10');
     });
 
     it('la reprise réécrit chaque élément pour son espace, une seule fois', async () => {

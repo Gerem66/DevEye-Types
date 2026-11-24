@@ -629,17 +629,22 @@ async function digestOfRow(
  * Recomputes the digests of ONE item for `target.workspaceId`, writing only
  * the rows whose digest differs: in a `move.apply`, after {@link resealCells}
  * (the cells are then under the destination's key), with the same
- * transactional `q`.
+ * transactional `q`. A move changes the workspace and not the item: pass
+ * `{ within: 'workspace' }` there, and the rows digested within the item (a
+ * cache of thousands of commits) are not even read.
  */
 export async function rekeyItemDigests(
     q: SdkQueryable,
     tree: ItemTree,
     itemId: string | number,
-    target: ItemDigestTarget
+    target: ItemDigestTarget,
+    only?: { within: ItemTreeDigest['within'] }
 ): Promise<ItemDigestPass> {
     const pass: ItemDigestPass = { rewritten: 0, unreadable: 0 };
-    for (const t of tree) {
-        if ((t.digests ?? []).length === 0) continue;
+    for (const table of tree) {
+        const digests = (table.digests ?? []).filter((d) => !only || d.within === only.within);
+        if (digests.length === 0) continue;
+        const t = { ...table, digests };
         const rows = await q.query<ItemTreeRow>(
             `SELECT * FROM ${t.table} WHERE ${ownerFilter(t)} ORDER BY ${t.idColumn!} ASC`,
             [itemId]

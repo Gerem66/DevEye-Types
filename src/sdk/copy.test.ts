@@ -5,9 +5,13 @@ import {
     exportItemTree,
     FeatureError,
     importItemTree,
+    itemDigestTaken,
     itemTierOf,
     itemTreeProblem,
     movableCellsOf,
+    rekeyItemDigests,
+    rekeyTreeDigests,
+    type ItemDigestKeys,
     type ItemTree,
     type SdkCipher,
     type SdkQueryable
@@ -26,6 +30,12 @@ type Row = Record<string, unknown>;
 const SCOPED_READ = new RegExp(
     '^SELECT \\* FROM (\\w+) WHERE (\\w+) IN ' +
         '\\(SELECT (\\w+) FROM (\\w+) WHERE (\\w+) = \\?\\)'
+);
+
+/** La lecture paginée des éléments d'un arbre, par clé primaire. */
+const PAGED_READ = new RegExp(
+    '^SELECT (\\w+) AS id, (\\w+) AS workspace_id FROM (\\w+) ' +
+        'WHERE \\w+ > \\? ORDER BY \\w+ ASC LIMIT (\\d+)'
 );
 
 /** Une base qui ne comprend que le SQL du moteur : lectures par propriétaire, insertions, une mise à jour. */
@@ -65,6 +75,14 @@ function fakeDb(tables: Record<string, { columns: string[]; rows: Row[] }>) {
                 return tables[scoped[1]].rows.filter((r) =>
                     parents.has(r[scoped[2]])
                 ) as unknown as T[];
+            }
+            const page = PAGED_READ.exec(sql);
+            if (page) {
+                return tables[page[3]].rows
+                    .filter((r) => (r[page[1]] as number) > (params[0] as number))
+                    .sort((a, b) => (a[page[1]] as number) - (b[page[1]] as number))
+                    .slice(0, Number(page[4]))
+                    .map((r) => ({ id: r[page[1]], workspace_id: r[page[2]] })) as unknown as T[];
             }
             const read = /^SELECT \* FROM (\w+) WHERE (\w+) = \?/.exec(sql);
             if (read) {
@@ -392,6 +410,195 @@ describe('arbre d’un élément', () => {
         assert.match(
             itemTreeProblem([{ ...TREE[0], redact: { name: (p) => p } }]) ?? '',
             /redacted/
+        );
+    });
+});
+
+/**
+ * Les condensés d'un arbre. Ce qui ne pardonne pas ici : un condensé qui
+ * voyagerait d'un espace à l'autre (il relierait les deux), un nom tenu pour
+ * libre parce que comparé au condensé d'ailleurs, et une reprise qui laisserait
+ * des lignes à l'ancien format.
+ */
+
+/** Un condensé lisible : on y voit l'usage, la portée et la valeur. */
+const KEYS: ItemDigestKeys = { ref: (purpose, scope, value) => `${purpose}/${scope}/${value}` };
+
+const nameOf = (plain: string): string =>
+    (JSON.parse(plain) as { name: string }).name.trim().toLowerCase();
+
+const SITES: ItemTree = [
+    {
+        table: 'sites',
+        idColumn: 'id',
+        ownerColumn: 'id',
+        workspaceColumn: 'workspace_id',
+        unique: { column: 'name_ref', message: 'Un site du même nom existe déjà dans cet espace.' },
+        sealed: ['content'],
+        digests: [
+            {
+                column: 'name_ref',
+                purpose: 'name',
+                within: 'workspace',
+                from: 'content',
+                of: nameOf
+            }
+        ]
+    },
+    {
+        table: 'pages',
+        idColumn: 'id',
+        ownerColumn: 'site_id',
+        sealed: ['content'],
+        digests: [
+            { column: 'path_ref', purpose: 'path', within: 'item', from: 'content', of: nameOf }
+        ]
+    }
+];
+
+function sitesDb() {
+    const tables = {
+        sites: {
+            columns: ['id', 'workspace_id', 'name_ref', 'content'],
+            rows: [
+                {
+                    id: 1,
+                    workspace_id: 7,
+                    name_ref: 'ancien-1',
+                    content: 'k7:{"name":" Vitrine "}'
+                },
+                { id: 2, workspace_id: 8, name_ref: 'ancien-2', content: 'k8:{"name":"vitrine"}' }
+            ] as Row[]
+        },
+        pages: {
+            columns: ['id', 'site_id', 'path_ref', 'content'],
+            rows: [
+                { id: 10, site_id: 1, path_ref: 'ancien-10', content: 'k7:{"name":"/Accueil"}' },
+                { id: 11, site_id: 1, path_ref: 'ancien-11', content: 'k7:{"name":"/prix"}' },
+                { id: 12, site_id: 2, path_ref: 'ancien-12', content: 'k8:{"name":"/accueil"}' }
+            ] as Row[]
+        }
+    };
+    return { tables, q: fakeDb(tables) };
+}
+
+const cipherFor = (workspaceId: number): SdkCipher => cipherOf(`k${workspaceId}`);
+
+describe('condensés d’un arbre', () => {
+    it('une copie n’emporte aucun condensé, et arrive avec ceux de sa destination', async () => {
+        const { tables, q } = sitesDb();
+        const rows = await exportItemTree(q, SITES, 1, cipherOf('k7'));
+        assert.equal('name_ref' in rows.sites[0], false);
+        assert.equal('path_ref' in rows.pages[0], false);
+
+        const newId = await importItemTree(q, SITES, rows, { ...into('k42'), keys: KEYS });
+        const copy = tables.sites.rows.find((r) => String(r.id) === newId);
+        assert.equal(copy?.name_ref, 'name/42/vitrine');
+        assert.deepEqual(
+            tables.pages.rows.filter((r) => String(r.site_id) === newId).map((r) => r.path_ref),
+            [`path/${newId}//accueil`, `path/${newId}//prix`]
+        );
+    });
+
+    it('refuse un paquet qui apporte son condensé, et un arbre à condensés sans clés à l’arrivée', async () => {
+        const { q } = sitesDb();
+        const rows = await exportItemTree(q, SITES, 1, cipherOf('k7'));
+        const forged = { ...rows, sites: [{ ...rows.sites[0], name_ref: 'name/42/libre' }] };
+        await assert.rejects(importItemTree(q, SITES, forged, { ...into('k42'), keys: KEYS }), {
+            code: 'validation'
+        });
+        await assert.rejects(importItemTree(q, SITES, rows, into('k42')), /needs `keys`/);
+    });
+
+    it('juge l’unicité sur le condensé de la destination, pas sur celui du départ', async () => {
+        const { tables, q } = sitesDb();
+        tables.sites.rows.push({
+            id: 3,
+            workspace_id: 42,
+            name_ref: 'name/42/vitrine',
+            content: 'k42:{}'
+        });
+        const rows = await exportItemTree(q, SITES, 1, cipherOf('k7'));
+        await assert.rejects(importItemTree(q, SITES, rows, { ...into('k42'), keys: KEYS }), {
+            code: 'conflict'
+        });
+    });
+
+    it('un déplacement sait d’avance si le nom est pris à l’arrivée, puis recalcule pour elle', async () => {
+        const { tables, q } = sitesDb();
+        const target = { cipher: cipherOf('k7'), keys: KEYS, workspaceId: 8 };
+        // L'espace 8 tient déjà « vitrine », sous son ancien condensé : il faut d'abord le reprendre.
+        assert.equal(await itemDigestTaken(q, SITES, 1, target), false);
+        await rekeyTreeDigests(q, SITES, { cipherFor, keys: KEYS });
+        assert.equal(await itemDigestTaken(q, SITES, 1, target), true);
+        assert.equal(await itemDigestTaken(q, SITES, 1, { ...target, workspaceId: 9 }), false);
+
+        const pass = await rekeyItemDigests(q, SITES, 1, { ...target, workspaceId: 9 });
+        assert.deepEqual(pass, { rewritten: 1, unreadable: 0 });
+        assert.equal(tables.sites.rows[0].name_ref, 'name/9/vitrine');
+        // Les condensés liés à l'élément ne bougent pas avec lui.
+        assert.equal(tables.pages.rows[0].path_ref, 'path/1//accueil');
+    });
+
+    it('la reprise réécrit chaque élément pour son espace, une seule fois', async () => {
+        const { tables, q } = sitesDb();
+        const first = await rekeyTreeDigests(q, SITES, { cipherFor, keys: KEYS });
+        assert.deepEqual(first, { items: 2, rewritten: 5, unreadable: 0 });
+        assert.deepEqual(
+            tables.sites.rows.map((r) => r.name_ref),
+            ['name/7/vitrine', 'name/8/vitrine']
+        );
+        assert.deepEqual(
+            tables.pages.rows.map((r) => r.path_ref),
+            ['path/1//accueil', 'path/1//prix', 'path/2//accueil']
+        );
+        const second = await rekeyTreeDigests(q, SITES, { cipherFor, keys: KEYS });
+        assert.deepEqual(second, { items: 2, rewritten: 0, unreadable: 0 });
+    });
+
+    it('une cellule illisible reçoit un condensé à elle, pour qu’aucun ancien ne reste', async () => {
+        const { tables, q } = sitesDb();
+        tables.pages.rows[1].content = 'autre-clé:{"name":"/prix"}';
+        tables.pages.rows[2].content = 'k8:pas du json';
+        const pass = await rekeyTreeDigests(q, SITES, { cipherFor, keys: KEYS });
+        assert.equal(pass.unreadable, 2);
+        assert.match(String(tables.pages.rows[1].path_ref), /^path\/1\/.*unreadable:pages:11$/);
+        assert.match(String(tables.pages.rows[2].path_ref), /^path\/2\/.*unreadable:pages:12$/);
+    });
+
+    it('s’arrête sur un espace dont la clé ne s’ouvre pas, plutôt que de le laisser à l’ancien format', async () => {
+        const { q } = sitesDb();
+        const failing = (workspaceId: number): SdkCipher => {
+            if (workspaceId === 8) throw new Error('clé de l’espace 8 illisible');
+            return cipherFor(workspaceId);
+        };
+        await assert.rejects(
+            rekeyTreeDigests(q, SITES, { cipherFor: failing, keys: KEYS }),
+            /espace 8/
+        );
+    });
+
+    it('refuse au démarrage une déclaration de condensé mal formée', () => {
+        const [root, pages] = SITES;
+        const digest = root.digests![0];
+        const withRoot = (patch: object): ItemTree => [{ ...root, ...patch }, pages];
+        assert.equal(itemTreeProblem(SITES), null);
+        assert.match(
+            itemTreeProblem(withRoot({ digests: [{ ...digest, from: 'autre' }] })) ?? '',
+            /not a sealed column/
+        );
+        assert.match(
+            itemTreeProblem(withRoot({ digests: [{ ...digest, within: 'item' }] })) ?? '',
+            /within the workspace/
+        );
+        assert.match(itemTreeProblem(withRoot({ omit: ['content'] })) ?? '', /does not carry/);
+        assert.match(
+            itemTreeProblem(withRoot({ tier: { column: 'tier', open: 'o', private: 'p' } })) ?? '',
+            /no tier/
+        );
+        assert.match(
+            itemTreeProblem(withRoot({ digests: [{ ...digest, column: 'a b' }] })) ?? '',
+            /plain SQL identifier/
         );
     });
 });

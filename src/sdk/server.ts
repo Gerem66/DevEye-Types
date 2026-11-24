@@ -1926,6 +1926,11 @@ export interface FeatureServer<Repo = unknown> {
      * Each table is one of yours, listed in `accountExport.tables`.
      */
     sealed?: readonly FeatureSealedColumn[];
+    /**
+     * Rewrites of your own rows that SQL alone cannot do, because they need a
+     * key: see {@link FeatureDataStep}. Run once each, in this order, at boot.
+     */
+    dataSteps?: readonly FeatureDataStep<Repo>[];
     /** One entry per quota of the manifest, by its key, `perOperation` ones excepted, and none other. */
     quotas?: Readonly<Record<string, FeatureQuotaEntry<Repo>>>;
     /**
@@ -2268,6 +2273,37 @@ export interface SdkMovePlan {
     rows: number;
 }
 
+/**
+ * A rewrite of your rows that needs a key: recomputing a digest, sealing a
+ * column that was not. The host runs it ONCE, at boot, after the migrations
+ * and before any service or request, and records it by `id`. A step that
+ * throws stops the boot, like a failed migration: the server does not start on
+ * rows half rewritten.
+ *
+ * Write it so that it can run again from the top: a boot cut short runs it
+ * anew. When it cannot (a rewrite that must not be applied twice), set
+ * `atomic`: the step and its record then commit together or not at all, and
+ * `q` is that transaction.
+ */
+export interface FeatureDataStep<Repo = unknown> {
+    /** Unique within your feature, and never reused: `001-keyed-refs`. */
+    id: string;
+    atomic?: boolean;
+    run(ctx: FeatureDataStepContext<Repo>): Promise<void>;
+}
+
+/** The handles a {@link FeatureDataStep} works with: no session, no request. */
+export interface FeatureDataStepContext<Repo = unknown> {
+    /** Write through this. The step's transaction when it is `atomic`. */
+    q: SdkQueryable;
+    /** Your repo, bound to the pool: for reads. */
+    repo: Repo;
+    /** Open tier only: a cell under a member's password is out of reach here. Throws when the workspace's key does not open. */
+    cipherFor(workspaceId: number): SdkCipher;
+    keys: SdkServerKeys;
+    logger: SdkLogger;
+}
+
 /** See {@link FeatureItemsEntry.move}. */
 export interface FeatureItemsMove<Repo = unknown> {
     /**
@@ -2296,6 +2332,13 @@ export interface FeatureItemsMovePlanContext<Repo = unknown> {
     itemId: string;
     fromWorkspaceId: number;
     toWorkspaceId: number;
+    /**
+     * The open cipher of the workspace the item lives in, and the keys of your
+     * feature: what `itemDigestTaken` takes to say whether the target already
+     * holds an item of that name.
+     */
+    cipher: SdkCipher;
+    keys: Pick<SdkServerKeys, 'ref'>;
 }
 
 /** The handles {@link FeatureItemsMove.apply} works with. */
@@ -2313,6 +2356,8 @@ export interface FeatureItemsMoveContext<Repo = unknown> {
     toWorkspaceId: number;
     /** The open ciphers of the two workspaces: decrypt with `from`, seal with `to`. */
     ciphers: { from: SdkCipher; to: SdkCipher };
+    /** For `rekeyItemDigests`, once the cells are re-sealed. */
+    keys: Pick<SdkServerKeys, 'ref'>;
 }
 
 /**
@@ -2430,14 +2475,23 @@ export {
     countItemTreeRows,
     exportItemTree,
     importItemTree,
+    itemDigest,
+    itemDigestTaken,
     itemTierOf,
     itemTreeProblem,
-    movableCellsOf
+    movableCellsOf,
+    rekeyItemDigests,
+    rekeyTreeDigests
 } from './copy';
 export type {
+    ItemDigestKeys,
+    ItemDigestPass,
+    ItemDigestPlace,
+    ItemDigestTarget,
     ItemTier,
     ItemTree,
     ItemTreeDestination,
+    ItemTreeDigest,
     ItemTreeRow,
     ItemTreeRows,
     ItemTreeTable

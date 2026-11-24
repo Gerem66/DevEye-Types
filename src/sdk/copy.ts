@@ -1,6 +1,12 @@
 import { randomUUID } from 'node:crypto';
 
-import { FeatureError, type MovableCell, type SdkCipher, type SdkQueryable } from './server';
+import {
+    FeatureError,
+    type MovableCell,
+    type SdkCipher,
+    type SdkQueryable,
+    type SdkServerKeys
+} from './server';
 
 /**
  * Copying an item to another workspace, of this DevEye or of another one.
@@ -16,6 +22,57 @@ import { FeatureError, type MovableCell, type SdkCipher, type SdkQueryable } fro
  * key, which the source does not know. It only ever exists in the memory of the
  * two servers and of the browser that carries it.
  */
+
+/**
+ * A column holding the keyed digest (`keys.ref`) of a value the row keeps
+ * encrypted: what makes a name unique, or lets rows be grouped, without
+ * decrypting anything. Declared once, it is computed by the engine wherever a
+ * row changes place: a copy lands with digests of its own, a move recomputes
+ * the ones bound to the workspace, and {@link rekeyTreeDigests} rewrites them
+ * all. Your handlers compute the same value with {@link itemDigest}.
+ */
+export interface ItemTreeDigest {
+    /** The column that holds the digest. */
+    column: string;
+    /** The `purpose` given to `keys.ref`: one per column. */
+    purpose: string;
+    /**
+     * What the value is unique within: the workspace the item lives in, or the
+     * item itself (its root id) for its child rows. A root-table digest is
+     * always `'workspace'`.
+     */
+    within: 'workspace' | 'item';
+    /** The sealed column the value is read from. */
+    from: string;
+    /**
+     * The value to digest, out of the clear text of `from`, normalized the way
+     * two spellings must collide. `null` leaves the column NULL.
+     */
+    of(plain: string): string | null;
+}
+
+/** Where a digest is computed: see {@link ItemTreeDigest.within}. */
+export interface ItemDigestPlace {
+    workspaceId: number;
+    itemId: string | number;
+}
+
+/** The handle the digest functions need: `ctx.keys` or `deps.keys` fits. */
+export type ItemDigestKeys = Pick<SdkServerKeys, 'ref'>;
+
+/** The digest of an already extracted value, as the engine computes it. */
+export function itemDigest(
+    keys: ItemDigestKeys,
+    digest: Pick<ItemTreeDigest, 'purpose' | 'within'>,
+    at: ItemDigestPlace,
+    value: string
+): string {
+    return keys.ref(
+        digest.purpose,
+        digest.within === 'workspace' ? at.workspaceId : at.itemId,
+        value
+    );
+}
 
 /** One table of an item's tree, see {@link ItemTree}. */
 export interface ItemTreeTable {
@@ -99,6 +156,12 @@ export interface ItemTreeTable {
      * item is open.
      */
     tier?: { column: string; open: string | number; private: string | number };
+    /**
+     * Columns holding a keyed digest of a sealed one, see {@link ItemTreeDigest}.
+     * Never copied: the destination computes its own. Only for a tree the
+     * server can always read: not with `tier`.
+     */
+    digests?: readonly ItemTreeDigest[];
 }
 
 /**
@@ -159,7 +222,8 @@ export function itemTreeProblem(tree: ItemTree): string | null {
             ...(t.tier ? [t.tier.column] : []),
             ...(t.sealed ?? []),
             ...(t.omit ?? []),
-            ...Object.keys(t.refs ?? {})
+            ...Object.keys(t.refs ?? {}),
+            ...(t.digests ?? []).map((d) => d.column)
         ];
         const bad = names.find((n) => !IDENTIFIER.test(n));
         if (bad !== undefined) return `${t.table}: "${bad}" is not a plain SQL identifier`;
@@ -181,6 +245,28 @@ export function itemTreeProblem(tree: ItemTree): string | null {
                 Object.values(t.refs ?? {}).includes(t.table))
         ) {
             return `${t.table}: only a pure link table goes without idColumn`;
+        }
+        for (const digest of t.digests ?? []) {
+            const at = `${t.table}.${digest.column}`;
+            if (root.tier || !root.workspaceColumn) {
+                return `${at}: digests need a root that names its workspaceColumn and has no tier`;
+            }
+            if (!t.idColumn) return `${at}: a table with digests needs an idColumn`;
+            if (!(t.sealed ?? []).includes(digest.from)) {
+                return `${at}: digested from ${digest.from}, which is not a sealed column`;
+            }
+            if (!t.cache && (t.omit ?? []).includes(digest.from)) {
+                return `${at}: digested from ${digest.from}, which a copy does not carry`;
+            }
+            if (
+                (t.sealed ?? []).includes(digest.column) ||
+                (t.omit ?? []).includes(digest.column)
+            ) {
+                return `${at}: a digest column is neither sealed nor omitted`;
+            }
+            if (t === root && digest.within !== 'workspace') {
+                return `${at}: a digest of the root is unique within the workspace`;
+            }
         }
         for (const [column, target] of Object.entries(t.refs ?? {})) {
             if (target !== t.table && !seen.has(target)) {
@@ -271,6 +357,8 @@ export async function exportItemTree(
         if (t.orderColumn) skipped.add(t.orderColumn);
         // The destination decides the tier: it may not have the private one.
         if (t.tier) skipped.add(t.tier.column);
+        // A digest is bound to where the row lives: the destination computes its own.
+        for (const digest of t.digests ?? []) skipped.add(digest.column);
         const sealed = new Set(t.sealed ?? []);
         const rows = await q.query<ItemTreeRow>(
             `SELECT * FROM ${t.table} WHERE ${ownerFilter(t)}${t.idColumn ? ` ORDER BY ${t.idColumn} ASC` : ''}`,
@@ -312,6 +400,8 @@ export interface ItemTreeDestination {
     cipher: SdkCipher;
     /** Defaults to `'open'`. The root's tier column says so. */
     tier?: ItemTier;
+    /** Required as soon as the tree declares `digests`: they are computed here. */
+    keys?: ItemDigestKeys;
 }
 
 /**
@@ -350,10 +440,15 @@ export async function importItemTree(
         [];
     const rootOldId = String(rows[root.table][0][root.idColumn!]);
 
+    if (!into.keys && copied.some((t) => (t.digests ?? []).length > 0)) {
+        throw new Error('importItemTree: the tree declares digests, the destination needs `keys`');
+    }
+
     for (const t of copied) {
         const columns = await writableColumns(q, t.table);
         const sealed = new Set(t.sealed ?? []);
         const refs = t.refs ?? {};
+        const digested = new Set((t.digests ?? []).map((d) => d.column));
         const mine = new Map<string, string | number>();
         ids.set(t.table, mine);
 
@@ -368,6 +463,8 @@ export async function importItemTree(
                     column === t.userColumn ||
                     column === t.orderColumn ||
                     column === t.tier?.column ||
+                    // Computed here: one that travelled was computed for another place.
+                    digested.has(column) ||
                     (t.omit ?? []).includes(column)
                 ) {
                     throw new FeatureError(
@@ -403,6 +500,31 @@ export async function importItemTree(
             }
             if (t.workspaceColumn) values[t.workspaceColumn] = toWorkspaceId;
             if (t.userColumn) values[t.userColumn] = into.userId;
+            for (const digest of t.digests ?? []) {
+                const plain = row[digest.from];
+                let value: string | null = null;
+                try {
+                    value = typeof plain === 'string' && plain !== '' ? digest.of(plain) : null;
+                } catch {
+                    throw new FeatureError(
+                        'validation',
+                        `Valeur illisible dans la copie : ${t.table}.${digest.from}.`
+                    );
+                }
+                values[digest.column] =
+                    value === null
+                        ? null
+                        : itemDigest(
+                              into.keys!,
+                              digest,
+                              {
+                                  workspaceId: toWorkspaceId,
+                                  // The root is written first, and its own digests do not need it.
+                                  itemId: ids.get(root.table)?.get(rootOldId) ?? ''
+                              },
+                              value
+                          );
+            }
             if (t.unique && t.workspaceColumn) {
                 const taken = await q.query<{ n: number }>(
                     `SELECT COUNT(*) AS n FROM ${t.table} WHERE ${t.workspaceColumn} = ? AND ${t.unique.column} = ?`,
@@ -454,4 +576,155 @@ export async function importItemTree(
     }
 
     return String(ids.get(root.table)!.get(rootOldId));
+}
+
+/** Where the digests of an item are recomputed, and with what. */
+export interface ItemDigestTarget {
+    /** The cipher that opens the item's cells as they are now. */
+    cipher: SdkCipher;
+    keys: ItemDigestKeys;
+    /** The workspace the digests are computed for: the one the item lives in, or is moving to. */
+    workspaceId: number;
+}
+
+/** What a digest pass did: rows rewritten, and rows whose source cell would not open. */
+export interface ItemDigestPass {
+    rewritten: number;
+    unreadable: number;
+}
+
+/**
+ * What a row's digest must be, or `undefined` to leave it. A cell that does
+ * not open gets a digest of the row itself: unique, findable by nothing, so
+ * that no digest of another kind survives a pass.
+ */
+async function digestOfRow(
+    t: ItemTreeTable,
+    digest: ItemTreeDigest,
+    row: ItemTreeRow,
+    itemId: string | number,
+    target: ItemDigestTarget
+): Promise<{ value: string | null; unreadable: boolean }> {
+    const at = { workspaceId: target.workspaceId, itemId };
+    const sealed = row[digest.from];
+    if (typeof sealed !== 'string' || sealed === '') return { value: null, unreadable: false };
+    const plain = await target.cipher.tryDecrypt(sealed);
+    let value: string | null | undefined;
+    try {
+        value = plain === null ? undefined : digest.of(plain);
+    } catch {
+        value = undefined;
+    }
+    if (value === undefined) {
+        const placeholder = `\u0000unreadable:${t.table}:${String(row[t.idColumn!])}`;
+        return { value: itemDigest(target.keys, digest, at, placeholder), unreadable: true };
+    }
+    return {
+        value: value === null ? null : itemDigest(target.keys, digest, at, value),
+        unreadable: false
+    };
+}
+
+/**
+ * Recomputes the digests of ONE item for `target.workspaceId`, writing only
+ * the rows whose digest differs: in a `move.apply`, after {@link resealCells}
+ * (the cells are then under the destination's key), with the same
+ * transactional `q`.
+ */
+export async function rekeyItemDigests(
+    q: SdkQueryable,
+    tree: ItemTree,
+    itemId: string | number,
+    target: ItemDigestTarget
+): Promise<ItemDigestPass> {
+    const pass: ItemDigestPass = { rewritten: 0, unreadable: 0 };
+    for (const t of tree) {
+        if ((t.digests ?? []).length === 0) continue;
+        const rows = await q.query<ItemTreeRow>(
+            `SELECT * FROM ${t.table} WHERE ${ownerFilter(t)} ORDER BY ${t.idColumn!} ASC`,
+            [itemId]
+        );
+        for (const row of rows) {
+            for (const digest of t.digests ?? []) {
+                const { value, unreadable } = await digestOfRow(t, digest, row, itemId, target);
+                if (unreadable) pass.unreadable += 1;
+                if ((row[digest.column] ?? null) === value) continue;
+                await q.execute(
+                    `UPDATE ${t.table} SET ${digest.column} = ? WHERE ${t.idColumn!} = ?`,
+                    [value, row[t.idColumn!]]
+                );
+                pass.rewritten += 1;
+            }
+        }
+    }
+    return pass;
+}
+
+/**
+ * Whether `target.workspaceId` already holds an item with the same `unique`
+ * digest as this one: what a `move.plan` answers before anything is written.
+ * False for a tree whose root declares no `unique` digest.
+ */
+export async function itemDigestTaken(
+    q: SdkQueryable,
+    tree: ItemTree,
+    itemId: string | number,
+    target: ItemDigestTarget
+): Promise<boolean> {
+    const root = tree[0];
+    const digest = (root.digests ?? []).find((d) => d.column === root.unique?.column);
+    if (!root.unique || !root.workspaceColumn || !digest) return false;
+    const rows = await q.query<ItemTreeRow>(
+        `SELECT * FROM ${root.table} WHERE ${root.idColumn!} = ?`,
+        [itemId]
+    );
+    if (rows.length === 0) return false;
+    const { value } = await digestOfRow(root, digest, rows[0], itemId, target);
+    if (value === null) return false;
+    const taken = await q.query<{ n: number }>(
+        `SELECT COUNT(*) AS n FROM ${root.table} WHERE ${root.workspaceColumn} = ? AND ${root.unique.column} = ?`,
+        [target.workspaceId, value]
+    );
+    return Number(taken[0]?.n ?? 0) > 0;
+}
+
+/** Items read per query by {@link rekeyTreeDigests}. */
+const REKEY_BATCH = 200;
+
+/**
+ * Recomputes the digests of EVERY item of a tree, each for the workspace it
+ * lives in: what a data step runs once, when a column changes the way it is
+ * digested. Walks the root table by primary key and writes only what differs,
+ * so a run cut short resumes where it stopped and a second run writes nothing.
+ * `cipherFor` gives the open cipher of a workspace; it throws when that
+ * workspace's key does not open, and the pass with it.
+ */
+export async function rekeyTreeDigests(
+    q: SdkQueryable,
+    tree: ItemTree,
+    how: { cipherFor(workspaceId: number): SdkCipher; keys: ItemDigestKeys }
+): Promise<ItemDigestPass & { items: number }> {
+    const root = tree[0];
+    const pass = { items: 0, rewritten: 0, unreadable: 0 };
+    if (!root.workspaceColumn || !tree.some((t) => (t.digests ?? []).length > 0)) return pass;
+    let after: string | number = root.idKind === 'uuid' ? '' : 0;
+    for (;;) {
+        const page = await q.query<{ id: string | number; workspace_id: number }>(
+            `SELECT ${root.idColumn!} AS id, ${root.workspaceColumn} AS workspace_id FROM ${root.table} WHERE ${root.idColumn!} > ? ORDER BY ${root.idColumn!} ASC LIMIT ${REKEY_BATCH}`,
+            [after]
+        );
+        for (const item of page) {
+            const workspaceId = Number(item.workspace_id);
+            const one = await rekeyItemDigests(q, tree, item.id, {
+                cipher: how.cipherFor(workspaceId),
+                keys: how.keys,
+                workspaceId
+            });
+            pass.items += 1;
+            pass.rewritten += one.rewritten;
+            pass.unreadable += one.unreadable;
+            after = item.id;
+        }
+        if (page.length < REKEY_BATCH) return pass;
+    }
 }

@@ -1,6 +1,7 @@
 import type { Duplex } from 'node:stream';
 import type { FeatureAccountExport } from './accountExport';
 import type { FeatureSealedColumn } from './sealed';
+import type { FeatureIsolation } from './isolation';
 import type { ItemTree, ItemTreeRows } from './copy';
 import type { z, ZodType } from 'zod';
 import type { ErrorCode } from '../protocol/error';
@@ -2095,6 +2096,11 @@ export interface FeatureE2eEntry<Repo = unknown> {
      * the run marked as leaving residue.
      */
     sweep?(): Promise<void>;
+    /**
+     * What an intruder from another workspace attempts on your feature: the
+     * host builds the `isolation` scenario from it, see {@link FeatureIsolation}.
+     */
+    isolation?: FeatureIsolation<Repo>;
 }
 
 /**
@@ -2424,6 +2430,13 @@ export type {
 
 export { accountExportProblem, EXPORT_SECRET_COLUMN, exportTableRows } from './accountExport';
 export { sealedColumnsProblem } from './sealed';
+export { idFields, isolationProbes, isolationProblems } from './isolation';
+export type {
+    FeatureIsolation,
+    SdkIsolationIds,
+    SdkIsolationProbe,
+    SdkIsolationSeedContext
+} from './isolation';
 export type { FeatureSealedColumn } from './sealed';
 export type {
     FeatureAccountExport,

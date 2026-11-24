@@ -403,6 +403,23 @@ function fakeDerive(salt: string, info: string, length: number): Uint8Array {
     return out;
 }
 
+/**
+ * A deterministic stand-in for `keys.ref`: 32 hex characters, the same for the
+ * same (purpose, scope, value), and nothing here is secret.
+ */
+function fakeRef(purpose: string, scope: string | number, value: string): string {
+    const text = `${purpose}\u0000${scope}\u0000${value}`;
+    let out = '';
+    for (let round = 0; round < 4; round += 1) {
+        let hash = 0x811c9dc5 ^ round;
+        for (let i = 0; i < text.length; i += 1) {
+            hash = Math.imul(hash ^ text.charCodeAt(i), 0x01000193);
+        }
+        out += (hash >>> 0).toString(16).padStart(8, '0');
+    }
+    return out;
+}
+
 /** The plan pauses, from a fixed list by YOUR quota key: no key is checked against the manifest. */
 function memoryPauses(
     pausedItems: Readonly<Record<string, readonly string[]>> | undefined
@@ -678,7 +695,8 @@ export function createTestContext<Repo = undefined>(
         keys: {
             sealBytes: (plain) => `sealed:${Buffer.from(plain).toString('base64')}`,
             openBytes: () => null,
-            derive: fakeDerive
+            derive: fakeDerive,
+            ref: fakeRef
         },
         live: {
             publish(event, payload) {
@@ -1169,7 +1187,8 @@ export function createTestServiceDeps<Repo = undefined>(
                 return handle;
             },
             openBytes: (sealed) => sealedBytes.get(sealed) ?? null,
-            derive: fakeDerive
+            derive: fakeDerive,
+            ref: fakeRef
         },
         domains: {
             findByHost: (host) =>
@@ -1319,7 +1338,8 @@ export function createTestDomainsContext<Repo = undefined>(
                 return handle;
             },
             openBytes: (sealed) => sealedBytes.get(sealed) ?? null,
-            derive: fakeDerive
+            derive: fakeDerive,
+            ref: fakeRef
         },
         dns: { ...emptyDns, ...overrides.dns },
         logger: silentLogger

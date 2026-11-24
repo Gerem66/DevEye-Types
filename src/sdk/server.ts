@@ -977,6 +977,21 @@ export interface SdkServerKeys {
      * `CRYPT_KEY_A`/`CRYPT_KEY_B` do not change.
      */
     derive(salt: string, info: string, length: number): Uint8Array;
+    /**
+     * A keyed digest of `value` (HMAC-SHA256, 32 hex characters), for a column
+     * you find a row by without decrypting it: a name that must stay unique,
+     * an author to group by. A bare hash is recomputed by anyone who guesses
+     * the value; this one takes a key only the server holds, kept apart from
+     * `CRYPT_KEY_A`/`CRYPT_KEY_B` so that rotating them changes no digest.
+     *
+     * `purpose` names the use, one per column. `scope` is what the value is
+     * unique within: the workspace id for the name of an item, the item id
+     * for its child rows. The same value under two scopes gives unrelated
+     * digests: nothing links two workspaces, and a member cannot test a guess
+     * from a workspace of their own. Normalize `value` first (case, spaces)
+     * if two spellings must collide.
+     */
+    ref(purpose: string, scope: string | number, value: string): string;
 }
 
 /** A workspace device, as the devices facade reveals it. */

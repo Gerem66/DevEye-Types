@@ -242,3 +242,19 @@ test('the harnesses hold the plan pauses and refuse a paused item on demand', as
     assert.deepEqual(deps.quotaFor(1).paused('monitors'), ['7']);
     assert.deepEqual(createTestServiceDeps().pauses.paused('monitors'), []);
 });
+
+test('the harnesses answer keys.ref like the host: stable, and unrelated across purposes and scopes', () => {
+    const { keys } = createTestContext();
+    const ref = keys.ref('name', 4, 'Billing');
+    assert.match(ref, /^[0-9a-f]{32}$/);
+    assert.equal(keys.ref('name', 4, 'Billing'), ref);
+    assert.equal(createTestServiceDeps().keys.ref('name', 4, 'Billing'), ref);
+    const others = [
+        keys.ref('name', 5, 'Billing'),
+        keys.ref('author', 4, 'Billing'),
+        keys.ref('name', 4, 'billing')
+    ];
+    assert.equal(new Set([ref, ...others]).size, 4);
+    // Where one field ends and the next begins is part of the digest.
+    assert.notEqual(keys.ref('a', 'b', 'c'), keys.ref('a', '', 'bc'));
+});

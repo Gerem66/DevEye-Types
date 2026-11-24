@@ -39,7 +39,9 @@ const PAGED_READ = new RegExp(
 );
 
 /** Une base qui ne comprend que le SQL du moteur : lectures par propriétaire, insertions, une mise à jour. */
-function fakeDb(tables: Record<string, { columns: string[]; rows: Row[] }>) {
+function fakeDb(
+    tables: Record<string, { columns: string[]; rows: Row[]; unique?: readonly string[] }>
+) {
     let nextId = 1000;
     const q: SdkQueryable = {
         query: async <T extends object>(sql: string, params: unknown[] = []) => {
@@ -106,8 +108,17 @@ function fakeDb(tables: Record<string, { columns: string[]; rows: Row[] }>) {
             }
             const update = /^UPDATE (\w+) SET (\w+) = \? WHERE (\w+) = \?/.exec(sql);
             if (update) {
-                for (const r of tables[update[1]].rows) {
-                    if (r[update[3]] === params[1]) r[update[2]] = params[0];
+                const { rows, unique } = tables[update[1]];
+                for (const r of rows) {
+                    if (r[update[3]] !== params[1]) continue;
+                    const next = { ...r, [update[2]]: params[0] };
+                    const clash = rows.some(
+                        (other) => other !== r && unique?.every((c) => other[c] === next[c])
+                    );
+                    if (clash) {
+                        throw Object.assign(new Error('Duplicate entry'), { code: 'ER_DUP_ENTRY' });
+                    }
+                    r[update[2]] = params[0];
                 }
                 return { affectedRows: 1, insertId: 0 };
             }
@@ -484,6 +495,63 @@ function sitesDb() {
 
 const cipherFor = (workspaceId: number): SdkCipher => cipherOf(`k${workspaceId}`);
 
+/** Une app et ses fiches de store : l'unicité tient à la table fille, et la valeur à une colonne en clair. */
+const APPS: ItemTree = [
+    {
+        table: 'apps',
+        idColumn: 'id',
+        ownerColumn: 'id',
+        workspaceColumn: 'workspace_id',
+        sealed: ['content']
+    },
+    {
+        table: 'listings',
+        idColumn: 'id',
+        ownerColumn: 'app_id',
+        workspaceColumn: 'workspace_id',
+        unique: { column: 'ref', message: 'Cette app est déjà suivie dans cet espace.' },
+        sealed: ['content'],
+        digests: [
+            {
+                column: 'ref',
+                purpose: 'listing',
+                within: 'workspace',
+                from: 'content',
+                of: (plain, row) => `${String(row.store)}:${nameOf(plain)}`
+            }
+        ]
+    }
+];
+
+function appsDb() {
+    const listing = (id: number, app: number, workspace: number, store: string): Row => ({
+        id,
+        app_id: app,
+        workspace_id: workspace,
+        store,
+        ref: `ancien-${id}`,
+        content: `k${workspace}:{"name":"com.demo"}`
+    });
+    const tables = {
+        apps: {
+            columns: ['id', 'workspace_id', 'content'],
+            rows: [
+                { id: 1, workspace_id: 7, content: 'k7:{"name":"Démo"}' },
+                { id: 2, workspace_id: 8, content: 'k8:{"name":"Démo"}' }
+            ] as Row[]
+        },
+        listings: {
+            columns: ['id', 'app_id', 'workspace_id', 'store', 'ref', 'content'],
+            rows: [
+                listing(10, 1, 7, 'apple'),
+                listing(11, 1, 7, 'google'),
+                listing(12, 2, 8, 'apple')
+            ]
+        }
+    };
+    return { tables, q: fakeDb(tables) };
+}
+
 describe('condensés d’un arbre', () => {
     it('une copie n’emporte aucun condensé, et arrive avec ceux de sa destination', async () => {
         const { tables, q } = sitesDb();
@@ -556,7 +624,7 @@ describe('condensés d’un arbre', () => {
     it('la reprise réécrit chaque élément pour son espace, une seule fois', async () => {
         const { tables, q } = sitesDb();
         const first = await rekeyTreeDigests(q, SITES, { cipherFor, keys: KEYS });
-        assert.deepEqual(first, { items: 2, rewritten: 5, unreadable: 0 });
+        assert.deepEqual(first, { items: 2, rewritten: 5, unreadable: 0, duplicates: 0 });
         assert.deepEqual(
             tables.sites.rows.map((r) => r.name_ref),
             ['name/7/vitrine', 'name/8/vitrine']
@@ -566,7 +634,7 @@ describe('condensés d’un arbre', () => {
             ['path/1//accueil', 'path/1//prix', 'path/2//accueil']
         );
         const second = await rekeyTreeDigests(q, SITES, { cipherFor, keys: KEYS });
-        assert.deepEqual(second, { items: 2, rewritten: 0, unreadable: 0 });
+        assert.deepEqual(second, { items: 2, rewritten: 0, unreadable: 0, duplicates: 0 });
     });
 
     it('une cellule illisible reçoit un condensé à elle, pour qu’aucun ancien ne reste', async () => {
@@ -577,6 +645,26 @@ describe('condensés d’un arbre', () => {
         assert.equal(pass.unreadable, 2);
         assert.match(String(tables.pages.rows[1].path_ref), /^path\/1\/.*unreadable:pages:11$/);
         assert.match(String(tables.pages.rows[2].path_ref), /^path\/2\/.*unreadable:pages:12$/);
+    });
+
+    it('deux lignes que l’ancien condensé distinguait : la première garde le nouveau, la reprise continue', async () => {
+        const { tables, q } = sitesDb();
+        // Deux pages du même chemin, écrites sous deux anciennes clés, et une table qui refuse le doublon.
+        tables.pages.rows[1].content = 'k7:{"name":"/accueil"}';
+        Object.assign(tables.pages, { unique: ['site_id', 'path_ref'] });
+        const first = await rekeyTreeDigests(q, SITES, { cipherFor, keys: KEYS });
+        assert.deepEqual(first, { items: 2, rewritten: 5, unreadable: 0, duplicates: 1 });
+        assert.equal(tables.pages.rows[0].path_ref, 'path/1//accueil');
+        assert.match(String(tables.pages.rows[1].path_ref), /^path\/1\/.*duplicate:pages:11$/);
+        const second = await rekeyTreeDigests(q, SITES, { cipherFor, keys: KEYS });
+        assert.deepEqual(second, { items: 2, rewritten: 0, unreadable: 0, duplicates: 1 });
+
+        // Un déplacement, lui, s'arrête sur le refus de la base : il n'écarte rien.
+        tables.pages.rows[1].path_ref = 'ancien-11';
+        await assert.rejects(
+            rekeyItemDigests(q, SITES, 1, { cipher: cipherOf('k7'), keys: KEYS, workspaceId: 7 }),
+            { code: 'ER_DUP_ENTRY' }
+        );
     });
 
     it('s’arrête sur un espace dont la clé ne s’ouvre pas, plutôt que de le laisser à l’ancien format', async () => {
@@ -591,7 +679,57 @@ describe('condensés d’un arbre', () => {
         );
     });
 
+    it('la valeur d’un condensé peut tenir à une colonne en clair de sa ligne', async () => {
+        const { tables, q } = appsDb();
+        await rekeyTreeDigests(q, APPS, { cipherFor, keys: KEYS });
+        // Le même identifiant sur deux stores n'est pas la même fiche.
+        assert.deepEqual(
+            tables.listings.rows.map((r) => r.ref),
+            ['listing/7/apple:com.demo', 'listing/7/google:com.demo', 'listing/8/apple:com.demo']
+        );
+    });
+
+    it('une table fille porte une unicité d’espace : à l’arrivée d’une copie, et avant un déplacement', async () => {
+        const { tables, q } = appsDb();
+        await rekeyTreeDigests(q, APPS, { cipherFor, keys: KEYS });
+        const target = { cipher: cipherOf('k7'), keys: KEYS, workspaceId: 8 };
+        // L'espace 8 suit déjà l'app Apple : l'app de l'espace 7, qui la suit aussi, n'y entre pas.
+        assert.equal(await itemDigestTaken(q, APPS, 1, target), true);
+        assert.equal(await itemDigestTaken(q, APPS, 1, { ...target, workspaceId: 9 }), false);
+
+        const rows = await exportItemTree(q, APPS, 1, cipherOf('k7'));
+        assert.equal('ref' in rows.listings[0], false);
+        const newId = await importItemTree(q, APPS, rows, { ...into('k42'), keys: KEYS });
+        assert.deepEqual(
+            tables.listings.rows.filter((r) => String(r.app_id) === newId).map((r) => r.ref),
+            ['listing/42/apple:com.demo', 'listing/42/google:com.demo']
+        );
+        // Une seconde copie au même endroit bute sur la fiche, pas sur l'app.
+        await assert.rejects(importItemTree(q, APPS, rows, { ...into('k42'), keys: KEYS }), {
+            code: 'conflict',
+            message: 'Cette app est déjà suivie dans cet espace.'
+        });
+    });
+
     it('refuse au démarrage une déclaration de condensé mal formée', () => {
+        const [apps, listings] = APPS;
+        assert.equal(itemTreeProblem(APPS), null);
+        assert.match(
+            itemTreeProblem([
+                apps,
+                { ...listings, digests: [{ ...listings.digests![0], within: 'item' }] }
+            ]) ?? '',
+            /unique digest is computed within the workspace/
+        );
+        assert.match(
+            itemTreeProblem([apps, { ...listings, workspaceColumn: undefined }]) ?? '',
+            /names its workspaceColumn/
+        );
+        assert.match(
+            itemTreeProblem([apps, { ...listings, orderColumn: 'sort_order' }]) ?? '',
+            /orderColumn is for a root/
+        );
+
         const [root, pages] = SITES;
         const digest = root.digests![0];
         const withRoot = (patch: object): ItemTree => [{ ...root, ...patch }, pages];

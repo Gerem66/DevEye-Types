@@ -46,9 +46,12 @@ export interface ItemTreeDigest {
     from: string;
     /**
      * The value to digest, out of the clear text of `from`, normalized the way
-     * two spellings must collide. `null` leaves the column NULL.
+     * two spellings must collide. `null` leaves the column NULL. `row` is the
+     * row the cell belongs to, for what a plain column adds to the value (the
+     * store an identifier belongs to): read nothing sealed from it, a sealed
+     * column is clear text in a copy and ciphertext everywhere else.
      */
-    of(plain: string): string | null;
+    of(plain: string, row: Readonly<Record<string, unknown>>): string | null;
 }
 
 /** Where a digest is computed: see {@link ItemTreeDigest.within}. */
@@ -145,9 +148,11 @@ export interface ItemTreeTable {
      */
     orderColumn?: string;
     /**
-     * ROOT only: the column that makes an item unique within a workspace (the
-     * digest of its name, encryption being non-deterministic), and the sentence
-     * shown when the destination already holds one. Needs `workspaceColumn`.
+     * The column that makes a row unique within a workspace (the digest of an
+     * item's name, encryption being non-deterministic), and the sentence shown
+     * when the destination already holds one. On the root, or on a child table
+     * whose rows are unique across the workspace (the listing of an app on a
+     * store). Needs `workspaceColumn`.
      */
     unique?: { column: string; message: string };
     /**
@@ -235,8 +240,11 @@ export function itemTreeProblem(tree: ItemTree): string | null {
             return `${t.table}.${unsealed}: only a sealed column is redacted`;
         }
         if (t.tier && t !== root) return `${t.table}: only the root chooses the tier`;
-        if ((t.orderColumn || t.unique) && (t !== root || !t.workspaceColumn)) {
-            return `${t.table}: orderColumn and unique are for a root that names its workspaceColumn`;
+        if (t.orderColumn && (t !== root || !t.workspaceColumn)) {
+            return `${t.table}: orderColumn is for a root that names its workspaceColumn`;
+        }
+        if (t.unique && !t.workspaceColumn) {
+            return `${t.table}: unique is for a table that names its workspaceColumn`;
         }
         if (
             !t.idColumn &&
@@ -266,6 +274,9 @@ export function itemTreeProblem(tree: ItemTree): string | null {
             }
             if (t === root && digest.within !== 'workspace') {
                 return `${at}: a digest of the root is unique within the workspace`;
+            }
+            if (t.unique?.column === digest.column && digest.within !== 'workspace') {
+                return `${at}: a unique digest is computed within the workspace`;
             }
         }
         for (const [column, target] of Object.entries(t.refs ?? {})) {
@@ -504,7 +515,8 @@ export async function importItemTree(
                 const plain = row[digest.from];
                 let value: string | null = null;
                 try {
-                    value = typeof plain === 'string' && plain !== '' ? digest.of(plain) : null;
+                    value =
+                        typeof plain === 'string' && plain !== '' ? digest.of(plain, row) : null;
                 } catch {
                     throw new FeatureError(
                         'validation',
@@ -593,6 +605,22 @@ export interface ItemDigestPass {
     unreadable: number;
 }
 
+/** The digest of a row that cannot hold the one its value calls for: unique, findable by nothing. */
+function ownDigest(
+    t: ItemTreeTable,
+    digest: ItemTreeDigest,
+    row: ItemTreeRow,
+    at: ItemDigestPlace,
+    keys: ItemDigestKeys,
+    why: 'unreadable' | 'duplicate'
+): string {
+    return itemDigest(keys, digest, at, `\u0000${why}:${t.table}:${String(row[t.idColumn!])}`);
+}
+
+/** A unique key of the table refused the write (MySQL's `ER_DUP_ENTRY`). */
+const isDuplicateKey = (error: unknown): boolean =>
+    (error as { code?: unknown } | null)?.code === 'ER_DUP_ENTRY';
+
 /**
  * What a row's digest must be, or `undefined` to leave it. A cell that does
  * not open gets a digest of the row itself: unique, findable by nothing, so
@@ -611,13 +639,15 @@ async function digestOfRow(
     const plain = await target.cipher.tryDecrypt(sealed);
     let value: string | null | undefined;
     try {
-        value = plain === null ? undefined : digest.of(plain);
+        value = plain === null ? undefined : digest.of(plain, row);
     } catch {
         value = undefined;
     }
     if (value === undefined) {
-        const placeholder = `\u0000unreadable:${t.table}:${String(row[t.idColumn!])}`;
-        return { value: itemDigest(target.keys, digest, at, placeholder), unreadable: true };
+        return {
+            value: ownDigest(t, digest, row, at, target.keys, 'unreadable'),
+            unreadable: true
+        };
     }
     return {
         value: value === null ? null : itemDigest(target.keys, digest, at, value),
@@ -640,24 +670,55 @@ export async function rekeyItemDigests(
     target: ItemDigestTarget,
     only?: { within: ItemTreeDigest['within'] }
 ): Promise<ItemDigestPass> {
-    const pass: ItemDigestPass = { rewritten: 0, unreadable: 0 };
+    const { rewritten, unreadable } = await rekeyRows(q, tree, itemId, target, { only });
+    return { rewritten, unreadable };
+}
+
+/**
+ * The pass behind {@link rekeyItemDigests}. `setAside` is for the pass that
+ * takes rows as it finds them: a row whose digest a unique key refuses, because
+ * an earlier row already holds it, gets a digest of its own instead of stopping
+ * the pass. A move never asks for it: there, the refusal must cancel the move.
+ */
+async function rekeyRows(
+    q: SdkQueryable,
+    tree: ItemTree,
+    itemId: string | number,
+    target: ItemDigestTarget,
+    how: { only?: { within: ItemTreeDigest['within'] }; setAside?: boolean }
+): Promise<ItemDigestPass & { duplicates: number }> {
+    const pass = { rewritten: 0, unreadable: 0, duplicates: 0 };
+    const at = { workspaceId: target.workspaceId, itemId };
     for (const table of tree) {
-        const digests = (table.digests ?? []).filter((d) => !only || d.within === only.within);
+        const digests = (table.digests ?? []).filter(
+            (d) => !how.only || d.within === how.only.within
+        );
         if (digests.length === 0) continue;
         const t = { ...table, digests };
         const rows = await q.query<ItemTreeRow>(
             `SELECT * FROM ${t.table} WHERE ${ownerFilter(t)} ORDER BY ${t.idColumn!} ASC`,
             [itemId]
         );
+        const write = (digest: ItemTreeDigest, row: ItemTreeRow, value: string | null) =>
+            q.execute(`UPDATE ${t.table} SET ${digest.column} = ? WHERE ${t.idColumn!} = ?`, [
+                value,
+                row[t.idColumn!]
+            ]);
         for (const row of rows) {
             for (const digest of t.digests ?? []) {
                 const { value, unreadable } = await digestOfRow(t, digest, row, itemId, target);
                 if (unreadable) pass.unreadable += 1;
-                if ((row[digest.column] ?? null) === value) continue;
-                await q.execute(
-                    `UPDATE ${t.table} SET ${digest.column} = ? WHERE ${t.idColumn!} = ?`,
-                    [value, row[t.idColumn!]]
-                );
+                const held = row[digest.column] ?? null;
+                if (held === value) continue;
+                try {
+                    await write(digest, row, value);
+                } catch (error) {
+                    if (!how.setAside || !isDuplicateKey(error)) throw error;
+                    pass.duplicates += 1;
+                    const own = ownDigest(t, digest, row, at, target.keys, 'duplicate');
+                    if (held === own) continue;
+                    await write(digest, row, own);
+                }
                 pass.rewritten += 1;
             }
         }
@@ -666,9 +727,9 @@ export async function rekeyItemDigests(
 }
 
 /**
- * Whether `target.workspaceId` already holds an item with the same `unique`
- * digest as this one: what a `move.plan` answers before anything is written.
- * False for a tree whose root declares no `unique` digest.
+ * Whether `target.workspaceId` already holds a row with the same `unique`
+ * digest as one of this item's: what a `move.plan` answers before anything is
+ * written. False for a tree that declares no `unique` digest.
  */
 export async function itemDigestTaken(
     q: SdkQueryable,
@@ -676,21 +737,24 @@ export async function itemDigestTaken(
     itemId: string | number,
     target: ItemDigestTarget
 ): Promise<boolean> {
-    const root = tree[0];
-    const digest = (root.digests ?? []).find((d) => d.column === root.unique?.column);
-    if (!root.unique || !root.workspaceColumn || !digest) return false;
-    const rows = await q.query<ItemTreeRow>(
-        `SELECT * FROM ${root.table} WHERE ${root.idColumn!} = ?`,
-        [itemId]
-    );
-    if (rows.length === 0) return false;
-    const { value } = await digestOfRow(root, digest, rows[0], itemId, target);
-    if (value === null) return false;
-    const taken = await q.query<{ n: number }>(
-        `SELECT COUNT(*) AS n FROM ${root.table} WHERE ${root.workspaceColumn} = ? AND ${root.unique.column} = ?`,
-        [target.workspaceId, value]
-    );
-    return Number(taken[0]?.n ?? 0) > 0;
+    for (const t of tree) {
+        const digest = (t.digests ?? []).find((d) => d.column === t.unique?.column);
+        if (!t.unique || !t.workspaceColumn || !digest) continue;
+        const rows = await q.query<ItemTreeRow>(
+            `SELECT * FROM ${t.table} WHERE ${ownerFilter(t)} ORDER BY ${t.idColumn!} ASC`,
+            [itemId]
+        );
+        for (const row of rows) {
+            const { value } = await digestOfRow(t, digest, row, itemId, target);
+            if (value === null) continue;
+            const taken = await q.query<{ n: number }>(
+                `SELECT COUNT(*) AS n FROM ${t.table} WHERE ${t.workspaceColumn} = ? AND ${t.unique.column} = ?`,
+                [target.workspaceId, value]
+            );
+            if (Number(taken[0]?.n ?? 0) > 0) return true;
+        }
+    }
+    return false;
 }
 
 /** Items read per query by {@link rekeyTreeDigests}. */
@@ -703,14 +767,19 @@ const REKEY_BATCH = 200;
  * so a run cut short resumes where it stopped and a second run writes nothing.
  * `cipherFor` gives the open cipher of a workspace; it throws when that
  * workspace's key does not open, and the pass with it.
+ *
+ * Two rows the old digest told apart may call for the same new one (the old
+ * key had changed between them). The first keeps it; the other is counted in
+ * `duplicates` and given a digest of its own, as an unreadable one is: a
+ * unique key never stops the pass, and so never the server's start.
  */
 export async function rekeyTreeDigests(
     q: SdkQueryable,
     tree: ItemTree,
     how: { cipherFor(workspaceId: number): SdkCipher; keys: ItemDigestKeys }
-): Promise<ItemDigestPass & { items: number }> {
+): Promise<ItemDigestPass & { items: number; duplicates: number }> {
     const root = tree[0];
-    const pass = { items: 0, rewritten: 0, unreadable: 0 };
+    const pass = { items: 0, rewritten: 0, unreadable: 0, duplicates: 0 };
     if (!root.workspaceColumn || !tree.some((t) => (t.digests ?? []).length > 0)) return pass;
     let after: string | number = root.idKind === 'uuid' ? '' : 0;
     for (;;) {
@@ -720,14 +789,17 @@ export async function rekeyTreeDigests(
         );
         for (const item of page) {
             const workspaceId = Number(item.workspace_id);
-            const one = await rekeyItemDigests(q, tree, item.id, {
-                cipher: how.cipherFor(workspaceId),
-                keys: how.keys,
-                workspaceId
-            });
+            const one = await rekeyRows(
+                q,
+                tree,
+                item.id,
+                { cipher: how.cipherFor(workspaceId), keys: how.keys, workspaceId },
+                { setAside: true }
+            );
             pass.items += 1;
             pass.rewritten += one.rewritten;
             pass.unreadable += one.unreadable;
+            pass.duplicates += one.duplicates;
             after = item.id;
         }
         if (page.length < REKEY_BATCH) return pass;

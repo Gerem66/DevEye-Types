@@ -569,6 +569,8 @@ export interface TestContextOverrides<Repo> {
      * locked session; the `'server'` cipher stays the identity.
      */
     unlocked?: boolean;
+    /** What `secrecy.isPasswordProtected` answers. Default true. */
+    passwordProtected?: boolean;
     /** The caller's role restrictions on items, by item id. Default none. */
     itemRestrictions?: Readonly<Record<string, ItemAccess>>;
     /**
@@ -673,6 +675,7 @@ export function createTestContext<Repo = undefined>(
         forgotten,
         secrecy: {
             isUnlocked: () => Promise.resolve(overrides.unlocked ?? true),
+            isPasswordProtected: () => Promise.resolve(overrides.passwordProtected ?? true),
             // Un ticket lisible tel quel : le harnais ne signe rien, il
             // sérialise, et `createTestServiceDeps().secrecy.redeem` relit.
             ticket: (payload) =>

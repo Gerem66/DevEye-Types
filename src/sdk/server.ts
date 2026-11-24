@@ -1024,6 +1024,15 @@ export interface SdkSecrecy {
      */
     isUnlocked(): Promise<boolean>;
     /**
+     * True when the guarded tier is under the account's password: a personal
+     * workspace whose owner turned password-based encryption on. Anywhere else
+     * (a shared workspace, an account without it) a `'private'` cell stays
+     * readable by the server at any time. Ask here before you let an item be
+     * called "protected", and refuse on false: the choice would promise what
+     * it does not give.
+     */
+    isPasswordProtected(): Promise<boolean>;
+    /**
      * A short-lived ticket, signed by the host and bound to the caller (their
      * session, this workspace, YOUR module), carrying `payload`. Hand it to
      * the browser (a download URL, an OAuth `state`); a public route of your

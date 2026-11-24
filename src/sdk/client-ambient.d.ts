@@ -720,6 +720,38 @@ declare module 'deveye-sdk-client' {
      * French infinitive ("relever la base").
      */
     export const ServerHeldNote: ComponentType<{ purpose: string }>;
+    /** Which key an item keeps its secrets under: the one the server opens alone, or the account password's. */
+    export type SecurityTier = 'open' | 'guarded';
+    export interface SecurityTierChoiceProps {
+        /** What the choice protects, for a screen reader: "Protection de la boîte". */
+        'aria-label': string;
+        value: SecurityTier;
+        onChange: (tier: SecurityTier) => void;
+        disabled?: boolean;
+        /** The tier being applied. */
+        pending?: SecurityTier | null;
+        onPick?: (tier: SecurityTier) => void;
+        /** What each tier allows and costs, for this item. */
+        open: ReactNode;
+        guarded: ReactNode;
+        /** At creation: the open tier is marked as advised, and this sentence says where the choice is revisited. */
+        advise?: ReactNode;
+        /** Why the protected tier is not offered here, when it is not for lack of password-based encryption. */
+        unavailable?: string;
+        /** Both labels, agreed with the item. Feminine by default ("Ouverte", "Protégée"). */
+        labels?: { open: string; guarded: string };
+    }
+    /**
+     * The choice of protection of an item whose module lets its tier be
+     * chosen, the same wherever it is offered: at creation, then in the
+     * Encryption tab of its settings. The protected card explains itself
+     * instead of being offered when the account has no password-based
+     * encryption, or for the module's own reason (`unavailable`). An item
+     * already protected stays shown as such, with a warning when the account
+     * no longer protects it. Refuse on the server what the card does not
+     * offer (`ctx.secrecy.isPasswordProtected()`).
+     */
+    export function SecurityTierChoice(props: SecurityTierChoiceProps): ReactNode;
     /**
      * The notice above a feature's list, or atop an item's sheet, when nothing
      * would be sent: no channel declared for the feature, none checked for the

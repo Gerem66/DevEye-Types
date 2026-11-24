@@ -137,6 +137,12 @@ export interface DatabaseBackupCandidate {
     engine: 'mysql' | 'postgres';
     host: string;
     database: string;
+    /**
+     * Why this database cannot be a source, in a sentence the screen shows as
+     * it is: its secrets are under its owner's password, out of reach of a job
+     * that runs without a session. Absent when it can.
+     */
+    unavailable?: string;
 }
 
 /**
@@ -159,7 +165,11 @@ export interface DatabaseBackupProvider {
     /** The databases of the workspace, its own only (a projection is not a source). */
     listDatabases(workspaceId: number): Promise<readonly DatabaseBackupCandidate[]>;
     findDatabase(databaseId: number, workspaceId: number): Promise<DatabaseBackupCandidate | null>;
-    /** null when the database is unknown to this workspace. */
+    /**
+     * null when the database is unknown to this workspace. Throws, with the
+     * candidate's `unavailable` sentence, for a database that cannot be a
+     * source.
+     */
     openAccess(databaseId: number, workspaceId: number): Promise<DatabaseBackupAccess | null>;
     /**
      * May this member, without a session, read the database's data? The same

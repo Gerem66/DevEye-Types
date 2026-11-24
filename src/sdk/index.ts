@@ -7,6 +7,7 @@
  * (handler test harness).
  */
 export * from './csv';
+export * from './day';
 export * from './deviceRelayOption';
 export * from './ids';
 export * from './manifest';

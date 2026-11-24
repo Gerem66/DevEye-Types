@@ -2054,7 +2054,11 @@ export interface SdkE2eContext<Repo = unknown> {
 export interface SdkE2eStep<Repo = unknown> {
     /** What the report shows, in the interface's language. */
     label: string;
-    /** Longer than the default 20 s: a step that waits on a third party (a payment provider's webhook). */
+    /**
+     * Longer than the default 20 s: a step that waits on a third party (a
+     * payment provider's webhook). A scenario is stopped after two minutes,
+     * plus what its steps ask beyond that default.
+     */
     timeoutMs?: number;
     /** Throws to fail. A returned string is shown as the step's detail. */
     run(ctx: SdkE2eContext<Repo>): Promise<string | void>;

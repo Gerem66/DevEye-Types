@@ -235,7 +235,9 @@ export const debugE2eScenarioSchema = z.object({
     /** Pourquoi il ne peut pas tourner ici maintenant ; `null` s'il le peut. */
     skip: z.string().nullable(),
     /** Le tiers sans lequel il ne peut pas réussir (GitHub, Stripe) ; `null` s'il ne dépend que de ce serveur. */
-    external: z.string().nullable()
+    external: z.string().nullable(),
+    /** Millisecondes : le temps au bout duquel le serveur l'arrête. */
+    budgetMs: z.number().int().positive()
 });
 
 export type DebugE2eScenario = z.infer<typeof debugE2eScenarioSchema>;
